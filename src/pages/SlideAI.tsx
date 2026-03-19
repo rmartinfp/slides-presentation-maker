@@ -19,56 +19,93 @@ export default function SlideAIPage() {
 
   const handleSelectTheme = (theme: PresentationTheme, slides?: Slide[]) => {
     setSelectedTheme(theme);
-
-    if (slides && slides.length > 0) {
-      // DB template with real slides — go directly to editor
-      setTemplateSlides(slides);
-
-      // Ensure slides have proper element structure
-      const migrated = migrateAllSlides(slides, theme.tokens);
-
-      sessionStorage.setItem('presentation', JSON.stringify({
-        id: Math.random().toString(36).substring(2, 11),
-        title: 'Untitled Presentation',
-        slides: migrated,
-        theme,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }));
-
-      navigate('/editor');
-      toast.success(`Template loaded — ${migrated.length} slides ready to edit!`);
-    } else {
-      // Hardcoded template — proceed to content step for AI generation
-      setTemplateSlides(null);
-      setStep('content');
-    }
+    setTemplateSlides(slides && slides.length > 0 ? slides : null);
+    // Always go to content step — user enters prompt, AI fills in the template
+    setStep('content');
   };
 
   const handleGenerate = async () => {
     setStep('generating');
+    const theme = selectedTheme || THEME_CATALOG[0];
 
     try {
-      const result = await generatePresentation({
-        prompt: contentText,
-        length: 'informative',
-        tone: 'professional',
-        audience: 'general',
-      });
+      if (templateSlides && templateSlides.length > 0) {
+        // DB template: use AI to replace text content while keeping layout/design
+        const result = await generatePresentation({
+          prompt: contentText,
+          length: 'informative',
+          tone: 'professional',
+          audience: 'general',
+        });
 
-      const slides = migrateAllSlides(
-        result.slides as Slide[],
-        (selectedTheme || THEME_CATALOG[0]).tokens,
-      );
+        // Map AI-generated content onto the template slides
+        const filledSlides = templateSlides.map((slide, i) => {
+          const aiSlide = result.slides[i];
+          if (!aiSlide) return slide; // Keep original if AI didn't generate enough
 
-      sessionStorage.setItem('presentation', JSON.stringify({
-        id: Math.random().toString(36).substring(2, 11),
-        title: result.title,
-        slides,
-        theme: selectedTheme || THEME_CATALOG[0],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      }));
+          // Clone slide deeply
+          const newSlide = JSON.parse(JSON.stringify(slide));
+
+          // Find text elements sorted by Y position (top to bottom)
+          const textElements = (newSlide.elements || [])
+            .filter((el: any) => el.type === 'text')
+            .sort((a: any, b: any) => a.y - b.y);
+
+          // Replace text content: first text = title, rest = body/bullets
+          if (textElements.length > 0 && aiSlide.title) {
+            textElements[0].content = aiSlide.title;
+          }
+          if (textElements.length > 1) {
+            const bodyContent = aiSlide.bullets?.length
+              ? aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('')
+              : aiSlide.body
+                ? `<p>${aiSlide.body}</p>`
+                : textElements[1].content;
+            textElements[1].content = bodyContent;
+          }
+          // Fill remaining text elements with bullets
+          if (textElements.length > 2 && aiSlide.bullets) {
+            for (let j = 2; j < textElements.length && j - 2 < aiSlide.bullets.length; j++) {
+              textElements[j].content = aiSlide.bullets[j - 2];
+            }
+          }
+
+          return newSlide;
+        });
+
+        const migrated = migrateAllSlides(filledSlides as Slide[], theme.tokens);
+
+        sessionStorage.setItem('presentation', JSON.stringify({
+          id: Math.random().toString(36).substring(2, 11),
+          title: result.title,
+          slides: migrated,
+          theme,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+      } else {
+        // Hardcoded template: generate slides from scratch
+        const result = await generatePresentation({
+          prompt: contentText,
+          length: 'informative',
+          tone: 'professional',
+          audience: 'general',
+        });
+
+        const slides = migrateAllSlides(
+          result.slides as Slide[],
+          theme.tokens,
+        );
+
+        sessionStorage.setItem('presentation', JSON.stringify({
+          id: Math.random().toString(36).substring(2, 11),
+          title: result.title,
+          slides,
+          theme,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+      }
 
       navigate('/editor');
     } catch (error) {

@@ -207,7 +207,11 @@ async function parsePageElement(pe: any, z: number): Promise<SlideElement[]> {
   // Shape
   if (pe.shape) {
     const shape = pe.shape;
-    const isText = shape.shapeType === 'TEXT_BOX' || shape.text?.textElements?.length > 0;
+    const props = shape.shapeProperties || {};
+    const bgFill = props.shapeBackgroundFill || {};
+    const outline = props.outline || {};
+    const isText = shape.shapeType === 'TEXT_BOX' ||
+                   (shape.text?.textElements?.some((te: any) => te.textRun?.content?.trim()));
 
     if (isText && shape.text) {
       const { content, style } = parseTextRuns(shape.text.textElements);
@@ -221,21 +225,35 @@ async function parsePageElement(pe: any, z: number): Promise<SlideElement[]> {
     }
 
     // Non-text shape
-    const bgFill = shape.shapeProperties?.shapeBackgroundFill?.solidFill;
-    const fill = bgFill?.color?.rgbColor ? rgbaToHex(bgFill.color.rgbColor) : '#6366f1';
+    const hasFill = bgFill.propertyState !== 'NOT_RENDERED' && bgFill.solidFill?.color?.rgbColor;
+    const hasOutline = outline.propertyState !== 'NOT_RENDERED' && outline.outlineFill;
+
+    // Skip shapes with no fill and no outline (invisible)
+    if (!hasFill && !hasOutline) return [];
+
+    const fill = hasFill ? rgbaToHex(bgFill.solidFill.color.rgbColor) : 'transparent';
+    const strokeColor = hasOutline && outline.outlineFill?.solidFill?.color?.rgbColor
+      ? rgbaToHex(outline.outlineFill.solidFill.color.rgbColor)
+      : hasOutline ? '#888888' : 'transparent';
+    const strokeWidth = outline.weight?.magnitude
+      ? Math.round(outline.weight.magnitude / 12700) // EMU to pt
+      : hasOutline ? 1 : 0;
+
     const shapeMap: Record<string, string> = {
       RECTANGLE: 'rectangle', ROUND_RECTANGLE: 'rectangle',
       ELLIPSE: 'circle', TRIANGLE: 'triangle',
-      RIGHT_ARROW: 'arrow-right',
+      RIGHT_ARROW: 'arrow-right', LEFT_ARROW: 'arrow-left',
     };
 
     return [{
       id: genId(), type: 'shape', content: '',
-      x, y, width, height, rotation: 0, opacity: bgFill?.alpha ?? 1,
+      x, y, width, height, rotation: 0, opacity: bgFill.solidFill?.alpha ?? 1,
       locked: false, visible: true, zIndex: z,
       style: {
         shapeType: shapeMap[shape.shapeType] || 'rectangle',
         shapeFill: fill,
+        shapeStroke: strokeColor,
+        shapeStrokeWidth: strokeWidth,
         borderRadius: shape.shapeType === 'ROUND_RECTANGLE' ? 12 : 0,
       },
     }];
@@ -255,30 +273,154 @@ function parseBg(slide: any): { type: string; value: string } {
   return { type: 'solid', value: '#FFFFFF' };
 }
 
+// ---- Layout/Master merging ----
+function buildLayoutMap(raw: any): Map<string, any> {
+  const map = new Map();
+  for (const l of raw.layouts || []) {
+    map.set(l.objectId, l);
+  }
+  return map;
+}
+
+function buildMasterMap(raw: any): Map<string, any> {
+  const map = new Map();
+  for (const m of raw.masters || []) {
+    map.set(m.objectId, m);
+  }
+  return map;
+}
+
+/** Resolve theme colors like DARK1, LIGHT1, etc from master color scheme */
+function resolveThemeColor(themeColor: string, master: any): string {
+  const colorScheme = master?.pageProperties?.colorScheme?.colors || [];
+  for (const c of colorScheme) {
+    if (c.type === themeColor && c.color?.rgbColor) {
+      const rgb = c.color.rgbColor;
+      // If all are empty/0, it's likely black or default
+      if (Object.keys(rgb).length === 0) {
+        return themeColor.includes('LIGHT') || themeColor.includes('BACKGROUND') ? '#FFFFFF' : '#000000';
+      }
+      return rgbaToHex(rgb);
+    }
+  }
+  // Fallback
+  return themeColor.includes('LIGHT') || themeColor.includes('BACKGROUND') ? '#FFFFFF' : '#000000';
+}
+
+/** Get inherited text style from layout placeholder */
+function getLayoutPlaceholderStyle(layoutId: string, slideObjectId: string, layoutMap: Map<string, any>, masterMap: Map<string, any>): Record<string, any> {
+  const layout = layoutMap.get(layoutId);
+  if (!layout) return {};
+
+  const master = masterMap.get(layout.layoutProperties?.masterObjectId);
+
+  // Find matching placeholder in layout
+  for (const pe of layout.pageElements || []) {
+    if (pe.shape?.text?.textElements) {
+      for (const te of pe.shape.text.textElements) {
+        if (te.textRun?.style) {
+          const ts = te.textRun.style;
+          const style: Record<string, any> = {};
+          if (ts.fontFamily) style.fontFamily = ts.fontFamily;
+          if (ts.fontSize) style.fontSize = magToFontPx(ts.fontSize.magnitude);
+          if (ts.foregroundColor?.opaqueColor?.rgbColor) {
+            style.color = rgbaToHex(ts.foregroundColor.opaqueColor.rgbColor);
+          } else if (ts.foregroundColor?.opaqueColor?.themeColor && master) {
+            style.color = resolveThemeColor(ts.foregroundColor.opaqueColor.themeColor, master);
+          }
+          if (ts.bold) style.fontWeight = 'bold';
+          return style;
+        }
+      }
+    }
+  }
+  return {};
+}
+
 // ---- Main ----
 async function main() {
   const inputFile = process.argv[2] || '/tmp/gslides_presentation.json';
   console.log(`Reading ${inputFile}...`);
   const raw = JSON.parse(fs.readFileSync(inputFile, 'utf-8'));
 
-  console.log(`Parsing "${raw.title}" — ${raw.slides.length} slides`);
+  // Determine the primary master (the one used by slide 1)
+  const primaryMasterId = raw.slides[0]?.slideProperties?.masterObjectId;
+  const totalSlides = raw.slides.length;
+  const filteredRawSlides = raw.slides.filter((s: any) =>
+    s.slideProperties?.masterObjectId === primaryMasterId
+  );
+  console.log(`Parsing "${raw.title}" — ${filteredRawSlides.length}/${totalSlides} slides (skipping secondary master)`);
+
+  const layoutMap = buildLayoutMap(raw);
+  const masterMap = buildMasterMap(raw);
 
   const slides: any[] = [];
 
-  for (let i = 0; i < raw.slides.length; i++) {
-    const gs = raw.slides[i];
-    console.log(`Slide ${i + 1}/${raw.slides.length}...`);
+  for (let i = 0; i < filteredRawSlides.length; i++) {
+    const gs = filteredRawSlides[i];
+    const layoutId = gs.slideProperties?.layoutObjectId;
+    const masterId = gs.slideProperties?.masterObjectId;
+    const master = masterMap.get(masterId);
+    console.log(`Slide ${i + 1}/${filteredRawSlides.length} (layout: ${layoutId})...`);
 
     const elements: SlideElement[] = [];
     let z = 1;
+
+    // First: collect layout elements (decorations, backgrounds from layout)
+    const layout = layoutMap.get(layoutId);
+    if (layout) {
+      for (const pe of layout.pageElements || []) {
+        // Skip placeholders (they get filled by slide content)
+        if (pe.shape?.placeholder || pe.image?.placeholder) continue;
+        const parsed = await parsePageElement(pe, z);
+        elements.push(...parsed);
+        z += parsed.length;
+      }
+    }
+
+    // Then: slide elements (override layout placeholders)
     for (const pe of gs.pageElements || []) {
       const parsed = await parsePageElement(pe, z);
+
+      // Apply inherited styles from layout for text elements without explicit style
+      for (const el of parsed) {
+        if (el.type === 'text' && (!el.style.fontSize || !el.style.fontFamily)) {
+          const layoutStyle = getLayoutPlaceholderStyle(layoutId, pe.objectId, layoutMap, masterMap);
+          if (!el.style.fontSize && layoutStyle.fontSize) el.style.fontSize = layoutStyle.fontSize;
+          if (!el.style.fontFamily && layoutStyle.fontFamily) el.style.fontFamily = layoutStyle.fontFamily;
+          if ((!el.style.color || el.style.color === '#000000') && layoutStyle.color) el.style.color = layoutStyle.color;
+          if (!el.style.fontWeight && layoutStyle.fontWeight) el.style.fontWeight = layoutStyle.fontWeight;
+        }
+        // Resolve theme colors in text
+        if (el.type === 'text' && el.style.color === '#000000' && master) {
+          // Check if any text run used a theme color
+          // Default to a visible color based on background
+        }
+      }
+
       elements.push(...parsed);
       z += parsed.length;
     }
 
-    const background = parseBg(gs);
-    // Re-host background images
+    // Background: check slide, then layout, then master
+    let background = parseBg(gs);
+    if (background.type === 'solid' && background.value === '#FFFFFF') {
+      // Check if slide has a full-bleed image as first element
+      const bgImage = elements.find(e => e.type === 'image' && e.width > 1800 && e.height > 1000);
+      if (bgImage) {
+        background = { type: 'image', value: bgImage.content };
+        // Remove the image element since it's now the background
+        const idx = elements.indexOf(bgImage);
+        if (idx !== -1) elements.splice(idx, 1);
+      } else {
+        // Try layout background
+        const layoutBg = parseBg(layout || {});
+        if (layoutBg.type !== 'solid' || layoutBg.value !== '#FFFFFF') {
+          background = layoutBg;
+        }
+      }
+    }
+
     if (background.type === 'image') {
       background.value = await reHostImage(background.value);
     }
