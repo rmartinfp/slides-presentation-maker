@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Type, Layout, Palette, Image, Sparkles, X } from 'lucide-react';
+import { Palette, Image, Sparkles, X, PaintBucket } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { PresentationTheme } from '@/types/presentation';
 import { TEMPLATE_REGISTRY, templateToTheme } from '@/lib/template-registry';
+import MediaPanel from './MediaPanel';
+import BackgroundPanel from './BackgroundPanel';
 
 interface Props {
   theme: PresentationTheme;
@@ -15,18 +17,9 @@ interface Props {
 
 const tools = [
   { id: 'ai', icon: Sparkles, label: 'AI', highlight: true },
-  { id: 'layout', icon: Layout, label: 'Layout' },
   { id: 'theme', icon: Palette, label: 'Theme' },
-  { id: 'text', icon: Type, label: 'Text' },
-  { id: 'image', icon: Image, label: 'Media' },
-];
-
-const layouts = [
-  { id: 'cover', name: 'Cover', desc: 'Title slide' },
-  { id: 'content', name: 'Content', desc: 'Title + bullets' },
-  { id: 'two-column', name: 'Two Column', desc: 'Split layout' },
-  { id: 'statement', name: 'Statement', desc: 'Big quote' },
-  { id: 'closing', name: 'Closing', desc: 'Thank you' },
+  { id: 'background', icon: PaintBucket, label: 'Background' },
+  { id: 'media', icon: Image, label: 'Media' },
 ];
 
 export default function CompactRightPanel({ theme, onThemeChange, onLayoutChange, currentLayout, onAIRewrite }: Props) {
@@ -34,27 +27,6 @@ export default function CompactRightPanel({ theme, onThemeChange, onLayoutChange
 
   const renderPanel = () => {
     switch (activePanel) {
-      case 'layout':
-        return (
-          <div className="space-y-2">
-            {layouts.map(l => (
-              <button
-                key={l.id}
-                onClick={() => onLayoutChange(l.id)}
-                className={cn(
-                  'w-full p-3 rounded-lg text-left transition-all',
-                  currentLayout === l.id
-                    ? 'bg-indigo-100 border-2 border-indigo-500 text-indigo-700'
-                    : 'bg-slate-50 border border-slate-200 hover:border-indigo-300 text-slate-700'
-                )}
-              >
-                <div className="text-sm font-medium">{l.name}</div>
-                <div className="text-xs text-slate-400 mt-0.5">{l.desc}</div>
-              </button>
-            ))}
-          </div>
-        );
-
       case 'theme':
         return (
           <div className="space-y-2">
@@ -85,6 +57,12 @@ export default function CompactRightPanel({ theme, onThemeChange, onLayoutChange
             })}
           </div>
         );
+
+      case 'background':
+        return <BackgroundPanel />;
+
+      case 'media':
+        return <MediaPanel />;
 
       case 'ai':
         return (
