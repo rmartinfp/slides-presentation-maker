@@ -1,5 +1,4 @@
 import { Slide } from '@/types/presentation';
-import { v4 } from './utils-id';
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
