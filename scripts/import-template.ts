@@ -22,8 +22,9 @@ if (!SUPABASE_KEY) {
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ---- EMU conversion (Google Slides coords → 1920x1080 px) ----
-const SLIDES_W = 9144000;
-const SLIDES_H = 6858000;
+// These are updated dynamically from the presentation's actual pageSize
+let SLIDES_W = 9144000;
+let SLIDES_H = 5143500; // Default to common Google Slides size
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
 
@@ -343,6 +344,13 @@ async function main() {
   console.log(`Reading ${inputFile}...`);
   const raw = JSON.parse(fs.readFileSync(inputFile, 'utf-8'));
 
+  // Read actual page size from presentation
+  if (raw.pageSize) {
+    SLIDES_W = raw.pageSize.width?.magnitude || SLIDES_W;
+    SLIDES_H = raw.pageSize.height?.magnitude || SLIDES_H;
+    console.log(`Page size: ${SLIDES_W} x ${SLIDES_H} EMU`);
+  }
+
   // Determine the primary master (the one used by slide 1)
   const primaryMasterId = raw.slides[0]?.slideProperties?.masterObjectId;
   const totalSlides = raw.slides.length;
@@ -378,23 +386,93 @@ async function main() {
       }
     }
 
+    // Build a map of layout placeholder styles by objectId
+    const placeholderStyles = new Map<string, { fontSize?: number; fontFamily?: string; color?: string; fontWeight?: string; textAlign?: string }>();
+    if (layout) {
+      for (const lpe of layout.pageElements || []) {
+        if (!lpe.shape?.text?.textElements) continue;
+        const style: any = {};
+        // Get paragraph alignment
+        for (const te of lpe.shape.text.textElements) {
+          if (te.paragraphMarker?.style?.alignment) {
+            style.textAlign = te.paragraphMarker.style.alignment === 'CENTER' ? 'center'
+              : te.paragraphMarker.style.alignment === 'END' ? 'right' : 'left';
+          }
+          if (te.textRun?.style) {
+            const ts = te.textRun.style;
+            if (ts.fontSize && !style.fontSize) style.fontSize = magToFontPx(ts.fontSize.magnitude);
+            if (ts.fontFamily && !style.fontFamily) style.fontFamily = ts.fontFamily;
+            if (ts.foregroundColor?.opaqueColor?.rgbColor && !style.color) {
+              const rgb = ts.foregroundColor.opaqueColor.rgbColor;
+              if (Object.keys(rgb).length > 0) style.color = rgbaToHex(rgb);
+            }
+            if (ts.bold) style.fontWeight = 'bold';
+          }
+        }
+        placeholderStyles.set(lpe.objectId, style);
+      }
+      // Also get master placeholder styles
+      if (master) {
+        for (const mpe of master.pageElements || []) {
+          if (!mpe.shape?.text?.textElements) continue;
+          const style: any = {};
+          for (const te of mpe.shape.text.textElements) {
+            if (te.textRun?.style) {
+              const ts = te.textRun.style;
+              if (ts.fontFamily) style.fontFamily = ts.fontFamily;
+              if (ts.fontSize) style.fontSize = magToFontPx(ts.fontSize.magnitude);
+            }
+          }
+          placeholderStyles.set(mpe.objectId, { ...style, ...placeholderStyles.get(mpe.objectId) });
+        }
+      }
+    }
+
     // Then: slide elements (override layout placeholders)
     for (const pe of gs.pageElements || []) {
       const parsed = await parsePageElement(pe, z);
 
-      // Apply inherited styles from layout for text elements without explicit style
-      for (const el of parsed) {
-        if (el.type === 'text' && (!el.style.fontSize || !el.style.fontFamily)) {
-          const layoutStyle = getLayoutPlaceholderStyle(layoutId, pe.objectId, layoutMap, masterMap);
-          if (!el.style.fontSize && layoutStyle.fontSize) el.style.fontSize = layoutStyle.fontSize;
-          if (!el.style.fontFamily && layoutStyle.fontFamily) el.style.fontFamily = layoutStyle.fontFamily;
-          if ((!el.style.color || el.style.color === '#000000') && layoutStyle.color) el.style.color = layoutStyle.color;
-          if (!el.style.fontWeight && layoutStyle.fontWeight) el.style.fontWeight = layoutStyle.fontWeight;
+      // Apply inherited styles from placeholder chain
+      const placeholderId = pe.shape?.placeholder?.parentObjectId;
+      const placeholderType = pe.shape?.placeholder?.type;
+      if (placeholderId || placeholderType) {
+        const inheritedStyle = placeholderStyles.get(placeholderId || '');
+
+        for (const el of parsed) {
+          if (el.type === 'text') {
+            // Inherit from placeholder
+            if (inheritedStyle) {
+              if (!el.style.fontSize && inheritedStyle.fontSize) el.style.fontSize = inheritedStyle.fontSize;
+              if (!el.style.fontFamily && inheritedStyle.fontFamily) el.style.fontFamily = inheritedStyle.fontFamily;
+              if ((!el.style.color || el.style.color === '#000000') && inheritedStyle.color) el.style.color = inheritedStyle.color;
+              if (!el.style.fontWeight && inheritedStyle.fontWeight) el.style.fontWeight = inheritedStyle.fontWeight;
+              if (!el.style.textAlign && inheritedStyle.textAlign) el.style.textAlign = inheritedStyle.textAlign;
+            }
+            // Default font from master if still missing
+            if (!el.style.fontFamily && master) {
+              const masterFont = placeholderType === 'CENTERED_TITLE' || placeholderType === 'TITLE'
+                ? 'Savate' : 'Work Sans';
+              el.style.fontFamily = masterFont;
+            }
+            // Ensure visible text on dark backgrounds
+            if (!el.style.color || el.style.color === '#000000') {
+              el.style.color = '#d3dc84'; // Template's accent green
+            }
+          }
         }
-        // Resolve theme colors in text
-        if (el.type === 'text' && el.style.color === '#000000' && master) {
-          // Check if any text run used a theme color
-          // Default to a visible color based on background
+      }
+
+      // Apply paragraph alignment from slide element
+      if (pe.shape?.text?.textElements) {
+        for (const te of pe.shape.text.textElements) {
+          if (te.paragraphMarker?.style?.alignment) {
+            const align = te.paragraphMarker.style.alignment;
+            for (const el of parsed) {
+              if (el.type === 'text' && !el.style.textAlign) {
+                el.style.textAlign = align === 'CENTER' ? 'center' : align === 'END' ? 'right' : 'left';
+              }
+            }
+          }
         }
       }
 
