@@ -17,6 +17,7 @@ import CanvasContextMenu from '@/components/editor/ContextMenu';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
+import { exportToPdfFromSlides } from '@/lib/pdf-export';
 import { AnimatePresence } from 'framer-motion';
 
 export default function EditorPage() {
@@ -234,6 +235,16 @@ export default function EditorPage() {
             } catch (e) {
               console.error(e);
               toast.error('Failed to export PPTX');
+            }
+          }}
+          onExportPdf={async () => {
+            try {
+              toast.info('Generating PDF...');
+              await exportToPdfFromSlides(presentation);
+              toast.success('PDF downloaded!');
+            } catch (e) {
+              console.error(e);
+              toast.error('Failed to export PDF');
             }
           }}
           slideCount={presentation.slides.length}
