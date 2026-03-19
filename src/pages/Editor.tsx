@@ -13,6 +13,8 @@ import SpeakerNotes from '@/components/editor/SpeakerNotes';
 import CompactRightPanel from '@/components/editor/CompactRightPanel';
 import PresentationMode from '@/components/editor/PresentationMode';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
+import CanvasContextMenu from '@/components/editor/ContextMenu';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
 import { AnimatePresence } from 'framer-motion';
@@ -55,6 +57,9 @@ export default function EditorPage() {
   } = useEditorStore();
 
   const activeSlide = presentation.slides[activeSlideIndex];
+
+  // Additional keyboard shortcuts (copy/paste/select-all)
+  useKeyboardShortcuts();
 
   // ---- Initialize presentation ----
   useEffect(() => {
@@ -255,6 +260,7 @@ export default function EditorPage() {
 
           {/* Center: canvas + speaker notes */}
           <div className="flex-1 flex flex-col overflow-hidden">
+            <CanvasContextMenu>
             <div
               ref={canvasContainerRef}
               className="flex-1 flex items-center justify-center bg-slate-100 overflow-hidden relative"
@@ -275,6 +281,7 @@ export default function EditorPage() {
                 {Math.round(scale * 100)}%
               </div>
             </div>
+            </CanvasContextMenu>
 
             <SpeakerNotes
               notes={activeSlide?.notes ?? ''}
