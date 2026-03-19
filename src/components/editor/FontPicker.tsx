@@ -17,7 +17,7 @@ interface GoogleFont {
 let cachedFonts: GoogleFont[] | null = null;
 let fetchPromise: Promise<GoogleFont[]> | null = null;
 
-const API_KEY = 'AIzaSyCQZhKtrwGnPtR5m1SFLplZoFWflz0hsdA';
+const API_KEY = import.meta.env.VITE_GOOGLE_FONTS_API_KEY || '';
 
 async function fetchGoogleFonts(): Promise<GoogleFont[]> {
   if (cachedFonts) return cachedFonts;

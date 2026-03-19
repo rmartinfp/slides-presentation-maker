@@ -177,14 +177,15 @@ function parseTextFromSpTree(
   spXml: string,
   themeColors: ThemeColors,
   defaultFonts: { titleFont: string; bodyFont: string },
+  layoutPlaceholderSizes?: Map<string, number>, // phType → fontSize in hundredths of pt
 ): ParsedElement | null {
-  // Extract position
-  const off = spXml.match(/<a:off\s+x="(\d+)"\s+y="(\d+)"/);
+  // Extract position (support negative offsets)
+  const off = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
   const ext = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
   if (!off || !ext) return null;
 
-  const x = emuToPxX(parseInt(off[1]));
-  const y = emuToPxY(parseInt(off[2]));
+  const x = emuToPxX(Math.max(0, parseInt(off[1])));
+  const y = emuToPxY(Math.max(0, parseInt(off[2])));
   const width = emuToPxX(parseInt(ext[1]));
   const height = emuToPxY(parseInt(ext[2]));
 
@@ -193,6 +194,10 @@ function parseTextFromSpTree(
   // Extract rotation from xfrm
   const rotMatch = spXml.match(/<a:xfrm[^>]*\brot="(-?\d+)"/);
   const rotation = rotMatch ? Math.round(parseInt(rotMatch[1]) / 60000) : 0;
+
+  // Check if it's a placeholder — get type and idx for layout inheritance
+  const phMatch = spXml.match(/<p:ph([^/]*)\/?>/);
+  const phType = phMatch ? (phMatch[1].match(/type="(\w+)"/) || [])[1] : null;
 
   // Check if it has text
   const txBody = spXml.match(/<p:txBody>([\s\S]*?)<\/p:txBody>/);
@@ -274,6 +279,17 @@ function parseTextFromSpTree(
     }
   }
 
+  // Inherit font size from layout placeholder if not set
+  if (!firstFontSize && phType && layoutPlaceholderSizes) {
+    const layoutSize = layoutPlaceholderSizes.get(phType);
+    if (layoutSize) firstFontSize = Math.round(layoutSize / 100 * 1.333);
+  }
+
+  // Inherit alignment from placeholder type
+  if (!firstAlign && (phType === 'ctrTitle' || phType === 'title')) {
+    firstAlign = 'center';
+  }
+
   return {
     id: genId(),
     type: 'text',
@@ -298,12 +314,12 @@ function parseImageFromSpTree(
   picXml: string,
   relsMap: Map<string, string>,
 ): { element: ParsedElement; imageRef: string | null } | null {
-  const off = picXml.match(/<a:off\s+x="(\d+)"\s+y="(\d+)"/);
+  const off = picXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
   const ext = picXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
   if (!off || !ext) return null;
 
-  const x = emuToPxX(parseInt(off[1]));
-  const y = emuToPxY(parseInt(off[2]));
+  const x = emuToPxX(Math.max(0, parseInt(off[1])));
+  const y = emuToPxY(Math.max(0, parseInt(off[2])));
   const width = emuToPxX(parseInt(ext[1]));
   const height = emuToPxY(parseInt(ext[2]));
 
@@ -332,12 +348,12 @@ function parseShapeFromSpTree(
   spXml: string,
   themeColors: ThemeColors,
 ): ParsedElement | null {
-  const off = spXml.match(/<a:off\s+x="(\d+)"\s+y="(\d+)"/);
+  const off = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
   const ext = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
   if (!off || !ext) return null;
 
-  const x = emuToPxX(parseInt(off[1]));
-  const y = emuToPxY(parseInt(off[2]));
+  const x = emuToPxX(Math.max(0, parseInt(off[1])));
+  const y = emuToPxY(Math.max(0, parseInt(off[2])));
   const width = emuToPxX(parseInt(ext[1]));
   const height = emuToPxY(parseInt(ext[2]));
 
@@ -417,14 +433,25 @@ async function uploadImage(data: Buffer, contentType: string): Promise<string> {
     : contentType.includes('png') ? 'png' : 'png';
   const fileName = `imported/${genId()}.${ext}`;
 
-  const { error } = await supabase.storage
-    .from('presentation-assets')
-    .upload(fileName, data, { contentType, cacheControl: '3600' });
+  // Retry upload once on failure
+  let lastError: string = '';
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { error } = await supabase.storage
+      .from('presentation-assets')
+      .upload(attempt === 0 ? fileName : `imported/${genId()}.${ext}`, data, { contentType, cacheControl: '3600' });
 
-  if (error) {
-    console.warn(`  Upload error: ${error.message}`);
-    return '';
+    if (!error) {
+      const { data: urlData } = supabase.storage.from('presentation-assets').getPublicUrl(fileName);
+      console.log(`  Uploaded: ${fileName} (${(data.length / 1024).toFixed(0)}KB)`);
+      return urlData.publicUrl;
+    }
+    lastError = error.message;
+    if (attempt === 0) await new Promise(r => setTimeout(r, 1000)); // wait 1s before retry
   }
+
+  console.warn(`  Upload failed: ${lastError}`);
+  return '';
+}
 
   const { data: urlData } = supabase.storage.from('presentation-assets').getPublicUrl(fileName);
   console.log(`  Uploaded: ${fileName}`);
@@ -568,6 +595,30 @@ async function main() {
     // Parse background
     let background = parseSlideBackground(slideXml, relsMap, themeColors);
 
+    // Extract layout placeholder font sizes for inheritance
+    const layoutPlaceholderSizes = new Map<string, number>();
+    const layoutRef = relsMap.get('rId1'); // Usually rId1 points to layout
+    if (layoutRef) {
+      const layoutPath = layoutRef.startsWith('../')
+        ? 'ppt/' + layoutRef.replace('../', '')
+        : layoutRef;
+      const layoutFile = zip.files[layoutPath];
+      if (layoutFile) {
+        const layoutXml = await layoutFile.async('string');
+        // Find placeholders with defRPr sz
+        const phMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+        for (const pm of phMatches) {
+          const phTypeMatch = pm[1].match(/<p:ph[^>]*type="(\w+)"/);
+          if (phTypeMatch) {
+            const defSzMatch = pm[1].match(/<a:defRPr[^>]*\bsz="(\d+)"/);
+            if (defSzMatch) {
+              layoutPlaceholderSizes.set(phTypeMatch[1], parseInt(defSzMatch[1]));
+            }
+          }
+        }
+      }
+    }
+
     // Parse elements
     const elements: ParsedElement[] = [];
     let zIndex = 1;
@@ -579,7 +630,7 @@ async function main() {
       const spXml = m[1];
 
       // Try as text first
-      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts);
+      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes);
       if (textEl) {
         textEl.zIndex = zIndex++;
         elements.push(textEl);
@@ -594,7 +645,7 @@ async function main() {
       }
     }
 
-    // Pictures: <p:pic>...</p:pic>
+    // Pictures: <p:pic>...</p:pic> (also inside groups <p:grpSp>)
     const picMatches = slideXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
     for (const m of picMatches) {
       const result = parseImageFromSpTree(m[1], relsMap);
