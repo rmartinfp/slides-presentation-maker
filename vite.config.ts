@@ -18,4 +18,24 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ["react", "react-dom", "react-router-dom"],
+          tiptap: [
+            "@tiptap/react",
+            "@tiptap/starter-kit",
+            "@tiptap/extension-text-style",
+            "@tiptap/extension-font-family",
+            "@tiptap/extension-color",
+            "@tiptap/extension-text-align",
+            "@tiptap/extension-underline",
+          ],
+          export: ["pptxgenjs", "html2canvas", "jspdf"],
+          ui: ["framer-motion", "@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-popover"],
+        },
+      },
+    },
+  },
 }));

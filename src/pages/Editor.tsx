@@ -14,6 +14,8 @@ import CompactRightPanel from '@/components/editor/CompactRightPanel';
 import PresentationMode from '@/components/editor/PresentationMode';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
+import ErrorBoundary from '@/components/editor/ErrorBoundary';
+import EditorSkeleton from '@/components/editor/EditorSkeleton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
@@ -210,6 +212,11 @@ export default function EditorPage() {
     });
   };
 
+  // Show skeleton while loading from Supabase
+  if (idFromUrl && presentation.slides.length === 0) {
+    return <EditorSkeleton />;
+  }
+
   return (
     <>
       {isPresentationMode && (
@@ -277,6 +284,7 @@ export default function EditorPage() {
               className="flex-1 flex items-center justify-center bg-slate-100 overflow-hidden relative"
             >
               {activeSlide && (
+                <ErrorBoundary>
                 <div style={{ width: 1920 * scale, height: 1080 * scale }}>
                   <SlideCanvas
                     slide={activeSlide}
@@ -285,6 +293,7 @@ export default function EditorPage() {
                     isEditing={true}
                   />
                 </div>
+                </ErrorBoundary>
               )}
 
               {/* Zoom indicator */}
