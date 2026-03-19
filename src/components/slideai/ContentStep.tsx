@@ -172,8 +172,10 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
                     key={a.id}
                     onClick={() => setAudience(a.id)}
                     className={cn(
-                      'px-2 py-1 rounded-lg text-xs transition-all',
-                      audience === a.id ? 'bg-purple-500/30 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                      'h-8 px-3 rounded-md text-xs font-medium transition-all border',
+                      audience === a.id
+                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                        : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
                     )}
                   >
                     {a.emoji} {a.id}
@@ -183,14 +185,16 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
             </div>
             <div>
               <label className="text-xs text-slate-400 mb-2 block">Tone</label>
-              <div className="flex gap-1.5">
+              <div className="flex flex-wrap gap-1.5">
                 {tones.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setTone(t.id)}
                     className={cn(
-                      'flex-1 py-1.5 rounded-lg text-xs font-medium transition-all',
-                      tone === t.id ? `bg-gradient-to-r ${t.color} text-white` : 'bg-white/5 text-slate-400 hover:text-white'
+                      'h-8 px-3 rounded-md text-xs font-medium transition-all border',
+                      tone === t.id
+                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                        : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
                     )}
                   >
                     {t.id}
