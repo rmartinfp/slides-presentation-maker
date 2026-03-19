@@ -1,22 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Editor } from '@tiptap/react';
 import {
-  Bold,
-  Italic,
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  List,
-  ListOrdered,
-  Type,
-  Palette,
-  ChevronDown,
+  Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
+  List, ListOrdered, Type, Palette, ChevronDown, Minus, Plus,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import ColorPicker from './ColorPicker';
 import FontPicker from './FontPicker';
+import { loadGoogleFont } from '@/lib/font-loader';
 
 interface Props {
   editor: Editor;
@@ -31,15 +22,12 @@ export default function FormattingToolbar({ editor, scale }: Props) {
   const [showFontSize, setShowFontSize] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside — use timeout to avoid race with dropdown clicks
+  // Close dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      // Check if click is inside toolbar or any of its dropdown portals
       const target = e.target as HTMLElement;
       if (toolbarRef.current?.contains(target)) return;
-      // Don't close if clicking inside a dropdown that has our data attribute
       if (target.closest('[data-formatting-dropdown]')) return;
-
       setShowColorPicker(false);
       setShowFontPicker(false);
       setShowFontSize(false);
@@ -51,24 +39,40 @@ export default function FormattingToolbar({ editor, scale }: Props) {
   const currentColor = editor.getAttributes('textStyle').color || '#000000';
   const currentFont = editor.getAttributes('textStyle').fontFamily || '';
 
-  const ToolButton = ({
-    active,
-    onClick,
-    children,
-    title,
-  }: {
-    active?: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-    title?: string;
-  }) => (
+  // Get current font size
+  const getCurrentFontSize = (): string => {
+    const fs = editor.getAttributes('textStyle').fontSize;
+    if (fs) return String(fs).replace('px', '');
+    try {
+      const { from } = editor.state.selection;
+      const dom = editor.view.domAtPos(from);
+      const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
+      if (el) return parseInt(window.getComputedStyle(el).fontSize).toString();
+    } catch {}
+    return '—';
+  };
+
+  const currentSize = getCurrentFontSize();
+  const currentSizeNum = parseInt(currentSize) || 24;
+
+  const setFontSize = (size: number) => {
+    (editor.chain().focus() as any).setFontSize(`${size}px`).run();
+  };
+
+  const adjustSize = (delta: number) => {
+    const idx = FONT_SIZES.findIndex(s => s >= currentSizeNum);
+    const newIdx = Math.max(0, Math.min(FONT_SIZES.length - 1, idx + delta));
+    setFontSize(FONT_SIZES[newIdx]);
+  };
+
+  const Btn = ({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: React.ReactNode; title?: string }) => (
     <button
       onMouseDown={(e) => { e.preventDefault(); onClick(); }}
-      className={cn(
-        'w-7 h-7 flex items-center justify-center rounded transition-colors',
-        active ? 'bg-indigo-100 text-indigo-700' : 'text-slate-600 hover:bg-slate-100',
-      )}
       title={title}
+      className={cn(
+        'w-8 h-8 flex items-center justify-center rounded-md transition-colors',
+        active ? 'bg-indigo-600 text-white' : 'text-slate-700 hover:bg-slate-100',
+      )}
     >
       {children}
     </button>
@@ -77,8 +81,14 @@ export default function FormattingToolbar({ editor, scale }: Props) {
   return (
     <div
       ref={toolbarRef}
-      className="absolute -top-12 left-0 z-[200] flex items-center gap-0.5 px-2 py-1 bg-white rounded-lg shadow-xl border border-slate-200"
-      style={{ transform: `scale(${1 / scale})`, transformOrigin: 'bottom left' }}
+      className="absolute z-[200] flex items-center gap-0.5 px-2 py-1.5 bg-white rounded-xl shadow-2xl border border-slate-200"
+      style={{
+        transform: `scale(${1 / scale})`,
+        transformOrigin: 'bottom left',
+        bottom: '100%',
+        left: 0,
+        marginBottom: 8 / scale,
+      }}
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
@@ -86,17 +96,18 @@ export default function FormattingToolbar({ editor, scale }: Props) {
       <div className="relative">
         <button
           onMouseDown={(e) => { e.preventDefault(); setShowFontPicker(!showFontPicker); setShowColorPicker(false); setShowFontSize(false); }}
-          className="flex items-center gap-1 px-2 h-7 text-xs text-slate-700 hover:bg-slate-100 rounded max-w-[120px]"
+          className="flex items-center gap-1 px-2 h-8 text-xs text-slate-700 hover:bg-slate-100 rounded-md max-w-[130px] border border-slate-200"
         >
-          <Type className="w-3.5 h-3.5 shrink-0" />
-          <span className="truncate">{currentFont || 'Default'}</span>
-          <ChevronDown className="w-3 h-3 shrink-0" />
+          <Type className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+          <span className="truncate font-medium">{currentFont || 'Font'}</span>
+          <ChevronDown className="w-3 h-3 shrink-0 text-slate-400" />
         </button>
         {showFontPicker && (
-          <div className="absolute top-full left-0 mt-1">
+          <div className="absolute bottom-full left-0 mb-2">
             <FontPicker
               currentFont={currentFont}
               onSelect={(font) => {
+                loadGoogleFont(font);
                 editor.chain().focus().setFontFamily(font).run();
                 setShowFontPicker(false);
               }}
@@ -105,39 +116,42 @@ export default function FormattingToolbar({ editor, scale }: Props) {
         )}
       </div>
 
-      {/* Font size */}
-      <div className="relative">
+      <div className="w-px h-6 bg-slate-200 mx-0.5" />
+
+      {/* Font size with +/- */}
+      <div className="relative flex items-center">
+        <button
+          onMouseDown={(e) => { e.preventDefault(); adjustSize(-1); }}
+          className="w-7 h-8 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-l-md"
+        >
+          <Minus className="w-3 h-3" />
+        </button>
         <button
           onMouseDown={(e) => { e.preventDefault(); setShowFontSize(!showFontSize); setShowColorPicker(false); setShowFontPicker(false); }}
-          className="flex items-center gap-0.5 px-1.5 h-7 text-xs text-slate-700 hover:bg-slate-100 rounded"
+          className="h-8 px-2 text-xs font-bold text-slate-800 hover:bg-slate-100 border-x border-slate-200 min-w-[40px] text-center tabular-nums"
         >
-          <span className="tabular-nums">
-            {(() => {
-              const fs = editor.getAttributes('textStyle').fontSize;
-              if (fs) return String(fs).replace('px', '');
-              // Fallback: read from DOM
-              const { from } = editor.state.selection;
-              const dom = editor.view.domAtPos(from);
-              if (dom.node instanceof HTMLElement) {
-                const computed = window.getComputedStyle(dom.node).fontSize;
-                return computed ? parseInt(computed).toString() : '—';
-              }
-              return '—';
-            })()}
-          </span>
-          <ChevronDown className="w-3 h-3" />
+          {currentSize}
+        </button>
+        <button
+          onMouseDown={(e) => { e.preventDefault(); adjustSize(1); }}
+          className="w-7 h-8 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-r-md"
+        >
+          <Plus className="w-3 h-3" />
         </button>
         {showFontSize && (
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-20 max-h-56 overflow-y-auto z-[300]" data-formatting-dropdown>
+          <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-1 w-20 max-h-60 overflow-y-auto z-[300]" data-formatting-dropdown>
             {FONT_SIZES.map(size => (
               <button
                 key={size}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  (editor.chain().focus() as any).setFontSize(`${size}px`).run();
+                  setFontSize(size);
                   setShowFontSize(false);
                 }}
-                className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100"
+                className={cn(
+                  'w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-100 transition-colors',
+                  currentSizeNum === size ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700',
+                )}
               >
                 {size}px
               </button>
@@ -146,105 +160,64 @@ export default function FormattingToolbar({ editor, scale }: Props) {
         )}
       </div>
 
-      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+      <div className="w-px h-6 bg-slate-200 mx-0.5" />
 
-      {/* Text formatting */}
-      <ToolButton
-        active={editor.isActive('bold')}
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        title="Bold"
-      >
-        <Bold className="w-3.5 h-3.5" />
-      </ToolButton>
+      {/* Bold / Italic / Underline */}
+      <Btn active={editor.isActive('bold')} onClick={() => editor.chain().focus().toggleBold().run()} title="Bold">
+        <Bold className="w-4 h-4" />
+      </Btn>
+      <Btn active={editor.isActive('italic')} onClick={() => editor.chain().focus().toggleItalic().run()} title="Italic">
+        <Italic className="w-4 h-4" />
+      </Btn>
+      <Btn active={editor.isActive('underline')} onClick={() => editor.chain().focus().toggleUnderline().run()} title="Underline">
+        <Underline className="w-4 h-4" />
+      </Btn>
 
-      <ToolButton
-        active={editor.isActive('italic')}
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        title="Italic"
-      >
-        <Italic className="w-3.5 h-3.5" />
-      </ToolButton>
-
-      <ToolButton
-        active={editor.isActive('underline')}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        title="Underline"
-      >
-        <Underline className="w-3.5 h-3.5" />
-      </ToolButton>
-
-      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+      <div className="w-px h-6 bg-slate-200 mx-0.5" />
 
       {/* Color */}
       <div className="relative">
         <button
           onMouseDown={(e) => { e.preventDefault(); setShowColorPicker(!showColorPicker); setShowFontPicker(false); setShowFontSize(false); }}
-          className="w-7 h-7 flex items-center justify-center rounded hover:bg-slate-100"
+          className="w-8 h-8 flex flex-col items-center justify-center rounded-md hover:bg-slate-100"
           title="Text Color"
         >
-          <div className="flex flex-col items-center">
-            <Palette className="w-3.5 h-3.5 text-slate-600" />
-            <div className="w-4 h-1 rounded-full mt-0.5" style={{ backgroundColor: currentColor }} />
-          </div>
+          <Palette className="w-4 h-4 text-slate-600" />
+          <div className="w-5 h-1 rounded-full mt-0.5" style={{ backgroundColor: currentColor }} />
         </button>
         {showColorPicker && (
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1">
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
             <ColorPicker
               color={currentColor}
-              onChange={(color) => {
-                editor.chain().focus().setColor(color).run();
-              }}
+              onChange={(color) => editor.chain().focus().setColor(color).run()}
               onClose={() => setShowColorPicker(false)}
             />
           </div>
         )}
       </div>
 
-      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+      <div className="w-px h-6 bg-slate-200 mx-0.5" />
 
       {/* Alignment */}
-      <ToolButton
-        active={editor.isActive({ textAlign: 'left' })}
-        onClick={() => editor.chain().focus().setTextAlign('left').run()}
-        title="Align Left"
-      >
-        <AlignLeft className="w-3.5 h-3.5" />
-      </ToolButton>
+      <Btn active={editor.isActive({ textAlign: 'left' })} onClick={() => editor.chain().focus().setTextAlign('left').run()} title="Align Left">
+        <AlignLeft className="w-4 h-4" />
+      </Btn>
+      <Btn active={editor.isActive({ textAlign: 'center' })} onClick={() => editor.chain().focus().setTextAlign('center').run()} title="Align Center">
+        <AlignCenter className="w-4 h-4" />
+      </Btn>
+      <Btn active={editor.isActive({ textAlign: 'right' })} onClick={() => editor.chain().focus().setTextAlign('right').run()} title="Align Right">
+        <AlignRight className="w-4 h-4" />
+      </Btn>
 
-      <ToolButton
-        active={editor.isActive({ textAlign: 'center' })}
-        onClick={() => editor.chain().focus().setTextAlign('center').run()}
-        title="Align Center"
-      >
-        <AlignCenter className="w-3.5 h-3.5" />
-      </ToolButton>
-
-      <ToolButton
-        active={editor.isActive({ textAlign: 'right' })}
-        onClick={() => editor.chain().focus().setTextAlign('right').run()}
-        title="Align Right"
-      >
-        <AlignRight className="w-3.5 h-3.5" />
-      </ToolButton>
-
-      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+      <div className="w-px h-6 bg-slate-200 mx-0.5" />
 
       {/* Lists */}
-      <ToolButton
-        active={editor.isActive('bulletList')}
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        title="Bullet List"
-      >
-        <List className="w-3.5 h-3.5" />
-      </ToolButton>
-
-      <ToolButton
-        active={editor.isActive('orderedList')}
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        title="Numbered List"
-      >
-        <ListOrdered className="w-3.5 h-3.5" />
-      </ToolButton>
+      <Btn active={editor.isActive('bulletList')} onClick={() => editor.chain().focus().toggleBulletList().run()} title="Bullet List">
+        <List className="w-4 h-4" />
+      </Btn>
+      <Btn active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered List">
+        <ListOrdered className="w-4 h-4" />
+      </Btn>
     </div>
   );
 }
