@@ -72,3 +72,26 @@ function mapSlideType(type: string): string {
   };
   return typeMap[type] || 'content';
 }
+
+export async function rewriteSlide(
+  slide: Record<string, unknown>,
+  instruction: string,
+  presentationContext?: string
+) {
+  const { data, error } = await supabase.functions.invoke('rewrite-slide', {
+    body: { slide, instruction, presentationContext },
+  });
+
+  if (error) throw new Error(error.message || 'Failed to rewrite slide');
+  if (data.error) throw new Error(data.error);
+
+  return {
+    id: slide.id,
+    layout: data.layout || slide.layout,
+    title: data.title || '',
+    subtitle: data.subtitle || '',
+    body: data.body || '',
+    bullets: data.bullets || [],
+    notes: data.notes || slide.notes || '',
+  };
+}
