@@ -17,6 +17,7 @@ import CanvasContextMenu from '@/components/editor/ContextMenu';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
 import EditorSkeleton from '@/components/editor/EditorSkeleton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { loadFontsFromSlides, loadFontsFromTheme } from '@/lib/font-loader';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
 import { exportToPdfFromSlides } from '@/lib/pdf-export';
@@ -63,6 +64,14 @@ export default function EditorPage() {
 
   // Additional keyboard shortcuts (copy/paste/select-all)
   useKeyboardShortcuts();
+
+  // ---- Load fonts when presentation changes ----
+  useEffect(() => {
+    if (presentation.slides.length > 0) {
+      loadFontsFromSlides(presentation.slides);
+      loadFontsFromTheme(presentation.theme.tokens);
+    }
+  }, [presentation.slides, presentation.theme]);
 
   // ---- Initialize presentation ----
   useEffect(() => {
