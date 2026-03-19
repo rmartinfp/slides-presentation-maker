@@ -147,9 +147,11 @@ function parseColorFromShapeXml(xml: string, themeColors: ThemeColors): string |
 }
 
 function parseFontSize(xml: string): number | null {
-  // <a:rPr ... sz="1800" ...> → hundredths of a point → px
+  // <a:rPr ... sz="1800" ...> → hundredths of a point → px at 1920 canvas
+  // PPTX standard = 960px wide (96 DPI × 10"). Our canvas = 1920px = 2× scale.
+  // So: (sz/100) × 1.333 (pt→px) × 2 (scale) = sz/100 × 2.666
   const sz = xml.match(/\bsz="(\d+)"/);
-  if (sz) return Math.round(parseInt(sz[1]) / 100 * 1.333);
+  if (sz) return Math.round(parseInt(sz[1]) / 100 * 2.666);
   return null;
 }
 
@@ -282,7 +284,7 @@ function parseTextFromSpTree(
   // Inherit font size from layout placeholder if not set
   if (!firstFontSize && phType && layoutPlaceholderSizes) {
     const layoutSize = layoutPlaceholderSizes.get(phType);
-    if (layoutSize) firstFontSize = Math.round(layoutSize / 100 * 1.333);
+    if (layoutSize) firstFontSize = Math.round(layoutSize / 100 * 2.666);
   }
 
   // Inherit font family from theme based on placeholder type
@@ -578,10 +580,18 @@ async function main() {
 
     const slideXml = await zip.file(slideFile)!.async('string');
 
-    // Check if this is a "Final Pages" slide (heuristic: contains "slidesgo" or "freepik" text)
+    // Detect "Final Pages" slides:
+    // 1. Contains branding text (slidesgo, freepik, flaticon)
+    // 2. Has excessive elements (icon/resource pages have 50+)
+    // 3. Has "Fonts" or "Icons" as title (resource pages)
     const plainText = slideXml.replace(/<[^>]+>/g, '').toLowerCase();
-    if (plainText.includes('slidesgo') || plainText.includes('freepik') || plainText.includes('flaticon')) {
-      console.log(`  Skipping final page slide`);
+    const elementCount = (slideXml.match(/<p:sp>/g) || []).length + (slideXml.match(/<p:pic>/g) || []).length;
+    const isFinalPage = plainText.includes('slidesgo') || plainText.includes('freepik') || plainText.includes('flaticon')
+      || elementCount > 50
+      || /\bicons?\b/.test(plainText) && elementCount > 15
+      || plainText.includes('fonts & colors') || plainText.includes('fonts used');
+    if (isFinalPage) {
+      console.log(`  Skipping final page (${elementCount} elements)`);
       continue;
     }
 
