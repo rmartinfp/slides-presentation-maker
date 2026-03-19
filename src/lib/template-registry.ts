@@ -23,7 +23,7 @@ export interface TemplateDefinition {
   isPremium: boolean;
 }
 
-const STORAGE_BASE = 'https://ujgaerojiwriwtlvyhyv.supabase.co/storage/v1/object/public/templates/covers';
+const STORAGE_BASE = 'https://okzaoakyasaohohktntd.supabase.co/storage/v1/object/public/templates/covers';
 
 // 15 real templates extracted from Google Slides
 export const TEMPLATE_REGISTRY: TemplateDefinition[] = [
