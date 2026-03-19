@@ -95,3 +95,57 @@ export async function rewriteSlide(
     notes: data.notes || slide.notes || '',
   };
 }
+
+/**
+ * Generate a single slide with AI, returning positioned SlideElement[].
+ */
+export async function generateSlide(options: {
+  prompt: string;
+  context?: string;
+  themeTokens?: Record<string, unknown>;
+}) {
+  const { data, error } = await supabase.functions.invoke('generate-slide', {
+    body: options,
+  });
+
+  if (error) throw new Error(error.message || 'Failed to generate slide');
+  if (data.error) throw new Error(data.error);
+
+  return data.elements || [];
+}
+
+/**
+ * Generate an image with AI (DALL-E 3).
+ */
+export async function generateImage(options: {
+  prompt: string;
+  size?: '1024x1024' | '1792x1024' | '1024x1792';
+  quality?: 'standard' | 'hd';
+}) {
+  const { data, error } = await supabase.functions.invoke('generate-image', {
+    body: options,
+  });
+
+  if (error) throw new Error(error.message || 'Failed to generate image');
+  if (data.error) throw new Error(data.error);
+
+  return { url: data.url, revisedPrompt: data.revisedPrompt };
+}
+
+/**
+ * Import PDF and convert to slides with AI.
+ */
+export async function importPdf(options: {
+  pdfBase64: string;
+  fileName?: string;
+  themeTokens?: Record<string, unknown>;
+}) {
+  const { data, error } = await supabase.functions.invoke('import-pdf', {
+    body: options,
+  });
+
+  if (error) throw new Error(error.message || 'Failed to import PDF');
+  if (data.error) throw new Error(data.error);
+
+  return data.slides || [];
+}
