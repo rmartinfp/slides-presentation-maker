@@ -75,7 +75,7 @@ export default function SlideCanvas({
 
   return (
     <div
-      className="slide-stage origin-top-left select-text relative overflow-hidden"
+      className="slide-stage origin-top-left select-text relative"
       style={{
         transform: `scale(${scale})`,
         borderRadius: theme.tokens.radii,

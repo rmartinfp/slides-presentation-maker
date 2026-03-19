@@ -122,6 +122,15 @@
     height: 1080px;
   }
 
+  /* Ensure interact.js elements are draggable */
+  .canvas-element {
+    touch-action: none;
+    -ms-touch-action: none;
+  }
+  .canvas-element.ring-2 {
+    z-index: 10;
+  }
+
   /* Generation pulse animation */
   @keyframes ai-pulse {
     0%, 100% { opacity: 0.4; }

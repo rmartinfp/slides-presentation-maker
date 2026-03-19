@@ -22,6 +22,7 @@ export default function CanvasElement({
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const isDragging = useRef(false);
 
   // Use refs to always have latest values without re-running the effect
   const elementRef = useRef(element);
@@ -40,11 +41,17 @@ export default function CanvasElement({
       .draggable({
         inertia: false,
         listeners: {
-          start: () => pushSnapshot(),
+          start: () => {
+            isDragging.current = true;
+            pushSnapshot();
+          },
           move: (event) => {
             const el = elementRef.current;
             const s = scaleRef.current;
             moveElement(el.id, el.x + event.dx / s, el.y + event.dy / s);
+          },
+          end: () => {
+            isDragging.current = false;
           },
         },
       })
@@ -57,7 +64,10 @@ export default function CanvasElement({
         ],
         inertia: false,
         listeners: {
-          start: () => pushSnapshot(),
+          start: () => {
+            isDragging.current = true;
+            pushSnapshot();
+          },
           move: (event) => {
             const el = elementRef.current;
             const s = scaleRef.current;
@@ -69,6 +79,9 @@ export default function CanvasElement({
               el.y + event.deltaRect.top / s,
             );
           },
+          end: () => {
+            isDragging.current = false;
+          },
         },
       });
 
@@ -77,9 +90,10 @@ export default function CanvasElement({
     };
   }, [element.id, element.locked, isEditing, moveElement, resizeElement, pushSnapshot]);
 
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      e.stopPropagation();
+  // Use mousedown for selection — doesn't interfere with interact.js pointer events
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      // Don't interfere with interact.js resize handles
       onSelect(element.id, e.shiftKey);
     },
     [element.id, onSelect],
@@ -113,6 +127,8 @@ export default function CanvasElement({
     cursor: isEditing ? 'text' : element.locked ? 'default' : 'move',
     touchAction: 'none',
     userSelect: isEditing ? 'text' : 'none',
+    // Critical: prevent browser default drag behavior
+    WebkitUserDrag: 'none' as any,
   };
 
   // Render element content based on type
@@ -152,6 +168,7 @@ export default function CanvasElement({
           whiteSpace: isHtml ? undefined : 'pre-wrap',
           wordBreak: 'break-word',
           opacity: typeof s.opacity === 'number' ? s.opacity : 1,
+          pointerEvents: 'none', // Let interact.js handle all pointer events
         };
 
         return isHtml ? (
@@ -173,37 +190,39 @@ export default function CanvasElement({
         const stroke = s.shapeStroke || 'transparent';
         const strokeWidth = s.shapeStrokeWidth || 0;
 
+        const svgStyle: React.CSSProperties = { pointerEvents: 'none' };
+
         if (shapeType === 'circle') {
           return (
-            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
               <ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
             </svg>
           );
         }
         if (shapeType === 'triangle') {
           return (
-            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
               <polygon points="50,2 98,98 2,98" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
             </svg>
           );
         }
         if (shapeType === 'line') {
           return (
-            <svg width="100%" height="100%" preserveAspectRatio="none">
+            <svg width="100%" height="100%" preserveAspectRatio="none" style={svgStyle}>
               <line x1="0" y1="50%" x2="100%" y2="50%" stroke={fill} strokeWidth={Math.max(strokeWidth, 2)} />
             </svg>
           );
         }
         if (shapeType === 'arrow-right') {
           return (
-            <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none">
+            <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={svgStyle}>
               <polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
             </svg>
           );
         }
         return (
           <div
-            className="w-full h-full"
+            className="w-full h-full pointer-events-none"
             style={{
               backgroundColor: fill,
               borderRadius: s.borderRadius ?? 0,
@@ -229,7 +248,7 @@ export default function CanvasElement({
       }
 
       default:
-        return <div className="w-full h-full bg-gray-200 rounded" />;
+        return <div className="w-full h-full bg-gray-200 rounded pointer-events-none" />;
     }
   };
 
@@ -237,7 +256,7 @@ export default function CanvasElement({
     <div
       ref={ref}
       style={wrapperStyle}
-      onPointerDown={handlePointerDown}
+      onMouseDown={handleMouseDown}
       onDoubleClick={handleDoubleClick}
       className={cn(
         'canvas-element group',
@@ -248,10 +267,9 @@ export default function CanvasElement({
     >
       {renderContent()}
 
-      {/* Resize handles — only show when selected and not locked */}
+      {/* Resize handles — visual only, interact.js handles the actual resize */}
       {isSelected && !element.locked && !isEditing && (
         <>
-          {/* Corner handles */}
           {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {
             const posStyles: Record<string, React.CSSProperties> = {
               nw: { top: -5, left: -5, cursor: 'nwse-resize' },
@@ -262,12 +280,11 @@ export default function CanvasElement({
             return (
               <div
                 key={pos}
-                className="absolute w-[10px] h-[10px] bg-white border-2 border-blue-500 rounded-full z-50 pointer-events-auto"
+                className="absolute w-[10px] h-[10px] bg-white border-2 border-blue-500 rounded-full z-50"
                 style={posStyles[pos]}
               />
             );
           })}
-          {/* Edge handles */}
           {(['n', 's', 'e', 'w'] as const).map((pos) => {
             const posStyles: Record<string, React.CSSProperties> = {
               n: { top: -4, left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize', width: 30, height: 8 },
@@ -278,7 +295,7 @@ export default function CanvasElement({
             return (
               <div
                 key={pos}
-                className="absolute bg-white border-2 border-blue-500 rounded-full z-50 pointer-events-auto"
+                className="absolute bg-white border-2 border-blue-500 rounded-full z-50"
                 style={posStyles[pos]}
               />
             );
