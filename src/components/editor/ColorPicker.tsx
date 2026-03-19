@@ -20,6 +20,7 @@ export default function ColorPicker({ color, onChange, onClose }: Props) {
   return (
     <div
       className="bg-white rounded-lg shadow-xl border border-slate-200 p-3 w-56 z-[300]"
+      data-formatting-dropdown
       onMouseDown={e => e.stopPropagation()}
     >
       <div className="grid grid-cols-6 gap-1.5 mb-3">

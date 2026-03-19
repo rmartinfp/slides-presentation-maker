@@ -285,6 +285,15 @@ function parseTextFromSpTree(
     if (layoutSize) firstFontSize = Math.round(layoutSize / 100 * 1.333);
   }
 
+  // Inherit font family from theme based on placeholder type
+  if (!firstFontFamily || firstFontFamily === 'Arial') {
+    if (phType === 'ctrTitle' || phType === 'title') {
+      firstFontFamily = defaultFonts.titleFont;
+    } else {
+      firstFontFamily = defaultFonts.bodyFont;
+    }
+  }
+
   // Inherit alignment from placeholder type
   if (!firstAlign && (phType === 'ctrTitle' || phType === 'title')) {
     firstAlign = 'center';

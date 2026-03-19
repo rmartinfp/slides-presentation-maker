@@ -101,6 +101,7 @@ export default function FontPicker({ currentFont, onSelect }: Props) {
   return (
     <div
       className="bg-white rounded-lg shadow-xl border border-slate-200 w-60 z-[300]"
+      data-formatting-dropdown
       onMouseDown={e => e.stopPropagation()}
     >
       <div className="p-2 border-b border-slate-100">

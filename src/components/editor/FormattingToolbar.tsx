@@ -31,14 +31,18 @@ export default function FormattingToolbar({ editor, scale }: Props) {
   const [showFontSize, setShowFontSize] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdowns when clicking outside
+  // Close dropdowns when clicking outside — use timeout to avoid race with dropdown clicks
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (toolbarRef.current && !toolbarRef.current.contains(e.target as Node)) {
-        setShowColorPicker(false);
-        setShowFontPicker(false);
-        setShowFontSize(false);
-      }
+      // Check if click is inside toolbar or any of its dropdown portals
+      const target = e.target as HTMLElement;
+      if (toolbarRef.current?.contains(target)) return;
+      // Don't close if clicking inside a dropdown that has our data attribute
+      if (target.closest('[data-formatting-dropdown]')) return;
+
+      setShowColorPicker(false);
+      setShowFontPicker(false);
+      setShowFontSize(false);
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
@@ -113,7 +117,7 @@ export default function FormattingToolbar({ editor, scale }: Props) {
           <ChevronDown className="w-3 h-3" />
         </button>
         {showFontSize && (
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-16 max-h-48 overflow-y-auto z-[300]">
+          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-16 max-h-48 overflow-y-auto z-[300]" data-formatting-dropdown>
             {FONT_SIZES.map(size => (
               <button
                 key={size}
