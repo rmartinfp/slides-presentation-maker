@@ -39,46 +39,48 @@ export default function SlideAIPage() {
         });
 
         // Map AI-generated content onto the template slides
-        const filledSlides = templateSlides.map((slide, i) => {
-          const aiSlide = result.slides[i];
-          if (!aiSlide) return slide; // Keep original if AI didn't generate enough
+        // Use template slides as visual layouts, replace text with AI content
+        const aiSlides = result.slides;
+        const filledSlides: Slide[] = [];
 
-          // Clone slide deeply
-          const newSlide = JSON.parse(JSON.stringify(slide));
+        for (let i = 0; i < Math.min(templateSlides.length, aiSlides.length); i++) {
+          const templateSlide = JSON.parse(JSON.stringify(templateSlides[i]));
+          const aiSlide = aiSlides[i];
 
-          // Find text elements sorted by Y position (top to bottom)
-          const textElements = (newSlide.elements || [])
+          // Find text elements sorted by font size (largest = title)
+          const textElements = (templateSlide.elements || [])
             .filter((el: any) => el.type === 'text')
-            .sort((a: any, b: any) => a.y - b.y);
+            .sort((a: any, b: any) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
 
-          // Replace text content: first text = title, rest = body/bullets
+          // Largest text = title
           if (textElements.length > 0 && aiSlide.title) {
-            textElements[0].content = aiSlide.title;
+            textElements[0].content = `<p>${aiSlide.title}</p>`;
           }
+
+          // Second largest = body or bullets
           if (textElements.length > 1) {
-            const bodyContent = aiSlide.bullets?.length
-              ? aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('')
-              : aiSlide.body
-                ? `<p>${aiSlide.body}</p>`
-                : textElements[1].content;
-            textElements[1].content = bodyContent;
-          }
-          // Fill remaining text elements with bullets
-          if (textElements.length > 2 && aiSlide.bullets) {
-            for (let j = 2; j < textElements.length && j - 2 < aiSlide.bullets.length; j++) {
-              textElements[j].content = aiSlide.bullets[j - 2];
+            if (aiSlide.bullets?.length) {
+              textElements[1].content = aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('');
+            } else if (aiSlide.body) {
+              textElements[1].content = `<p>${aiSlide.body}</p>`;
             }
           }
 
-          return newSlide;
-        });
+          // Additional text elements get bullets
+          if (aiSlide.bullets) {
+            for (let j = 2; j < textElements.length && j - 2 < aiSlide.bullets.length; j++) {
+              textElements[j].content = `<p>${aiSlide.bullets[j - 2]}</p>`;
+            }
+          }
 
-        const migrated = migrateAllSlides(filledSlides as Slide[], theme.tokens);
+          filledSlides.push(templateSlide);
+        }
 
+        // Don't re-migrate — slides already have proper elements from the template
         sessionStorage.setItem('presentation', JSON.stringify({
           id: Math.random().toString(36).substring(2, 11),
           title: result.title,
-          slides: migrated,
+          slides: filledSlides,
           theme,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
