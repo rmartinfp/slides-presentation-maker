@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Presentation, Slide } from '@/types/presentation';
+import { supabase } from '@/lib/supabase';
 import { THEME_CATALOG } from '@/lib/themes';
 import { createEmptySlide, createSampleSlides } from '@/lib/slide-utils';
 import SlideCanvas from '@/components/editor/SlideCanvas';
@@ -10,13 +11,30 @@ import SpeakerNotes from '@/components/editor/SpeakerNotes';
 import CompactRightPanel from '@/components/editor/CompactRightPanel';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
+import PresentationMode from '@/components/editor/PresentationMode';
 
 export default function EditorPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const idFromUrl = searchParams.get('id');
   const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const [scale, setScale] = useState(0.5);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const [presentation, setPresentation] = useState<Presentation>(() => {
+    // If loading by ID from URL, start with a placeholder — the useEffect will populate it
+    if (idFromUrl) {
+      return {
+        id: idFromUrl,
+        title: 'Loading...',
+        slides: [],
+        theme: THEME_CATALOG[0],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
     const stored = sessionStorage.getItem('presentation');
     if (stored) {
       sessionStorage.removeItem('presentation');
@@ -33,8 +51,84 @@ export default function EditorPage() {
   });
 
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [isPresentationMode, setIsPresentationMode] = useState(false);
   const activeSlide = presentation.slides[activeSlideIndex];
 
+  // ---- Load from Supabase if URL has ?id=xxx ----
+  useEffect(() => {
+    if (!idFromUrl) return;
+    supabase
+      .from('presentations')
+      .select('*')
+      .eq('id', idFromUrl)
+      .single()
+      .then(({ data, error }) => {
+        if (!error && data) {
+          setPresentation({
+            id: data.id,
+            title: data.title,
+            slides: data.slides as Slide[],
+            theme: data.theme as Presentation['theme'],
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+          });
+        }
+      });
+  }, [idFromUrl]);
+
+  // ---- Save to Supabase ----
+  const saveToSupabase = async (pres: Presentation) => {
+    // Don't save the loading placeholder
+    if (pres.slides.length === 0) return;
+
+    setSaveStatus('saving');
+    try {
+      if (pres.id === 'default' || !pres.id.match(/^[0-9a-f-]{36}$/)) {
+        // New presentation — insert
+        const { data, error } = await supabase
+          .from('presentations')
+          .insert({
+            title: pres.title,
+            slides: pres.slides,
+            theme: pres.theme,
+          })
+          .select('id')
+          .single();
+
+        if (!error && data) {
+          setPresentation(prev => ({ ...prev, id: data.id }));
+          window.history.replaceState({}, '', `/editor?id=${data.id}`);
+        }
+      } else {
+        // Existing — update
+        await supabase
+          .from('presentations')
+          .update({
+            title: pres.title,
+            slides: pres.slides,
+            theme: pres.theme,
+          })
+          .eq('id', pres.id);
+      }
+      setSaveStatus('saved');
+    } catch (err) {
+      console.error('Auto-save failed:', err);
+      setSaveStatus('idle');
+    }
+  };
+
+  // ---- Debounced auto-save (3 seconds) ----
+  useEffect(() => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      saveToSupabase(presentation);
+    }, 3000);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
+  }, [presentation]);
+
+  // ---- Canvas scaling ----
   const updateScale = useCallback(() => {
     if (!canvasContainerRef.current) return;
     const { width, height } = canvasContainerRef.current.getBoundingClientRect();
@@ -124,6 +218,15 @@ export default function EditorPage() {
   }, [presentation.slides.length]);
 
   return (
+    <>
+    {isPresentationMode && (
+      <PresentationMode
+        slides={presentation.slides}
+        theme={presentation.theme}
+        startIndex={activeSlideIndex}
+        onExit={() => setIsPresentationMode(false)}
+      />
+    )}
     <div className="h-screen flex flex-col bg-white overflow-hidden">
       <EditorToolbar
         title={presentation.title}
@@ -143,6 +246,8 @@ export default function EditorPage() {
         }}
         slideCount={presentation.slides.length}
         activeIndex={activeSlideIndex}
+        saveStatus={saveStatus}
+        onPresent={() => setIsPresentationMode(true)}
       />
 
       <div className="flex-1 flex overflow-hidden">
@@ -196,5 +301,6 @@ export default function EditorPage() {
         />
       </div>
     </div>
+    </>
   );
 }

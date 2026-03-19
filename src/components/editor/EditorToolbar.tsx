@@ -20,13 +20,15 @@ interface Props {
   onDuplicate: () => void;
   onDelete: () => void;
   onExportPptx: () => void;
+  onPresent: () => void;
   slideCount: number;
   activeIndex: number;
+  saveStatus?: 'idle' | 'saving' | 'saved';
 }
 
 export default function EditorToolbar({
-  title, onTitleChange, onBack, onDuplicate, onDelete, onExportPptx,
-  slideCount, activeIndex
+  title, onTitleChange, onBack, onDuplicate, onDelete, onExportPptx, onPresent,
+  slideCount, activeIndex, saveStatus = 'idle'
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -68,6 +70,15 @@ export default function EditorToolbar({
           <span className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
             {slideCount} slides
           </span>
+          {saveStatus !== 'idle' && (
+            <span className={`text-xs px-2 py-1 rounded-full transition-opacity ${
+              saveStatus === 'saving'
+                ? 'text-amber-500 bg-amber-50'
+                : 'text-emerald-500 bg-emerald-50'
+            }`}>
+              {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
+            </span>
+          )}
         </div>
       </div>
 
@@ -117,6 +128,7 @@ export default function EditorToolbar({
         <Button
           size="sm"
           className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 gap-2 h-9 shadow-md text-white"
+          onClick={onPresent}
         >
           <Play className="w-4 h-4" />
           Present
