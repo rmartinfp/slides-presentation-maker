@@ -107,16 +107,25 @@ export default function SlideList({ slides, activeIndex, theme, onSelectSlide, o
                   backgroundColor:
                     slide.background?.type === 'solid'
                       ? slide.background.value
-                      : palette.bg,
+                      : slide.background?.type === 'image'
+                        ? '#111'
+                        : palette.bg,
                   background:
                     slide.background?.type === 'gradient'
                       ? slide.background.value
                       : undefined,
                 }}
               >
+                {/* Background image */}
+                {slide.background?.type === 'image' && slide.background.value && (
+                  <img
+                    src={slide.background.value}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
                 {/* Render mini elements */}
-                {slide.elements?.slice(0, 6).map((el) => {
-                  // Scale from 1920x1080 to thumbnail (~224x126)
+                {slide.elements?.slice(0, 8).map((el) => {
                   const thumbScale = 224 / 1920;
                   return (
                     <div
@@ -132,14 +141,23 @@ export default function SlideList({ slides, activeIndex, theme, onSelectSlide, o
                         fontFamily: el.style.fontFamily,
                         fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
                         color: el.style.color,
-                        backgroundColor: el.type === 'shape' ? el.style.shapeFill : undefined,
+                        textAlign: el.style.textAlign as React.CSSProperties['textAlign'],
+                        backgroundColor: el.type === 'shape'
+                          ? (el.style.shapeFill !== 'transparent' ? el.style.shapeFill : undefined)
+                          : undefined,
                         borderRadius: el.type === 'shape' ? (el.style.borderRadius ?? 0) * thumbScale : undefined,
+                        border: el.type === 'shape' && el.style.shapeStroke && el.style.shapeStroke !== 'transparent'
+                          ? `${Math.max(1, (el.style.shapeStrokeWidth ?? 1) * thumbScale)}px solid ${el.style.shapeStroke}`
+                          : undefined,
+                        ...(el.type === 'shape' && el.style.shapeType === 'circle' ? { borderRadius: '50%' } : {}),
                       }}
                     >
                       {el.type === 'text' && (
-                        <span className="line-clamp-2 leading-tight">{el.content}</span>
+                        <span className="line-clamp-2 leading-tight">
+                          {el.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
+                        </span>
                       )}
-                      {el.type === 'image' && (
+                      {el.type === 'image' && el.content && (
                         <img src={el.content} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>

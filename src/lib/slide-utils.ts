@@ -90,7 +90,7 @@ export function getSlideTitle(slide: Slide): string {
       .sort((a, b) => a.y - b.y)
       .find(e => e.type === 'text');
     if (firstText?.content) {
-      return firstText.content.slice(0, 80);
+      return firstText.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
     }
   }
   return slide.title || '';
