@@ -6,6 +6,7 @@ import { FontFamily } from '@tiptap/extension-font-family';
 import { Color } from '@tiptap/extension-color';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Underline } from '@tiptap/extension-underline';
+import { FontSize } from '@/lib/tiptap-font-size';
 import { SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import FormattingToolbar from './FormattingToolbar';
@@ -29,6 +30,7 @@ export default function RichTextEditor({ element, scale, onBlur }: Props) {
       }),
       TextStyle,
       FontFamily,
+      FontSize,
       Color,
       Underline,
       TextAlign.configure({

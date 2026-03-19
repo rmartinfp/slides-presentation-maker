@@ -23,7 +23,7 @@ interface Props {
   scale: number;
 }
 
-const FONT_SIZES = [12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 96];
+const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 112, 128, 160, 200];
 
 export default function FormattingToolbar({ editor, scale }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -112,23 +112,34 @@ export default function FormattingToolbar({ editor, scale }: Props) {
           className="flex items-center gap-0.5 px-1.5 h-7 text-xs text-slate-700 hover:bg-slate-100 rounded"
         >
           <span className="tabular-nums">
-            {editor.getAttributes('textStyle').fontSize?.replace('px', '') || '—'}
+            {(() => {
+              const fs = editor.getAttributes('textStyle').fontSize;
+              if (fs) return String(fs).replace('px', '');
+              // Fallback: read from DOM
+              const { from } = editor.state.selection;
+              const dom = editor.view.domAtPos(from);
+              if (dom.node instanceof HTMLElement) {
+                const computed = window.getComputedStyle(dom.node).fontSize;
+                return computed ? parseInt(computed).toString() : '—';
+              }
+              return '—';
+            })()}
           </span>
           <ChevronDown className="w-3 h-3" />
         </button>
         {showFontSize && (
-          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-16 max-h-48 overflow-y-auto z-[300]" data-formatting-dropdown>
+          <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-xl border border-slate-200 py-1 w-20 max-h-56 overflow-y-auto z-[300]" data-formatting-dropdown>
             {FONT_SIZES.map(size => (
               <button
                 key={size}
                 onMouseDown={(e) => {
                   e.preventDefault();
-                  editor.chain().focus().setMark('textStyle', { fontSize: `${size}px` }).run();
+                  (editor.chain().focus() as any).setFontSize(`${size}px`).run();
                   setShowFontSize(false);
                 }}
-                className="w-full text-left px-3 py-1 text-xs hover:bg-slate-100"
+                className="w-full text-left px-3 py-1.5 text-xs hover:bg-slate-100"
               >
-                {size}
+                {size}px
               </button>
             ))}
           </div>
