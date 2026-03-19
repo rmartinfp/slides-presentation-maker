@@ -86,7 +86,7 @@ export function createSampleSlides(): Slide[] {
  */
 export function getSlideTitle(slide: Slide): string {
   if (slide.elements?.length) {
-    const firstText = slide.elements
+    const firstText = [...slide.elements]
       .sort((a, b) => a.y - b.y)
       .find(e => e.type === 'text');
     if (firstText?.content) {
