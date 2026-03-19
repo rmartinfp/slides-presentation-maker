@@ -1,13 +1,48 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Check, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Search, Check, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { PresentationTheme } from '@/types/presentation';
+import { PresentationTheme, Slide } from '@/types/presentation';
 import { TEMPLATE_REGISTRY, templateToTheme, getAllCategories, TemplateDefinition } from '@/lib/template-registry';
+import { supabase } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
 import StepIndicator from './StepIndicator';
 import { useNavigate } from 'react-router-dom';
 
-function ThemeCard({ template, isSelected, onSelect }: { template: TemplateDefinition; isSelected: boolean; onSelect: (t: TemplateDefinition) => void }) {
+// Unified template type for both hardcoded and DB templates
+export interface UnifiedTemplate {
+  id: string;
+  name: string;
+  category: string;
+  coverImage: string;
+  slideImages: string[];
+  theme: PresentationTheme;
+  // DB templates have real slides with elements
+  slides?: Slide[];
+  source: 'registry' | 'db';
+  colors: { primary: string; secondary: string; accent: string; bg: string; text: string };
+}
+
+function useDbTemplates() {
+  return useQuery({
+    queryKey: ['templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (error) {
+        console.warn('Failed to load DB templates:', error.message);
+        return [];
+      }
+      return data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void }) {
   const [isHovering, setIsHovering] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
 
@@ -24,16 +59,17 @@ function ThemeCard({ template, isSelected, onSelect }: { template: TemplateDefin
 
   const displayImage = currentSlide === 0 ? template.coverImage : template.slideImages[currentSlide - 1];
   const hasImages = template.coverImage !== '';
+  const hasSlides = template.slides && template.slides.length > 0;
 
   return (
-    <motion.button
+    <motion.div
       layout
       whileHover={{ y: -6 }}
       onHoverStart={() => setIsHovering(true)}
       onHoverEnd={() => setIsHovering(false)}
       onClick={() => onSelect(template)}
       className={cn(
-        'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full',
+        'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full cursor-pointer',
         isSelected
           ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#0a0a0c] shadow-xl shadow-purple-500/25'
           : 'hover:shadow-xl hover:shadow-purple-500/10'
@@ -53,6 +89,56 @@ function ThemeCard({ template, isSelected, onSelect }: { template: TemplateDefin
               className="w-full h-full object-cover"
             />
           </AnimatePresence>
+        ) : hasSlides ? (
+          // Render mini preview of first slide elements
+          <div
+            className="w-full h-full relative"
+            style={{
+              backgroundColor:
+                template.slides![0]?.background?.type === 'solid'
+                  ? template.slides![0].background.value
+                  : template.colors.bg,
+            }}
+          >
+            {template.slides![0]?.elements?.slice(0, 8).map((el) => {
+              const s = 280 / 1920; // thumbnail scale
+              return (
+                <div
+                  key={el.id}
+                  className="absolute overflow-hidden"
+                  style={{
+                    left: el.x * s,
+                    top: el.y * s,
+                    width: el.width * s,
+                    height: el.height * s,
+                    fontSize: `${(el.style.fontSize ?? 16) * s}px`,
+                    fontFamily: el.style.fontFamily,
+                    fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
+                    color: el.style.color,
+                    opacity: el.opacity,
+                  }}
+                >
+                  {el.type === 'text' && (
+                    <span className="line-clamp-2 leading-tight">
+                      {el.content.replace(/<[^>]+>/g, '')}
+                    </span>
+                  )}
+                  {el.type === 'image' && (
+                    <img src={el.content} alt="" className="w-full h-full object-cover" />
+                  )}
+                  {el.type === 'shape' && (
+                    <div
+                      className="w-full h-full"
+                      style={{
+                        backgroundColor: el.style.shapeFill || el.style.backgroundColor,
+                        borderRadius: el.style.borderRadius,
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
           <div
             className="w-full h-full flex flex-col items-center justify-center gap-3 p-6"
@@ -70,7 +156,6 @@ function ThemeCard({ template, isSelected, onSelect }: { template: TemplateDefin
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {/* Slide indicators on hover */}
         {isHovering && hasImages && template.slideImages.length > 0 && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
             {[template.coverImage, ...template.slideImages].slice(0, 4).map((_, idx) => (
@@ -82,6 +167,13 @@ function ThemeCard({ template, isSelected, onSelect }: { template: TemplateDefin
                 )}
               />
             ))}
+          </div>
+        )}
+
+        {/* Badge for DB templates with real slides */}
+        {hasSlides && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-500/90 text-white text-[10px] font-medium rounded-full">
+            {template.slides!.length} slides
           </div>
         )}
 
@@ -109,12 +201,12 @@ function ThemeCard({ template, isSelected, onSelect }: { template: TemplateDefin
           </div>
         </div>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
 interface Props {
-  onSelect: (theme: PresentationTheme) => void;
+  onSelect: (theme: PresentationTheme, slides?: Slide[]) => void;
   selectedTheme?: PresentationTheme | null;
 }
 
@@ -122,25 +214,76 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [selectedTemplate, setSelectedTemplate] = useState<UnifiedTemplate | null>(null);
 
-  const categories = useMemo(() => getAllCategories(), []);
+  const { data: dbTemplates, isLoading: loadingDb } = useDbTemplates();
+
+  // Merge hardcoded + DB templates into unified list
+  const allTemplates = useMemo(() => {
+    const unified: UnifiedTemplate[] = [];
+
+    // DB templates first (they have real slides)
+    if (dbTemplates) {
+      for (const t of dbTemplates) {
+        const colors = t.colors || t.theme?.tokens?.palette || {};
+        unified.push({
+          id: t.id,
+          name: t.name,
+          category: t.category || 'Imported',
+          coverImage: t.thumbnail_url || '',
+          slideImages: [],
+          theme: t.theme as PresentationTheme,
+          slides: t.preview_slides as Slide[],
+          source: 'db',
+          colors: {
+            primary: colors.primary || '#6366f1',
+            secondary: colors.secondary || '#666666',
+            accent: colors.accent || '#f59e0b',
+            bg: colors.bg || '#ffffff',
+            text: colors.text || '#000000',
+          },
+        });
+      }
+    }
+
+    // Hardcoded templates
+    for (const t of TEMPLATE_REGISTRY) {
+      unified.push({
+        id: t.id,
+        name: t.name,
+        category: t.category,
+        coverImage: t.coverImage,
+        slideImages: t.slideImages,
+        theme: templateToTheme(t),
+        source: 'registry',
+        colors: t.colors,
+      });
+    }
+
+    return unified;
+  }, [dbTemplates]);
+
+  const categories = useMemo(() => {
+    const cats = new Set(allTemplates.map(t => t.category));
+    return ['All', ...cats];
+  }, [allTemplates]);
 
   const filtered = useMemo(() => {
-    return TEMPLATE_REGISTRY.filter(t => {
+    return allTemplates.filter(t => {
       if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (activeCategory !== 'All' && t.category !== activeCategory) return false;
       return true;
     });
-  }, [search, activeCategory]);
+  }, [search, activeCategory, allTemplates]);
 
-  const handleSelect = (template: TemplateDefinition) => {
-    onSelect(templateToTheme(template));
+  const handleSelect = (template: UnifiedTemplate) => {
+    setSelectedTemplate(template);
   };
 
-  // Find the matching template for the selected theme (for the bottom CTA)
-  const selectedTemplate = selectedTheme
-    ? TEMPLATE_REGISTRY.find(t => t.id === selectedTheme.id)
-    : null;
+  const handleContinue = () => {
+    if (!selectedTemplate) return;
+    onSelect(selectedTemplate.theme, selectedTemplate.slides);
+  };
 
   return (
     <motion.div
@@ -177,8 +320,7 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
         </div>
 
         {/* Filter Toolbar */}
-        <div className="flex items-center gap-3 mb-6 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl">
-          {/* Search */}
+        <div className="flex items-center gap-3 mb-6 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl flex-wrap">
           <div className="relative flex-shrink-0">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
             <input
@@ -190,7 +332,6 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
             />
           </div>
           <div className="w-px h-5 bg-white/10" />
-          {/* Category pills */}
           {categories.map(cat => (
             <button
               key={cat}
@@ -209,6 +350,7 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
 
         {/* Results count */}
         <p className="text-xs text-slate-500 mb-4">
+          {loadingDb && <Loader2 className="w-3 h-3 inline animate-spin mr-1" />}
           {filtered.length} template{filtered.length !== 1 ? 's' : ''}
         </p>
 
@@ -219,7 +361,7 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
               <ThemeCard
                 key={template.id}
                 template={template}
-                isSelected={selectedTheme?.id === template.id}
+                isSelected={selectedTemplate?.id === template.id}
                 onSelect={handleSelect}
               />
             ))}
@@ -235,7 +377,7 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
 
       {/* Bottom CTA */}
       <AnimatePresence>
-        {selectedTheme && (
+        {selectedTemplate && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -244,29 +386,33 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
           >
             <div className="max-w-6xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {selectedTemplate && selectedTemplate.coverImage ? (
+                {selectedTemplate.coverImage ? (
                   <img
                     src={selectedTemplate.coverImage}
-                    alt={selectedTheme.name}
+                    alt={selectedTemplate.name}
                     className="w-16 h-9 rounded-lg ring-2 ring-purple-500 object-cover"
                   />
                 ) : (
                   <div
                     className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center"
-                    style={{ backgroundColor: selectedTheme.tokens.palette.bg }}
+                    style={{ backgroundColor: selectedTemplate.colors.bg }}
                   >
-                    <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: selectedTheme.tokens.palette.primary }} />
+                    <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: selectedTemplate.colors.primary }} />
                   </div>
                 )}
                 <div>
-                  <p className="font-medium text-white text-sm">{selectedTheme.name}</p>
-                  <p className="text-xs text-slate-400">Selected</p>
+                  <p className="font-medium text-white text-sm">{selectedTemplate.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {selectedTemplate.slides
+                      ? `${selectedTemplate.slides.length} slides — Use as template`
+                      : 'AI will generate slides'}
+                  </p>
                 </div>
               </div>
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={() => onSelect(selectedTheme)}
+                onClick={handleContinue}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium shadow-lg shadow-purple-500/25 flex items-center gap-2"
               >
                 Continue

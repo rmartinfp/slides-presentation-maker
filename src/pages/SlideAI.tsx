@@ -3,9 +3,10 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import TemplateGallery from '@/components/slideai/TemplateGallery';
 import ContentStep from '@/components/slideai/ContentStep';
 import GeneratingView from '@/components/slideai/GeneratingView';
-import { PresentationTheme, WizardStep } from '@/types/presentation';
+import { PresentationTheme, Slide, WizardStep } from '@/types/presentation';
 import { THEME_CATALOG } from '@/lib/themes';
 import { generatePresentation } from '@/lib/ai-generate';
+import { migrateAllSlides } from '@/lib/slide-migration';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -13,11 +14,35 @@ export default function SlideAIPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<WizardStep>('template');
   const [selectedTheme, setSelectedTheme] = useState<PresentationTheme | null>(null);
+  const [templateSlides, setTemplateSlides] = useState<Slide[] | null>(null);
   const [contentText, setContentText] = useState('');
 
-  const handleSelectTheme = (theme: PresentationTheme) => {
+  const handleSelectTheme = (theme: PresentationTheme, slides?: Slide[]) => {
     setSelectedTheme(theme);
-    setStep('content');
+
+    if (slides && slides.length > 0) {
+      // DB template with real slides — go directly to editor
+      setTemplateSlides(slides);
+
+      // Ensure slides have proper element structure
+      const migrated = migrateAllSlides(slides, theme.tokens);
+
+      sessionStorage.setItem('presentation', JSON.stringify({
+        id: Math.random().toString(36).substring(2, 11),
+        title: 'Untitled Presentation',
+        slides: migrated,
+        theme,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
+
+      navigate('/editor');
+      toast.success(`Template loaded — ${migrated.length} slides ready to edit!`);
+    } else {
+      // Hardcoded template — proceed to content step for AI generation
+      setTemplateSlides(null);
+      setStep('content');
+    }
   };
 
   const handleGenerate = async () => {
@@ -31,10 +56,15 @@ export default function SlideAIPage() {
         audience: 'general',
       });
 
+      const slides = migrateAllSlides(
+        result.slides as Slide[],
+        (selectedTheme || THEME_CATALOG[0]).tokens,
+      );
+
       sessionStorage.setItem('presentation', JSON.stringify({
         id: Math.random().toString(36).substring(2, 11),
         title: result.title,
-        slides: result.slides,
+        slides,
         theme: selectedTheme || THEME_CATALOG[0],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
