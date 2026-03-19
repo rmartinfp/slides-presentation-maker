@@ -10,130 +10,181 @@ const corsHeaders = {
 /**
  * Edge function: import-google-slides
  *
- * Fetches a Google Slides presentation via the Slides API using a service account,
- * downloads all images, re-uploads them to Supabase Storage, and returns the
- * full presentation JSON with rewritten image URLs.
- *
- * Request body: { presentationId: string }
- * Response: Google Slides API presentation JSON with images re-hosted
+ * Two modes:
+ * 1. GET  ?action=auth        → Returns Google OAuth2 URL for user to authorize
+ * 2. GET  ?code=xxx           → Callback from Google, exchanges code for token
+ * 3. POST { presentationId, accessToken } → Fetches presentation and re-hosts images
  */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  try {
-    const { presentationId } = await req.json();
-    if (!presentationId) {
+  const url = new URL(req.url);
+  const clientId = Deno.env.get("GOOGLE_CLIENT_ID")!;
+  const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET")!;
+  const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/import-google-slides`;
+
+  // ---- Step 1: Redirect to Google OAuth ----
+  if (url.searchParams.get("action") === "auth") {
+    const redirectUri = `${functionUrl}/callback`;
+    const scope = encodeURIComponent(
+      "https://www.googleapis.com/auth/presentations.readonly"
+    );
+    const authUrl =
+      `https://accounts.google.com/o/oauth2/v2/auth` +
+      `?client_id=${clientId}` +
+      `&redirect_uri=${encodeURIComponent(redirectUri)}` +
+      `&response_type=code` +
+      `&scope=${scope}` +
+      `&access_type=offline` +
+      `&prompt=consent`;
+
+    return new Response(JSON.stringify({ authUrl }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  // ---- Step 2: OAuth callback — exchange code for token ----
+  if (url.pathname.endsWith("/callback") && url.searchParams.get("code")) {
+    const code = url.searchParams.get("code")!;
+    const redirectUri = `${functionUrl}/callback`;
+
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    const tokenData = await tokenRes.json();
+
+    if (tokenData.error) {
       return new Response(
-        JSON.stringify({ error: "presentationId is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        `<html><body><h2>Error</h2><pre>${JSON.stringify(tokenData, null, 2)}</pre></body></html>`,
+        { headers: { "Content-Type": "text/html" } },
       );
     }
 
-    // Get Google service account credentials from env
-    const serviceAccountJson = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-    if (!serviceAccountJson) {
+    // Return a page that sends the token back to the opener window
+    return new Response(
+      `<html>
+        <body>
+          <h2>Authorization successful!</h2>
+          <p>You can close this window.</p>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'google-auth-success',
+                accessToken: ${JSON.stringify(tokenData.access_token)},
+                refreshToken: ${JSON.stringify(tokenData.refresh_token || "")},
+                expiresIn: ${tokenData.expires_in || 3600}
+              }, '*');
+              setTimeout(() => window.close(), 1500);
+            }
+          </script>
+        </body>
+      </html>`,
+      { headers: { "Content-Type": "text/html" } },
+    );
+  }
+
+  // ---- Step 3: POST — Fetch presentation with access token ----
+  if (req.method === "POST") {
+    try {
+      const { presentationId, accessToken } = await req.json();
+
+      if (!presentationId || !accessToken) {
+        return new Response(
+          JSON.stringify({ error: "presentationId and accessToken are required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      // Fetch presentation from Google Slides API
+      const slidesRes = await fetch(
+        `https://slides.googleapis.com/v1/presentations/${presentationId}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } },
+      );
+
+      if (!slidesRes.ok) {
+        const error = await slidesRes.text();
+        return new Response(
+          JSON.stringify({ error: `Google Slides API error: ${error}` }),
+          { status: slidesRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+
+      const presentation = await slidesRes.json();
+
+      // Collect and re-host images
+      const imageMap = new Map<string, string>();
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      for (const slide of presentation.slides || []) {
+        for (const pe of slide.pageElements || []) {
+          await processElement(pe, imageMap, accessToken, supabase);
+        }
+      }
+
+      // Replace image URLs
+      let json = JSON.stringify(presentation);
+      for (const [original, replacement] of imageMap) {
+        json = json.split(original).join(replacement);
+      }
+
+      return new Response(json, {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      console.error("Error:", error);
       return new Response(
-        JSON.stringify({ error: "Google service account not configured" }),
+        JSON.stringify({ error: error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-
-    const serviceAccount = JSON.parse(serviceAccountJson);
-
-    // Get access token via JWT
-    const token = await getGoogleAccessToken(serviceAccount);
-
-    // Fetch presentation from Google Slides API
-    const slidesRes = await fetch(
-      `https://slides.googleapis.com/v1/presentations/${presentationId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      },
-    );
-
-    if (!slidesRes.ok) {
-      const error = await slidesRes.text();
-      return new Response(
-        JSON.stringify({ error: `Google Slides API error: ${error}` }),
-        { status: slidesRes.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
-
-    const presentation = await slidesRes.json();
-
-    // Collect image URLs from the presentation
-    const imageMap = new Map<string, string>(); // original URL -> new Supabase URL
-
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-
-    // Walk through all slides and download images
-    for (const slide of presentation.slides || []) {
-      for (const pe of slide.pageElements || []) {
-        await processElement(pe, imageMap, token, supabase);
-      }
-    }
-
-    // Replace image URLs in the response
-    let json = JSON.stringify(presentation);
-    for (const [original, replacement] of imageMap) {
-      json = json.split(original).join(replacement);
-    }
-
-    return new Response(json, {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  } catch (error) {
-    console.error("Error:", error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
   }
+
+  return new Response(
+    JSON.stringify({ error: "Invalid request" }),
+    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
 });
 
 async function processElement(
   pe: any,
   imageMap: Map<string, string>,
-  token: string,
+  accessToken: string,
   supabase: any,
 ) {
   if (pe.image?.contentUrl && !imageMap.has(pe.image.contentUrl)) {
-    const newUrl = await downloadAndUpload(pe.image.contentUrl, token, supabase);
+    const newUrl = await downloadAndUpload(pe.image.contentUrl, accessToken, supabase);
     if (newUrl) imageMap.set(pe.image.contentUrl, newUrl);
   }
 
-  // Recurse into groups
   if (pe.elementGroup?.children) {
     for (const child of pe.elementGroup.children) {
-      await processElement(child, imageMap, token, supabase);
-    }
-  }
-
-  // Background images
-  if (pe.pageProperties?.pageBackgroundFill?.stretchedPictureFill?.contentUrl) {
-    const url = pe.pageProperties.pageBackgroundFill.stretchedPictureFill.contentUrl;
-    if (!imageMap.has(url)) {
-      const newUrl = await downloadAndUpload(url, token, supabase);
-      if (newUrl) imageMap.set(url, newUrl);
+      await processElement(child, imageMap, accessToken, supabase);
     }
   }
 }
 
 async function downloadAndUpload(
   url: string,
-  token: string,
+  accessToken: string,
   supabase: any,
 ): Promise<string | null> {
   try {
-    // Download image (may need auth for Google-hosted images)
     const headers: Record<string, string> = {};
     if (url.includes("googleusercontent.com") || url.includes("googleapis.com")) {
-      headers["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${accessToken}`;
     }
 
     const res = await fetch(url, { headers });
@@ -143,7 +194,6 @@ async function downloadAndUpload(
     const ext = contentType.includes("jpeg") ? "jpg"
       : contentType.includes("png") ? "png"
       : contentType.includes("gif") ? "gif"
-      : contentType.includes("webp") ? "webp"
       : "png";
 
     const blob = await res.blob();
@@ -152,10 +202,7 @@ async function downloadAndUpload(
 
     const { error } = await supabase.storage
       .from("presentation-assets")
-      .upload(fileName, arrayBuffer, {
-        contentType,
-        cacheControl: "3600",
-      });
+      .upload(fileName, arrayBuffer, { contentType, cacheControl: "3600" });
 
     if (error) {
       console.error("Upload error:", error);
@@ -171,70 +218,4 @@ async function downloadAndUpload(
     console.error("Download/upload error:", e);
     return null;
   }
-}
-
-/**
- * Get a Google OAuth2 access token using a service account JWT.
- */
-async function getGoogleAccessToken(
-  serviceAccount: {
-    client_email: string;
-    private_key: string;
-    token_uri: string;
-  },
-): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const payload = {
-    iss: serviceAccount.client_email,
-    scope: "https://www.googleapis.com/auth/presentations.readonly",
-    aud: serviceAccount.token_uri,
-    iat: now,
-    exp: now + 3600,
-  };
-
-  const encoder = new TextEncoder();
-  const headerB64 = base64url(encoder.encode(JSON.stringify(header)));
-  const payloadB64 = base64url(encoder.encode(JSON.stringify(payload)));
-  const sigInput = `${headerB64}.${payloadB64}`;
-
-  // Import the private key
-  const pemContent = serviceAccount.private_key
-    .replace("-----BEGIN PRIVATE KEY-----", "")
-    .replace("-----END PRIVATE KEY-----", "")
-    .replace(/\s/g, "");
-
-  const binaryKey = Uint8Array.from(atob(pemContent), (c) => c.charCodeAt(0));
-  const cryptoKey = await crypto.subtle.importKey(
-    "pkcs8",
-    binaryKey,
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-
-  const signature = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    cryptoKey,
-    encoder.encode(sigInput),
-  );
-
-  const jwt = `${sigInput}.${base64url(new Uint8Array(signature))}`;
-
-  // Exchange JWT for access token
-  const tokenRes = await fetch(serviceAccount.token_uri, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=${jwt}`,
-  });
-
-  const tokenData = await tokenRes.json();
-  return tokenData.access_token;
-}
-
-function base64url(data: Uint8Array): string {
-  return btoa(String.fromCharCode(...data))
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/, "");
 }
