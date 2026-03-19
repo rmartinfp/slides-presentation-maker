@@ -3,6 +3,7 @@ import interact from 'interactjs';
 import { SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import { cn } from '@/lib/utils';
+import RichTextEditor from './RichTextEditor';
 
 interface Props {
   element: SlideElement;
@@ -24,9 +25,9 @@ export default function CanvasElement({
   const [isEditing, setIsEditing] = useState(false);
   const updateElement = useEditorStore(s => s.updateElement);
 
-  // interact.js drag + resize setup
+  // interact.js drag + resize setup — disable during text editing
   useEffect(() => {
-    if (!ref.current || element.locked) return;
+    if (!ref.current || element.locked || isEditing) return;
 
     const interactable = interact(ref.current)
       .draggable({
@@ -76,7 +77,7 @@ export default function CanvasElement({
     return () => {
       interactable.unset();
     };
-  }, [element.id, element.locked, element.x, element.y, element.width, element.height, scale, moveElement, resizeElement, pushSnapshot]);
+  }, [element.id, element.locked, element.x, element.y, element.width, element.height, scale, isEditing, moveElement, resizeElement, pushSnapshot]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -129,6 +130,18 @@ export default function CanvasElement({
 
     switch (element.type) {
       case 'text': {
+        if (isEditing) {
+          return (
+            <RichTextEditor
+              element={element}
+              scale={scale}
+              onBlur={handleBlur}
+            />
+          );
+        }
+
+        // Read-only display — render HTML if content is HTML, otherwise plain text
+        const isHtml = element.content.startsWith('<');
         const textStyle: React.CSSProperties = {
           fontFamily: s.fontFamily,
           fontSize: s.fontSize,
@@ -146,20 +159,19 @@ export default function CanvasElement({
           height: '100%',
           outline: 'none',
           overflow: 'hidden',
-          whiteSpace: 'pre-wrap',
+          whiteSpace: isHtml ? undefined : 'pre-wrap',
           wordBreak: 'break-word',
           opacity: typeof s.opacity === 'number' ? s.opacity : 1,
         };
 
-        return (
+        return isHtml ? (
           <div
             style={textStyle}
-            contentEditable={isEditing}
-            suppressContentEditableWarning
-            onBlur={handleBlur}
-            onInput={handleInput}
-            className="focus:outline-none"
-          >
+            className="focus:outline-none tiptap-preview"
+            dangerouslySetInnerHTML={{ __html: element.content }}
+          />
+        ) : (
+          <div style={textStyle} className="focus:outline-none">
             {element.content}
           </div>
         );

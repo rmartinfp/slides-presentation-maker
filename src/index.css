@@ -135,4 +135,34 @@
   .thumbnail-active {
     @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
+
+  /* Tiptap editor styles */
+  .tiptap p {
+    margin: 0;
+  }
+  .tiptap ul,
+  .tiptap ol {
+    padding-left: 1.5em;
+    margin: 0.25em 0;
+  }
+  .tiptap li {
+    margin: 0.15em 0;
+  }
+  .tiptap-preview p {
+    margin: 0;
+  }
+  .tiptap-preview ul,
+  .tiptap-preview ol {
+    padding-left: 1.5em;
+    margin: 0.25em 0;
+  }
+  .tiptap-preview li {
+    margin: 0.15em 0;
+  }
+  .ProseMirror {
+    outline: none;
+  }
+  .ProseMirror:focus {
+    outline: none;
+  }
 }
