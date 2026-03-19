@@ -609,7 +609,8 @@ async function main() {
     // Parse background
     let background = parseSlideBackground(slideXml, relsMap, themeColors);
 
-    // Extract layout placeholder font sizes for inheritance
+    // Extract layout name and placeholder font sizes for inheritance
+    let layoutName = 'unknown';
     const layoutPlaceholderSizes = new Map<string, number>();
     const layoutRef = relsMap.get('rId1'); // Usually rId1 points to layout
     if (layoutRef) {
@@ -619,6 +620,9 @@ async function main() {
       const layoutFile = zip.files[layoutPath];
       if (layoutFile) {
         const layoutXml = await layoutFile.async('string');
+        // Extract layout name
+        const nameMatch = layoutXml.match(/<p:cSld\s+name="([^"]*)"/);
+        if (nameMatch) layoutName = nameMatch[1];
         // Find placeholders with defRPr sz
         const phMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const pm of phMatches) {
@@ -735,12 +739,27 @@ async function main() {
       }
     }
 
+    // Classify slide type from layout name
+    const slideTypeMap: Record<string, string> = {
+      'TITLE': 'cover',
+      'SECTION_HEADER': 'section',
+      'TITLE_ONLY': 'content',
+      'TITLE_AND_TWO_COLUMNS': 'two-column',
+      'CAPTION_ONLY': 'image',
+      'BLANK': 'blank',
+    };
+    const slideType = slideTypeMap[layoutName] ||
+      (layoutName.includes('CUSTOM') && elements.length <= 5 ? 'content' : 'content');
+
+    console.log(`  → ${layoutName} (${slideType}) ${elements.length} elements`);
+
     parsedSlides.push({
       id: genId(),
       elements,
       background,
       notes: '',
-    });
+      layout: slideType, // Store slide type for AI content generation
+    } as any);
   }
 
   console.log(`\nParsed ${parsedSlides.length} slides, ${imageCache.size} images uploaded`);

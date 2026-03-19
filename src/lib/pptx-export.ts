@@ -62,7 +62,18 @@ function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
       const st = element.style;
       const fontSize = st.fontSize ? Math.round(st.fontSize * 0.55) : 14;
 
-      s.addText(element.content, {
+      // Strip HTML tags for PPTX (pptxgenjs doesn't support HTML)
+      const plainText = element.content
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>\s*<p>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim();
+
+      s.addText(plainText, {
         x,
         y,
         w,

@@ -100,12 +100,17 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
                 padding: `${8 * scaleX}vw`,
                 width: '100%',
                 height: '100%',
-                whiteSpace: 'pre-wrap',
                 wordBreak: 'break-word',
+                whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap',
                 opacity: typeof s.opacity === 'number' ? s.opacity : 1,
               }}
+              dangerouslySetInnerHTML={
+                element.content.startsWith('<')
+                  ? { __html: element.content }
+                  : undefined
+              }
             >
-              {element.content}
+              {element.content.startsWith('<') ? undefined : element.content}
             </div>
           </div>
         );

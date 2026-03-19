@@ -144,13 +144,17 @@ function StaticElement({ element }: { element: SlideElement }) {
               padding: 8,
               width: '100%',
               height: '100%',
-              whiteSpace: 'pre-wrap',
+              whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap',
               wordBreak: 'break-word',
               overflow: 'hidden',
               opacity: typeof s.opacity === 'number' ? s.opacity : 1,
             }}
+            {...(element.content.startsWith('<')
+              ? { dangerouslySetInnerHTML: { __html: element.content }, className: 'tiptap-preview' }
+              : {}
+            )}
           >
-            {element.content}
+            {element.content.startsWith('<') ? undefined : element.content}
           </div>
         );
 
