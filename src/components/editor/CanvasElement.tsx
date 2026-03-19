@@ -37,9 +37,14 @@ export default function CanvasElement({
     const node = ref.current;
     if (!node || element.locked || isEditing) return;
 
+    // Set low start threshold so drag activates quickly even at small canvas scale
+    interact.pointerMoveTolerance(2);
+
     const interactable = interact(node)
+      .styleCursor(false)
       .draggable({
         inertia: false,
+        autoScroll: false,
         listeners: {
           start: () => {
             isDragging.current = true;
@@ -168,7 +173,7 @@ export default function CanvasElement({
           whiteSpace: isHtml ? undefined : 'pre-wrap',
           wordBreak: 'break-word',
           opacity: typeof s.opacity === 'number' ? s.opacity : 1,
-          pointerEvents: 'none', // Let interact.js handle all pointer events
+          pointerEvents: isEditing ? 'auto' : 'none', // Let interact.js handle drag; only enable for editing
         };
 
         return isHtml ? (
