@@ -24,11 +24,13 @@ interface Props {
   slideCount: number;
   activeIndex: number;
   saveStatus?: 'idle' | 'saving' | 'saved';
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export default function EditorToolbar({
   title, onTitleChange, onBack, onDuplicate, onDelete, onExportPptx, onPresent,
-  slideCount, activeIndex, saveStatus = 'idle'
+  slideCount, activeIndex, saveStatus = 'idle', onUndo, onRedo
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
 
@@ -84,10 +86,10 @@ export default function EditorToolbar({
 
       {/* Center controls */}
       <div className="hidden md:flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Undo">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Undo (Ctrl+Z)" onClick={onUndo}>
           <Undo2 className="w-4 h-4 text-slate-500" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Redo">
+        <Button variant="ghost" size="sm" className="h-8 w-8 p-0" title="Redo (Ctrl+Shift+Z)" onClick={onRedo}>
           <Redo2 className="w-4 h-4 text-slate-500" />
         </Button>
       </div>

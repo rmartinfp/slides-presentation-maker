@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Slide, PresentationTheme } from '@/types/presentation';
 import { cn } from '@/lib/utils';
+import { getSlideTitle } from '@/lib/slide-utils';
 import { Plus, Trash2, Copy, MoreVertical, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -98,47 +99,60 @@ export default function SlideList({ slides, activeIndex, theme, onSelectSlide, o
               </div>
             )}
 
-            {/* Slide preview */}
+            {/* Slide preview — mini canvas */}
             <div className="bg-white rounded-lg overflow-hidden shadow-sm border border-slate-200">
               <div
-                className="w-full aspect-[16/9] rounded-md overflow-hidden"
-                style={{ backgroundColor: palette.bg }}
+                className="w-full aspect-[16/9] rounded-md overflow-hidden relative"
+                style={{
+                  backgroundColor:
+                    slide.background?.type === 'solid'
+                      ? slide.background.value
+                      : palette.bg,
+                  background:
+                    slide.background?.type === 'gradient'
+                      ? slide.background.value
+                      : undefined,
+                }}
               >
-                <div
-                  className="h-[12%] px-2 flex items-center"
-                  style={{
-                    background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.secondary} 100%)`,
-                  }}
-                >
-                  <div className="text-[6px] text-white font-medium truncate">
-                    {slide.title || 'Untitled'}
-                  </div>
-                </div>
-                <div className="p-2">
-                  {slide.bullets && slide.bullets.length > 0 && (
-                    <div className="space-y-0.5">
-                      {slide.bullets.slice(0, 3).map((item, i) => (
-                        <div key={i} className="flex items-start gap-1">
-                          <div className="w-0.5 h-0.5 rounded-full mt-0.5 flex-shrink-0" style={{ backgroundColor: palette.primary }} />
-                          <div className="text-[4px] text-slate-600 line-clamp-1">{item}</div>
-                        </div>
-                      ))}
+                {/* Render mini elements */}
+                {slide.elements?.slice(0, 6).map((el) => {
+                  // Scale from 1920x1080 to thumbnail (~224x126)
+                  const thumbScale = 224 / 1920;
+                  return (
+                    <div
+                      key={el.id}
+                      className="absolute overflow-hidden"
+                      style={{
+                        left: el.x * thumbScale,
+                        top: el.y * thumbScale,
+                        width: el.width * thumbScale,
+                        height: el.height * thumbScale,
+                        opacity: el.opacity,
+                        fontSize: `${(el.style.fontSize ?? 16) * thumbScale}px`,
+                        fontFamily: el.style.fontFamily,
+                        fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
+                        color: el.style.color,
+                        backgroundColor: el.type === 'shape' ? el.style.shapeFill : undefined,
+                        borderRadius: el.type === 'shape' ? (el.style.borderRadius ?? 0) * thumbScale : undefined,
+                      }}
+                    >
+                      {el.type === 'text' && (
+                        <span className="line-clamp-2 leading-tight">{el.content}</span>
+                      )}
+                      {el.type === 'image' && (
+                        <img src={el.content} alt="" className="w-full h-full object-cover" />
+                      )}
                     </div>
-                  )}
-                </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Slide title */}
             <div className="mt-2 px-1">
               <p className="text-xs font-medium text-slate-700 truncate">
-                {slide.title || `Slide ${idx + 1}`}
+                {getSlideTitle(slide) || `Slide ${idx + 1}`}
               </p>
-              {slide.layout && (
-                <p className="text-[10px] text-slate-400 capitalize">
-                  {slide.layout.replace('-', ' ')}
-                </p>
-              )}
             </div>
           </div>
         ))}

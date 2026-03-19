@@ -1,4 +1,4 @@
-import { Slide } from '@/types/presentation';
+import { Slide, SlideElement, SlideBackground } from '@/types/presentation';
 
 export function generateId(): string {
   return Math.random().toString(36).substring(2, 11);
@@ -7,12 +7,15 @@ export function generateId(): string {
 export function createEmptySlide(layout: string = 'blank'): Slide {
   return {
     id: generateId(),
+    elements: [],
+    background: { type: 'solid', value: '#ffffff' },
+    notes: '',
+    // Keep legacy fields for backward compat during migration
     layout,
     title: '',
     subtitle: '',
     body: '',
     bullets: [],
-    notes: '',
   };
 }
 
@@ -20,6 +23,8 @@ export function createSampleSlides(): Slide[] {
   return [
     {
       id: generateId(),
+      elements: [],
+      background: { type: 'solid', value: '#ffffff' },
       layout: 'cover',
       title: 'Your Presentation Title',
       subtitle: 'Add a subtitle here',
@@ -28,6 +33,8 @@ export function createSampleSlides(): Slide[] {
     },
     {
       id: generateId(),
+      elements: [],
+      background: { type: 'solid', value: '#ffffff' },
       layout: 'content',
       title: 'Key Points',
       subtitle: '',
@@ -41,6 +48,8 @@ export function createSampleSlides(): Slide[] {
     },
     {
       id: generateId(),
+      elements: [],
+      background: { type: 'solid', value: '#ffffff' },
       layout: 'two-column',
       title: 'Comparison',
       subtitle: '',
@@ -50,6 +59,8 @@ export function createSampleSlides(): Slide[] {
     },
     {
       id: generateId(),
+      elements: [],
+      background: { type: 'solid', value: '#ffffff' },
       layout: 'statement',
       title: '"The best way to predict the future is to create it."',
       subtitle: '— Peter Drucker',
@@ -58,6 +69,8 @@ export function createSampleSlides(): Slide[] {
     },
     {
       id: generateId(),
+      elements: [],
+      background: { type: 'solid', value: '#ffffff' },
       layout: 'closing',
       title: 'Thank You',
       subtitle: 'Questions?',
@@ -65,4 +78,20 @@ export function createSampleSlides(): Slide[] {
       notes: '',
     },
   ];
+}
+
+/**
+ * Extract a display title from a slide.
+ * Looks at the first text element, or falls back to legacy title field.
+ */
+export function getSlideTitle(slide: Slide): string {
+  if (slide.elements?.length) {
+    const firstText = slide.elements
+      .sort((a, b) => a.y - b.y)
+      .find(e => e.type === 'text');
+    if (firstText?.content) {
+      return firstText.content.slice(0, 80);
+    }
+  }
+  return slide.title || '';
 }

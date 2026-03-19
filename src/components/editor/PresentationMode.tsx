@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { Slide, PresentationTheme } from '@/types/presentation';
+import { Slide, PresentationTheme, SlideElement } from '@/types/presentation';
 
 interface Props {
   slides: Slide[];
@@ -13,7 +13,7 @@ interface Props {
 export default function PresentationMode({ slides, theme, startIndex = 0, onExit }: Props) {
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [direction, setDirection] = useState(0);
-  const { palette, typography } = theme.tokens;
+  const { palette } = theme.tokens;
   const slide = slides[currentIndex];
 
   useEffect(() => {
@@ -45,79 +45,109 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
     };
   }, []);
 
-  const renderContent = () => {
-    switch (slide.layout) {
-      case 'cover':
+  // Compute background style
+  const bgStyle: React.CSSProperties = {};
+  if (slide.background) {
+    switch (slide.background.type) {
+      case 'solid':
+        bgStyle.backgroundColor = slide.background.value;
+        break;
+      case 'gradient':
+        bgStyle.background = slide.background.value;
+        break;
+      case 'image':
+        bgStyle.backgroundImage = `url(${slide.background.value})`;
+        bgStyle.backgroundSize = 'cover';
+        bgStyle.backgroundPosition = 'center';
+        break;
+    }
+  } else {
+    bgStyle.backgroundColor = palette.bg;
+  }
+
+  const renderElement = (element: SlideElement) => {
+    const s = element.style;
+    // Scale from 1920x1080 to viewport using vw/vh
+    const scaleX = 100 / 1920; // vw per px
+    const scaleY = 100 / 1080; // vh per px
+
+    const wrapperStyle: React.CSSProperties = {
+      position: 'absolute',
+      left: `${element.x * scaleX}vw`,
+      top: `${element.y * scaleY}vh`,
+      width: `${element.width * scaleX}vw`,
+      height: `${element.height * scaleY}vh`,
+      transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+      opacity: element.opacity,
+      zIndex: element.zIndex,
+      overflow: 'hidden',
+    };
+
+    switch (element.type) {
+      case 'text':
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-[10%]">
-            <h1 style={{ color: palette.primary, fontFamily: typography.titleFont, fontSize: '4.5vw' }} className="font-bold leading-tight mb-6">
-              {slide.title || 'Untitled'}
-            </h1>
-            {slide.subtitle && (
-              <p style={{ color: palette.text, fontFamily: typography.bodyFont, fontSize: '2vw' }} className="opacity-70">
-                {slide.subtitle}
-              </p>
+          <div key={element.id} style={wrapperStyle}>
+            <div
+              style={{
+                fontFamily: s.fontFamily,
+                fontSize: `${(s.fontSize ?? 24) * scaleX}vw`,
+                fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
+                fontStyle: s.fontStyle,
+                textDecoration: s.textDecoration,
+                textAlign: s.textAlign as React.CSSProperties['textAlign'],
+                lineHeight: s.lineHeight,
+                color: s.color,
+                padding: `${8 * scaleX}vw`,
+                width: '100%',
+                height: '100%',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                opacity: typeof s.opacity === 'number' ? s.opacity : 1,
+              }}
+            >
+              {element.content}
+            </div>
+          </div>
+        );
+
+      case 'shape': {
+        const fill = s.shapeFill || s.backgroundColor || '#6366f1';
+        const shapeType = s.shapeType || 'rectangle';
+        return (
+          <div key={element.id} style={wrapperStyle}>
+            {shapeType === 'circle' ? (
+              <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} />
+              </svg>
+            ) : shapeType === 'triangle' ? (
+              <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+                <polygon points="50,2 98,98 2,98" fill={fill} />
+              </svg>
+            ) : (
+              <div className="w-full h-full" style={{ backgroundColor: fill, borderRadius: s.borderRadius ?? 0 }} />
             )}
           </div>
         );
-      case 'statement':
+      }
+
+      case 'image':
         return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-[12%]" style={{ backgroundColor: palette.primary }}>
-            <p style={{ color: '#ffffff', fontFamily: typography.titleFont, fontSize: '3.5vw' }} className="font-bold italic leading-tight mb-6">
-              {slide.body || slide.title}
-            </p>
-            {slide.subtitle && (
-              <p style={{ color: '#ffffff', fontFamily: typography.bodyFont, fontSize: '1.8vw' }} className="opacity-70 italic">
-                {slide.subtitle}
-              </p>
-            )}
+          <div key={element.id} style={wrapperStyle}>
+            <img
+              src={element.content}
+              alt=""
+              className="w-full h-full"
+              style={{ objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover', borderRadius: s.borderRadius ?? 0 }}
+            />
           </div>
         );
-      case 'closing':
-        return (
-          <div className="flex flex-col items-center justify-center h-full text-center px-[10%]">
-            <h1 style={{ color: palette.primary, fontFamily: typography.titleFont, fontSize: '5vw' }} className="font-bold mb-4">
-              {slide.title || 'Thank You'}
-            </h1>
-            {slide.subtitle && (
-              <p style={{ color: palette.text, fontFamily: typography.bodyFont, fontSize: '2vw' }} className="opacity-60">
-                {slide.subtitle}
-              </p>
-            )}
-            {slide.body && (
-              <p style={{ color: palette.primary, fontFamily: typography.bodyFont, fontSize: '1.5vw' }} className="mt-8 opacity-80">
-                {slide.body}
-              </p>
-            )}
-          </div>
-        );
+
       default:
-        return (
-          <div className="flex flex-col h-full px-[8%] py-[6%]">
-            <h2 style={{ color: palette.primary, fontFamily: typography.titleFont, fontSize: '3vw' }} className="font-bold mb-8">
-              {slide.title}
-            </h2>
-            {slide.body && (
-              <p style={{ color: palette.text, fontFamily: typography.bodyFont, fontSize: '1.6vw' }} className="mb-6 leading-relaxed opacity-80">
-                {slide.body}
-              </p>
-            )}
-            {slide.bullets && slide.bullets.length > 0 && (
-              <div className="flex-1 flex flex-col justify-start gap-4">
-                {slide.bullets.map((b, i) => (
-                  <div key={i} className="flex items-start gap-4">
-                    <div className="w-3 h-3 rounded-full mt-2 shrink-0" style={{ backgroundColor: palette.accent || palette.primary }} />
-                    <p style={{ color: palette.text, fontFamily: typography.bodyFont, fontSize: '1.5vw' }} className="leading-relaxed">
-                      {b}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        );
+        return null;
     }
   };
+
+  const sortedElements = [...(slide.elements || [])].sort((a, b) => a.zIndex - b.zIndex);
 
   return (
     <div className="fixed inset-0 z-[9999] bg-black">
@@ -139,9 +169,9 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
           exit={{ opacity: 0, x: direction > 0 ? -100 : 100 }}
           transition={{ duration: 0.3, ease: 'easeInOut' }}
           className="absolute inset-0"
-          style={{ backgroundColor: slide.layout === 'statement' ? palette.primary : palette.bg }}
+          style={bgStyle}
         >
-          {renderContent()}
+          {sortedElements.map(renderElement)}
         </motion.div>
       </AnimatePresence>
 
@@ -150,7 +180,6 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
         <span className="text-white/70 text-sm font-mono">
           {currentIndex + 1} / {slides.length}
         </span>
-        {/* Progress dots */}
         <div className="flex gap-1">
           {slides.map((_, i) => (
             <button

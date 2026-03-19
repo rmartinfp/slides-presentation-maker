@@ -1,303 +1,124 @@
 import PptxGenJS from 'pptxgenjs';
-import { Presentation, Slide, PresentationTheme } from '@/types/presentation';
+import { Presentation, Slide, SlideElement, PresentationTheme } from '@/types/presentation';
+
+// Conversion constants: 1920px canvas → 10 inches (PPTX LAYOUT_WIDE)
+const PX_TO_INCH = 10 / 1920;
+const PX_TO_INCH_Y = 7.5 / 1080;
 
 export async function exportToPptx(presentation: Presentation): Promise<void> {
   const pptx = new PptxGenJS();
   const { theme } = presentation;
-  const { palette, typography } = theme.tokens;
+  const { palette } = theme.tokens;
 
-  // Presentation metadata
   pptx.author = 'SlideAI';
   pptx.title = presentation.title;
-  pptx.layout = 'LAYOUT_WIDE'; // 16:9
+  pptx.layout = 'LAYOUT_WIDE';
 
-  // Define master slides
-  pptx.defineSlideMaster({
-    title: 'CONTENT_SLIDE',
-    background: { color: palette.bg.replace('#', '') },
-  });
-
-  pptx.defineSlideMaster({
-    title: 'DARK_SLIDE',
-    background: { color: palette.primary.replace('#', '') },
-  });
-
-  // Generate slides
   for (const slide of presentation.slides) {
     addSlide(pptx, slide, theme);
   }
 
-  // Download
   await pptx.writeFile({ fileName: `${sanitizeFilename(presentation.title)}.pptx` });
 }
 
 function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void {
-  const { palette, typography } = theme.tokens;
-  const primaryHex = palette.primary.replace('#', '');
-  const secondaryHex = palette.secondary.replace('#', '');
-  const textHex = palette.text.replace('#', '');
-  const bgHex = palette.bg.replace('#', '');
-  const accentHex = (palette.accent || palette.primary).replace('#', '');
+  const { palette } = theme.tokens;
+  const s = pptx.addSlide();
 
-  switch (slide.layout) {
-    case 'cover':
-      addCoverSlide(pptx, slide, { primaryHex, secondaryHex, textHex, bgHex, typography });
+  // Background
+  if (slide.background) {
+    switch (slide.background.type) {
+      case 'solid':
+        s.background = { color: slide.background.value.replace('#', '') };
+        break;
+      case 'gradient':
+        // Fallback to palette bg for gradient (PPTX gradient is complex)
+        s.background = { color: palette.bg.replace('#', '') };
+        break;
+      case 'image':
+        s.background = { path: slide.background.value };
+        break;
+    }
+  } else {
+    s.background = { color: palette.bg.replace('#', '') };
+  }
+
+  // Render each element
+  const sortedElements = [...(slide.elements || [])].sort((a, b) => a.zIndex - b.zIndex);
+
+  for (const element of sortedElements) {
+    addElement(s, element);
+  }
+}
+
+function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
+  const x = element.x * PX_TO_INCH;
+  const y = element.y * PX_TO_INCH_Y;
+  const w = element.width * PX_TO_INCH;
+  const h = element.height * PX_TO_INCH_Y;
+
+  switch (element.type) {
+    case 'text': {
+      const st = element.style;
+      const fontSize = st.fontSize ? Math.round(st.fontSize * 0.55) : 14;
+
+      s.addText(element.content, {
+        x,
+        y,
+        w,
+        h,
+        fontSize,
+        fontFace: st.fontFamily || 'Arial',
+        color: (st.color || '#000000').replace('#', ''),
+        bold: st.fontWeight === 'bold' || st.fontWeight === '700',
+        italic: st.fontStyle === 'italic',
+        underline: st.textDecoration === 'underline' ? { style: 'sng' } : undefined,
+        align: st.textAlign || 'left',
+        valign: 'top',
+        lineSpacingMultiple: st.lineHeight ? st.lineHeight * 0.85 : 1.2,
+        rotate: element.rotation || undefined,
+      });
       break;
-    case 'statement':
-      addStatementSlide(pptx, slide, { primaryHex, secondaryHex, textHex, bgHex, typography });
+    }
+
+    case 'shape': {
+      const st = element.style;
+      const fill = (st.shapeFill || st.backgroundColor || '#6366f1').replace('#', '');
+      const shapeType = st.shapeType || 'rectangle';
+
+      // Map our shapes to pptxgenjs shapes
+      let pptxShape: string = 'rect';
+      if (shapeType === 'circle') pptxShape = 'ellipse';
+      else if (shapeType === 'triangle') pptxShape = 'triangle';
+      else if (shapeType === 'arrow-right') pptxShape = 'rightArrow';
+      else if (shapeType === 'line') pptxShape = 'line';
+
+      s.addShape(pptxShape as PptxGenJS.ShapeType, {
+        x,
+        y,
+        w,
+        h,
+        fill: { type: 'solid', color: fill },
+        rotate: element.rotation || undefined,
+      });
       break;
-    case 'closing':
-      addClosingSlide(pptx, slide, { primaryHex, secondaryHex, textHex, bgHex, typography });
+    }
+
+    case 'image': {
+      try {
+        s.addImage({
+          path: element.content,
+          x,
+          y,
+          w,
+          h,
+          rotate: element.rotation || undefined,
+        });
+      } catch {
+        // Skip images that can't be loaded
+      }
       break;
-    case 'two-column':
-      addTwoColumnSlide(pptx, slide, { primaryHex, secondaryHex, textHex, bgHex, accentHex, typography });
-      break;
-    default:
-      addContentSlide(pptx, slide, { primaryHex, secondaryHex, textHex, bgHex, accentHex, typography });
-  }
-}
-
-interface SlideColors {
-  primaryHex: string;
-  secondaryHex: string;
-  textHex: string;
-  bgHex: string;
-  accentHex?: string;
-  typography: { titleFont: string; bodyFont: string; titleSize: number; bodySize: number };
-}
-
-function addCoverSlide(pptx: PptxGenJS, slide: Slide, colors: SlideColors): void {
-  const s = pptx.addSlide();
-
-  // Gradient background bar at top
-  s.addShape('rect', {
-    x: 0, y: 0, w: '100%', h: 0.8,
-    fill: { type: 'solid', color: colors.primaryHex },
-  });
-
-  // Accent bar
-  s.addShape('rect', {
-    x: 0, y: 0.8, w: '100%', h: 0.05,
-    fill: { type: 'solid', color: colors.secondaryHex },
-  });
-
-  s.background = { color: colors.bgHex };
-
-  // Title
-  s.addText(slide.title || 'Untitled Presentation', {
-    x: 0.8, y: 2.0, w: '85%', h: 1.5,
-    fontSize: Math.round(colors.typography.titleSize * 0.85),
-    fontFace: colors.typography.titleFont,
-    color: colors.primaryHex,
-    bold: true,
-    align: 'center',
-    valign: 'middle',
-  });
-
-  // Subtitle
-  if (slide.subtitle) {
-    s.addText(slide.subtitle, {
-      x: 0.8, y: 3.5, w: '85%', h: 0.8,
-      fontSize: Math.round(colors.typography.bodySize * 0.9),
-      fontFace: colors.typography.bodyFont,
-      color: colors.textHex,
-      align: 'center',
-      valign: 'middle',
-    });
-  }
-}
-
-function addContentSlide(pptx: PptxGenJS, slide: Slide, colors: SlideColors & { accentHex: string }): void {
-  const s = pptx.addSlide();
-  s.background = { color: colors.bgHex };
-
-  // Colored left accent bar
-  s.addShape('rect', {
-    x: 0, y: 0, w: 0.06, h: '100%',
-    fill: { type: 'solid', color: colors.primaryHex },
-  });
-
-  // Title
-  s.addText(slide.title || '', {
-    x: 0.5, y: 0.3, w: '90%', h: 0.8,
-    fontSize: Math.round(colors.typography.titleSize * 0.7),
-    fontFace: colors.typography.titleFont,
-    color: colors.primaryHex,
-    bold: true,
-  });
-
-  // Divider line
-  s.addShape('rect', {
-    x: 0.5, y: 1.1, w: 1.5, h: 0.04,
-    fill: { type: 'solid', color: colors.accentHex },
-  });
-
-  let yPos = 1.4;
-
-  // Body text
-  if (slide.body) {
-    s.addText(slide.body, {
-      x: 0.5, y: yPos, w: '90%', h: 0.8,
-      fontSize: Math.round(colors.typography.bodySize * 0.65),
-      fontFace: colors.typography.bodyFont,
-      color: colors.textHex,
-      lineSpacingMultiple: 1.3,
-    });
-    yPos += 0.9;
-  }
-
-  // Bullets
-  if (slide.bullets && slide.bullets.length > 0) {
-    const bulletTexts = slide.bullets.map(b => ({
-      text: b,
-      options: {
-        bullet: { code: '25CF', color: colors.accentHex },
-        fontSize: Math.round(colors.typography.bodySize * 0.6),
-        fontFace: colors.typography.bodyFont,
-        color: colors.textHex,
-        lineSpacingMultiple: 1.5,
-        indentLevel: 0,
-        paraSpaceAfter: 8,
-      },
-    }));
-
-    s.addText(bulletTexts, {
-      x: 0.5, y: yPos, w: '88%', h: 4.0 - yPos + 1,
-      valign: 'top',
-    });
-  }
-}
-
-function addTwoColumnSlide(pptx: PptxGenJS, slide: Slide, colors: SlideColors & { accentHex: string }): void {
-  const s = pptx.addSlide();
-  s.background = { color: colors.bgHex };
-
-  // Left accent bar
-  s.addShape('rect', {
-    x: 0, y: 0, w: 0.06, h: '100%',
-    fill: { type: 'solid', color: colors.primaryHex },
-  });
-
-  // Title
-  s.addText(slide.title || '', {
-    x: 0.5, y: 0.3, w: '90%', h: 0.8,
-    fontSize: Math.round(colors.typography.titleSize * 0.7),
-    fontFace: colors.typography.titleFont,
-    color: colors.primaryHex,
-    bold: true,
-  });
-
-  // Divider
-  s.addShape('rect', {
-    x: 0.5, y: 1.1, w: 1.5, h: 0.04,
-    fill: { type: 'solid', color: colors.accentHex },
-  });
-
-  // Left column - body
-  if (slide.body) {
-    s.addText(slide.body, {
-      x: 0.5, y: 1.4, w: '44%', h: 3.5,
-      fontSize: Math.round(colors.typography.bodySize * 0.6),
-      fontFace: colors.typography.bodyFont,
-      color: colors.textHex,
-      lineSpacingMultiple: 1.3,
-      valign: 'top',
-    });
-  }
-
-  // Right column - bullets
-  if (slide.bullets && slide.bullets.length > 0) {
-    const bulletTexts = slide.bullets.map(b => ({
-      text: b,
-      options: {
-        bullet: { code: '25CF', color: colors.accentHex },
-        fontSize: Math.round(colors.typography.bodySize * 0.58),
-        fontFace: colors.typography.bodyFont,
-        color: colors.textHex,
-        lineSpacingMultiple: 1.4,
-        paraSpaceAfter: 6,
-      },
-    }));
-
-    s.addText(bulletTexts, {
-      x: '52%', y: 1.4, w: '44%', h: 3.5,
-      valign: 'top',
-    });
-  }
-}
-
-function addStatementSlide(pptx: PptxGenJS, slide: Slide, colors: SlideColors): void {
-  const s = pptx.addSlide();
-  s.background = { color: colors.primaryHex };
-
-  // Quote/statement text
-  const text = slide.body || slide.title || '';
-  s.addText(text, {
-    x: 1, y: 1.5, w: '80%', h: 2.5,
-    fontSize: Math.round(colors.typography.titleSize * 0.65),
-    fontFace: colors.typography.titleFont,
-    color: 'FFFFFF',
-    bold: true,
-    italic: true,
-    align: 'center',
-    valign: 'middle',
-    lineSpacingMultiple: 1.3,
-  });
-
-  // Attribution
-  if (slide.subtitle) {
-    s.addText(slide.subtitle, {
-      x: 1, y: 4.0, w: '80%', h: 0.5,
-      fontSize: Math.round(colors.typography.bodySize * 0.7),
-      fontFace: colors.typography.bodyFont,
-      color: 'FFFFFF',
-      align: 'center',
-      italic: true,
-    });
-  }
-}
-
-function addClosingSlide(pptx: PptxGenJS, slide: Slide, colors: SlideColors): void {
-  const s = pptx.addSlide();
-  s.background = { color: colors.bgHex };
-
-  // Accent bar
-  s.addShape('rect', {
-    x: '35%', y: 1.8, w: '30%', h: 0.05,
-    fill: { type: 'solid', color: colors.primaryHex },
-  });
-
-  // Title
-  s.addText(slide.title || 'Thank You', {
-    x: 0.5, y: 2.0, w: '90%', h: 1.2,
-    fontSize: Math.round(colors.typography.titleSize * 0.95),
-    fontFace: colors.typography.titleFont,
-    color: colors.primaryHex,
-    bold: true,
-    align: 'center',
-    valign: 'middle',
-  });
-
-  // Subtitle
-  if (slide.subtitle) {
-    s.addText(slide.subtitle, {
-      x: 0.5, y: 3.2, w: '90%', h: 0.6,
-      fontSize: Math.round(colors.typography.bodySize * 0.8),
-      fontFace: colors.typography.bodyFont,
-      color: colors.textHex,
-      align: 'center',
-    });
-  }
-
-  // Contact / body
-  if (slide.body) {
-    s.addText(slide.body, {
-      x: 0.5, y: 3.9, w: '90%', h: 0.5,
-      fontSize: Math.round(colors.typography.bodySize * 0.65),
-      fontFace: colors.typography.bodyFont,
-      color: colors.secondaryHex,
-      align: 'center',
-    });
+    }
   }
 }
 
