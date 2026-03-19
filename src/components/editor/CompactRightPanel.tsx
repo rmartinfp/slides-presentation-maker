@@ -10,6 +10,7 @@ interface Props {
   onThemeChange: (theme: PresentationTheme) => void;
   onLayoutChange: (layout: string) => void;
   currentLayout: string;
+  onAIRewrite?: () => void;
 }
 
 const tools = [
@@ -28,7 +29,7 @@ const layouts = [
   { id: 'closing', name: 'Closing', desc: 'Thank you' },
 ];
 
-export default function CompactRightPanel({ theme, onThemeChange, onLayoutChange, currentLayout }: Props) {
+export default function CompactRightPanel({ theme, onThemeChange, onLayoutChange, currentLayout, onAIRewrite }: Props) {
   const [activePanel, setActivePanel] = useState<string | null>(null);
 
   const renderPanel = () => {
@@ -90,7 +91,13 @@ export default function CompactRightPanel({ theme, onThemeChange, onLayoutChange
           <div className="text-center py-8">
             <Sparkles className="w-8 h-8 text-indigo-400 mx-auto mb-3" />
             <p className="text-sm text-slate-600 font-medium">AI Assist</p>
-            <p className="text-xs text-slate-400 mt-1">Coming soon</p>
+            <p className="text-xs text-slate-400 mt-1 mb-4">Rewrite or enhance the current slide</p>
+            <button
+              onClick={() => { onAIRewrite?.(); setActivePanel(null); }}
+              className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-sm font-medium hover:from-indigo-700 hover:to-purple-700 transition-all"
+            >
+              Rewrite Slide
+            </button>
           </div>
         );
 

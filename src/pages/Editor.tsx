@@ -12,6 +12,8 @@ import CompactRightPanel from '@/components/editor/CompactRightPanel';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
 import PresentationMode from '@/components/editor/PresentationMode';
+import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
+import { AnimatePresence } from 'framer-motion';
 
 export default function EditorPage() {
   const navigate = useNavigate();
@@ -52,6 +54,7 @@ export default function EditorPage() {
 
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [isPresentationMode, setIsPresentationMode] = useState(false);
+  const [showAIRewrite, setShowAIRewrite] = useState(false);
   const activeSlide = presentation.slides[activeSlideIndex];
 
   // ---- Load from Supabase if URL has ?id=xxx ----
@@ -298,9 +301,22 @@ export default function EditorPage() {
           onThemeChange={handleThemeChange}
           onLayoutChange={handleLayoutChange}
           currentLayout={activeSlide?.layout ?? 'content'}
+          onAIRewrite={() => setShowAIRewrite(true)}
         />
       </div>
     </div>
+
+    {/* AI Rewrite Dialog */}
+    <AnimatePresence>
+      {showAIRewrite && activeSlide && (
+        <AIRewriteDialog
+          slide={activeSlide}
+          presentationTitle={presentation.title}
+          onUpdate={updateSlide}
+          onClose={() => setShowAIRewrite(false)}
+        />
+      )}
+    </AnimatePresence>
     </>
   );
 }
