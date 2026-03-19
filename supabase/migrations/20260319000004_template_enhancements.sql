@@ -33,6 +33,7 @@ create policy "Auth update templates" on public.templates
   for update using (true);
 
 -- Updated at trigger
+drop trigger if exists templates_updated_at on public.templates;
 create trigger templates_updated_at
   before update on public.templates
   for each row
