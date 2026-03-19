@@ -21,30 +21,30 @@ export default function CanvasElement({
   onDoubleClick,
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
-  const { moveElement, resizeElement, pushSnapshot } = useEditorStore();
   const [isEditing, setIsEditing] = useState(false);
-  const updateElement = useEditorStore(s => s.updateElement);
 
-  // interact.js drag + resize setup — disable during text editing
+  // Use refs to always have latest values without re-running the effect
+  const elementRef = useRef(element);
+  elementRef.current = element;
+  const scaleRef = useRef(scale);
+  scaleRef.current = scale;
+
+  const { moveElement, resizeElement, pushSnapshot, updateElement } = useEditorStore();
+
+  // interact.js setup — only recreate when id, locked, or editing changes
   useEffect(() => {
-    if (!ref.current || element.locked || isEditing) return;
+    const node = ref.current;
+    if (!node || element.locked || isEditing) return;
 
-    const interactable = interact(ref.current)
+    const interactable = interact(node)
       .draggable({
         inertia: false,
-        modifiers: [
-          interact.modifiers.snap({
-            targets: [interact.snappers.grid({ x: 10, y: 10 })],
-            range: 20,
-            relativePoints: [{ x: 0, y: 0 }],
-          }),
-        ],
         listeners: {
           start: () => pushSnapshot(),
           move: (event) => {
-            const dx = event.dx / scale;
-            const dy = event.dy / scale;
-            moveElement(element.id, element.x + dx, element.y + dy);
+            const el = elementRef.current;
+            const s = scaleRef.current;
+            moveElement(el.id, el.x + event.dx / s, el.y + event.dy / s);
           },
         },
       })
@@ -52,23 +52,21 @@ export default function CanvasElement({
         edges: { left: true, right: true, bottom: true, top: true },
         modifiers: [
           interact.modifiers.restrictSize({
-            min: { width: 40, height: 20 },
+            min: { width: 20, height: 20 },
           }),
         ],
         inertia: false,
         listeners: {
           start: () => pushSnapshot(),
           move: (event) => {
-            const dw = event.deltaRect.width / scale;
-            const dh = event.deltaRect.height / scale;
-            const dl = event.deltaRect.left / scale;
-            const dt = event.deltaRect.top / scale;
+            const el = elementRef.current;
+            const s = scaleRef.current;
             resizeElement(
-              element.id,
-              element.width + dw,
-              element.height + dh,
-              element.x + dl,
-              element.y + dt,
+              el.id,
+              el.width + event.deltaRect.width / s,
+              el.height + event.deltaRect.height / s,
+              el.x + event.deltaRect.left / s,
+              el.y + event.deltaRect.top / s,
             );
           },
         },
@@ -77,7 +75,7 @@ export default function CanvasElement({
     return () => {
       interactable.unset();
     };
-  }, [element.id, element.locked, element.x, element.y, element.width, element.height, scale, isEditing, moveElement, resizeElement, pushSnapshot]);
+  }, [element.id, element.locked, isEditing, moveElement, resizeElement, pushSnapshot]);
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -102,13 +100,6 @@ export default function CanvasElement({
     setIsEditing(false);
   }, []);
 
-  const handleInput = useCallback(
-    (e: React.FormEvent<HTMLDivElement>) => {
-      updateElement(element.id, { content: e.currentTarget.textContent || '' });
-    },
-    [element.id, updateElement],
-  );
-
   // Build inline style for the element wrapper
   const wrapperStyle: React.CSSProperties = {
     position: 'absolute',
@@ -119,7 +110,7 @@ export default function CanvasElement({
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
     zIndex: element.zIndex,
-    cursor: element.locked ? 'default' : 'move',
+    cursor: isEditing ? 'text' : element.locked ? 'default' : 'move',
     touchAction: 'none',
     userSelect: isEditing ? 'text' : 'none',
   };
@@ -140,7 +131,6 @@ export default function CanvasElement({
           );
         }
 
-        // Read-only display — render HTML if content is HTML, otherwise plain text
         const isHtml = element.content.startsWith('<');
         const textStyle: React.CSSProperties = {
           fontFamily: s.fontFamily,
@@ -211,7 +201,6 @@ export default function CanvasElement({
             </svg>
           );
         }
-        // Default rectangle
         return (
           <div
             className="w-full h-full"
@@ -265,15 +254,15 @@ export default function CanvasElement({
           {/* Corner handles */}
           {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {
             const posStyles: Record<string, React.CSSProperties> = {
-              nw: { top: -4, left: -4, cursor: 'nwse-resize' },
-              ne: { top: -4, right: -4, cursor: 'nesw-resize' },
-              sw: { bottom: -4, left: -4, cursor: 'nesw-resize' },
-              se: { bottom: -4, right: -4, cursor: 'nwse-resize' },
+              nw: { top: -5, left: -5, cursor: 'nwse-resize' },
+              ne: { top: -5, right: -5, cursor: 'nesw-resize' },
+              sw: { bottom: -5, left: -5, cursor: 'nesw-resize' },
+              se: { bottom: -5, right: -5, cursor: 'nwse-resize' },
             };
             return (
               <div
                 key={pos}
-                className="absolute w-3 h-3 bg-white border-2 border-blue-500 rounded-sm z-50"
+                className="absolute w-[10px] h-[10px] bg-white border-2 border-blue-500 rounded-full z-50 pointer-events-auto"
                 style={posStyles[pos]}
               />
             );
@@ -281,15 +270,15 @@ export default function CanvasElement({
           {/* Edge handles */}
           {(['n', 's', 'e', 'w'] as const).map((pos) => {
             const posStyles: Record<string, React.CSSProperties> = {
-              n: { top: -3, left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize', width: 20, height: 6 },
-              s: { bottom: -3, left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize', width: 20, height: 6 },
-              e: { right: -3, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', width: 6, height: 20 },
-              w: { left: -3, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', width: 6, height: 20 },
+              n: { top: -4, left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize', width: 30, height: 8 },
+              s: { bottom: -4, left: '50%', transform: 'translateX(-50%)', cursor: 'ns-resize', width: 30, height: 8 },
+              e: { right: -4, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', width: 8, height: 30 },
+              w: { left: -4, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize', width: 8, height: 30 },
             };
             return (
               <div
                 key={pos}
-                className="absolute bg-white border-2 border-blue-500 rounded-sm z-50"
+                className="absolute bg-white border-2 border-blue-500 rounded-full z-50 pointer-events-auto"
                 style={posStyles[pos]}
               />
             );

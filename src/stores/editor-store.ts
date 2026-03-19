@@ -443,35 +443,53 @@ export const useEditorStore = create<EditorState>()((set, get) => {
     },
     clearSelection: () => set({ selectedElementIds: [] }),
 
-    moveElement: (elementId, x, y) =>
-      set(
-        produce((state: EditorState) => {
-          const slide = state.presentation.slides[state.activeSlideIndex];
-          if (!slide) return;
-          const el = slide.elements.find(e => e.id === elementId);
-          if (el) {
-            el.x = Math.round(x);
-            el.y = Math.round(y);
-            state.presentation.updatedAt = new Date().toISOString();
-          }
-        }),
-      ),
+    // Hot-path: direct mutation-free update without Immer for 60fps drag/resize
+    moveElement: (elementId, x, y) => {
+      const state = get();
+      const slide = state.presentation.slides[state.activeSlideIndex];
+      if (!slide) return;
+      const elIdx = slide.elements.findIndex(e => e.id === elementId);
+      if (elIdx === -1) return;
+      const newEl = { ...slide.elements[elIdx], x: Math.round(x), y: Math.round(y) };
+      const newElements = [...slide.elements];
+      newElements[elIdx] = newEl;
+      const newSlide = { ...slide, elements: newElements };
+      const newSlides = [...state.presentation.slides];
+      newSlides[state.activeSlideIndex] = newSlide;
+      set({
+        presentation: {
+          ...state.presentation,
+          slides: newSlides,
+        },
+      });
+    },
 
-    resizeElement: (elementId, width, height, x, y) =>
-      set(
-        produce((state: EditorState) => {
-          const slide = state.presentation.slides[state.activeSlideIndex];
-          if (!slide) return;
-          const el = slide.elements.find(e => e.id === elementId);
-          if (el) {
-            el.width = Math.round(width);
-            el.height = Math.round(height);
-            if (x !== undefined) el.x = Math.round(x);
-            if (y !== undefined) el.y = Math.round(y);
-            state.presentation.updatedAt = new Date().toISOString();
-          }
-        }),
-      ),
+    resizeElement: (elementId, width, height, x, y) => {
+      const state = get();
+      const slide = state.presentation.slides[state.activeSlideIndex];
+      if (!slide) return;
+      const elIdx = slide.elements.findIndex(e => e.id === elementId);
+      if (elIdx === -1) return;
+      const el = slide.elements[elIdx];
+      const newEl = {
+        ...el,
+        width: Math.round(width),
+        height: Math.round(height),
+        ...(x !== undefined ? { x: Math.round(x) } : {}),
+        ...(y !== undefined ? { y: Math.round(y) } : {}),
+      };
+      const newElements = [...slide.elements];
+      newElements[elIdx] = newEl;
+      const newSlide = { ...slide, elements: newElements };
+      const newSlides = [...state.presentation.slides];
+      newSlides[state.activeSlideIndex] = newSlide;
+      set({
+        presentation: {
+          ...state.presentation,
+          slides: newSlides,
+        },
+      });
+    },
 
     bringToFront: (elementId) =>
       trackedSet(
