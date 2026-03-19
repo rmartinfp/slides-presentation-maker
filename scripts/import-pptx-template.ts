@@ -453,11 +453,6 @@ async function uploadImage(data: Buffer, contentType: string): Promise<string> {
   return '';
 }
 
-  const { data: urlData } = supabase.storage.from('presentation-assets').getPublicUrl(fileName);
-  console.log(`  Uploaded: ${fileName}`);
-  return urlData.publicUrl;
-}
-
 // ---- Main ----
 async function main() {
   const presentationId = process.argv[2];
