@@ -1,90 +1,109 @@
-{
-  "name": "vite_react_shadcn_ts",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
-    "lint": "eslint .",
-    "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
-    "@radix-ui/react-accordion": "^1.2.11",
-    "@radix-ui/react-alert-dialog": "^1.1.14",
-    "@radix-ui/react-aspect-ratio": "^1.1.7",
-    "@radix-ui/react-avatar": "^1.1.10",
-    "@radix-ui/react-checkbox": "^1.3.2",
-    "@radix-ui/react-collapsible": "^1.1.11",
-    "@radix-ui/react-context-menu": "^2.2.15",
-    "@radix-ui/react-dialog": "^1.1.14",
-    "@radix-ui/react-dropdown-menu": "^2.1.15",
-    "@radix-ui/react-hover-card": "^1.1.14",
-    "@radix-ui/react-label": "^2.1.7",
-    "@radix-ui/react-menubar": "^1.1.15",
-    "@radix-ui/react-navigation-menu": "^1.2.13",
-    "@radix-ui/react-popover": "^1.1.14",
-    "@radix-ui/react-progress": "^1.1.7",
-    "@radix-ui/react-radio-group": "^1.3.7",
-    "@radix-ui/react-scroll-area": "^1.2.9",
-    "@radix-ui/react-select": "^2.2.5",
-    "@radix-ui/react-separator": "^1.1.7",
-    "@radix-ui/react-slider": "^1.3.5",
-    "@radix-ui/react-slot": "^1.2.3",
-    "@radix-ui/react-switch": "^1.2.5",
-    "@radix-ui/react-tabs": "^1.1.12",
-    "@radix-ui/react-toast": "^1.2.14",
-    "@radix-ui/react-toggle": "^1.1.9",
-    "@radix-ui/react-toggle-group": "^1.1.10",
-    "@radix-ui/react-tooltip": "^1.2.7",
-    "@tanstack/react-query": "^5.83.0",
-    "class-variance-authority": "^0.7.1",
-    "clsx": "^2.1.1",
-    "cmdk": "^1.1.1",
-    "date-fns": "^3.6.0",
-    "embla-carousel-react": "^8.6.0",
-    "input-otp": "^1.4.2",
-    "lucide-react": "^0.462.0",
-    "next-themes": "^0.3.0",
-    "react": "^18.3.1",
-    "react-day-picker": "^8.10.1",
-    "react-dom": "^18.3.1",
-    "react-hook-form": "^7.61.1",
-    "react-resizable-panels": "^2.1.9",
-    "react-router-dom": "^6.30.1",
-    "recharts": "^2.15.4",
-    "sonner": "^1.7.4",
-    "tailwind-merge": "^2.6.0",
-    "tailwindcss-animate": "^1.0.7",
-    "vaul": "^0.9.9",
-    "zod": "^3.25.76"
-  },
-  "devDependencies": {
-    "@eslint/js": "^9.32.0",
-    "@playwright/test": "^1.57.0",
-    "@tailwindcss/typography": "^0.5.16",
-    "@testing-library/jest-dom": "^6.6.0",
-    "@testing-library/react": "^16.0.0",
-    "@types/node": "^22.16.5",
-    "@types/react": "^18.3.23",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react-swc": "^3.11.0",
-    "autoprefixer": "^10.4.21",
-    "eslint": "^9.32.0",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^15.15.0",
-    "jsdom": "^20.0.3",
-    "lovable-tagger": "^1.1.13",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.8.3",
-    "typescript-eslint": "^8.38.0",
-    "vite": "^5.4.19",
-    "vitest": "^3.2.4"
-  }
+{\rtf1\ansi\ansicpg1252\cocoartf2822
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 Menlo-Regular;}
+{\colortbl;\red255\green255\blue255;\red255\green255\blue254;\red0\green0\blue0;\red144\green1\blue18;
+\red9\green60\blue148;}
+{\*\expandedcolortbl;;\cssrgb\c100000\c100000\c99608;\cssrgb\c0\c0\c0;\cssrgb\c63922\c8235\c8235;
+\cssrgb\c1569\c31765\c64706;}
+\paperw11900\paperh16840\margl1440\margr1440\vieww11520\viewh8400\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs26 \cf0 \cb2 \expnd0\expndtw0\kerning0
+\outl0\strokewidth0 \strokec3 \{\cb1 \
+\cb2   \cf4 \strokec4 "name"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "base44-app"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2   \cf4 \strokec4 "private"\cf0 \strokec3 : \cf5 \cb2 \strokec5 true\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2   \cf4 \strokec4 "version"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "0.0.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2   \cf4 \strokec4 "type"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "module"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2   \cf4 \strokec4 "scripts"\cf0 \strokec3 : \{\cb1 \
+\cb2     \cf4 \strokec4 "dev"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "vite"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "build"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "vite build"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "lint"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "eslint ."\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "lint:fix"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "eslint . --fix"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "typecheck"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "tsc -p ./jsconfig.json"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "preview"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "vite preview"\cf0 \cb1 \strokec3 \
+\cb2   \},\cb1 \
+\cb2   \cf4 \strokec4 "dependencies"\cf0 \strokec3 : \{\cb1 \
+\cb2     \cf4 \strokec4 "@base44/sdk"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^0.8.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@base44/vite-plugin"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.0.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@hello-pangea/dnd"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^17.0.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@hookform/resolvers"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^4.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-accordion"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.2.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-alert-dialog"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-aspect-ratio"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-avatar"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-checkbox"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-collapsible"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-context-menu"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.2.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-dialog"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-dropdown-menu"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-hover-card"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-label"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-menubar"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-navigation-menu"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.2.5"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-popover"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-progress"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-radio-group"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.2.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-scroll-area"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.2.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-select"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.1.6"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-separator"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-slider"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.2.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-slot"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-switch"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-tabs"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-toast"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.2.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-toggle"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-toggle-group"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@radix-ui/react-tooltip"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.8"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@tanstack/react-query"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^5.84.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "canvas-confetti"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.9.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "class-variance-authority"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^0.7.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "clsx"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.1.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "cmdk"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.0.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "date-fns"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^3.6.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "embla-carousel-react"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^8.5.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "framer-motion"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^11.16.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "html2canvas"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.4.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "input-otp"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.4.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "jspdf"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.5.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "lodash"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^4.17.21"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "lucide-react"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^0.475.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "moment"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.30.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "next-themes"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^0.4.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^18.2.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-day-picker"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^8.10.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-dom"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^18.2.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-hook-form"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^7.54.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-hot-toast"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.6.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-leaflet"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^4.2.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-markdown"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^9.0.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-quill"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.0.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-resizable-panels"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.1.7"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "react-router-dom"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^6.26.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "recharts"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.15.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "sonner"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^2.0.1"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "tailwind-merge"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^3.0.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "tailwindcss-animate"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.0.7"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "three"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^0.171.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "vaul"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^1.1.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "zod"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^3.24.2"\cf0 \cb1 \strokec3 \
+\cb2   \},\cb1 \
+\cb2   \cf4 \strokec4 "devDependencies"\cf0 \strokec3 : \{\cb1 \
+\cb2     \cf4 \strokec4 "@eslint/js"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^9.19.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@types/node"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^22.13.5"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@types/react"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^18.2.66"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@types/react-dom"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^18.2.22"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "@vitejs/plugin-react"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^4.3.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "autoprefixer"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^10.4.20"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "eslint"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^9.19.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "eslint-plugin-react"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^7.37.4"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "eslint-plugin-react-hooks"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^5.0.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "eslint-plugin-react-refresh"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^0.4.18"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "eslint-plugin-unused-imports"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^4.3.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "globals"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^15.14.0"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "postcss"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^8.5.3"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "tailwindcss"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^3.4.17"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "typescript"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^5.8.2"\cf0 \cb2 \strokec3 ,\cb1 \
+\cb2     \cf4 \strokec4 "vite"\cf0 \strokec3 : \cf5 \cb2 \strokec5 "^6.1.0"\cf0 \cb1 \strokec3 \
+\cb2   \}\cb1 \
+\cb2 \}\cb1 \
 }
