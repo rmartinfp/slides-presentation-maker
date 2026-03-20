@@ -31,41 +31,41 @@ export default function StepIndicator({ currentStep }: Props) {
                 transition={{ delay: idx * 0.1 }}
                 className={cn(
                   'w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 relative',
-                  isComplete && 'bg-gradient-to-br from-green-500 to-emerald-600 shadow-lg shadow-green-500/20',
-                  isCurrent && 'bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg shadow-purple-500/30 scale-110',
-                  isUpcoming && 'bg-white/5 border border-white/10'
+                  isComplete && 'bg-gradient-to-br from-emerald-500 to-green-600 shadow-lg shadow-emerald-500/20',
+                  isCurrent && 'bg-gradient-to-br from-[#4F46E5] to-[#9333EA] shadow-lg shadow-[#4F46E5]/30 scale-110',
+                  isUpcoming && 'bg-white/60 border border-slate-200/60'
                 )}
               >
                 {isComplete ? (
                   <Check className="w-5 h-5 text-white" />
                 ) : (
-                  <Icon className={cn('w-5 h-5', isCurrent ? 'text-white' : 'text-slate-500')} />
+                  <Icon className={cn('w-5 h-5', isCurrent ? 'text-white' : 'text-slate-400')} />
                 )}
                 {isCurrent && (
                   <motion.div
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.5, 0, 0.5] }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0, 0.4] }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute inset-0 rounded-2xl bg-purple-500/30"
+                    className="absolute inset-0 rounded-2xl bg-[#4F46E5]/30"
                   />
                 )}
               </motion.div>
               <span className={cn(
                 'mt-2 text-xs font-medium',
-                isComplete && 'text-green-400',
-                isCurrent && 'text-white',
-                isUpcoming && 'text-slate-500'
+                isComplete && 'text-emerald-600',
+                isCurrent && 'text-[#4F46E5]',
+                isUpcoming && 'text-slate-400'
               )}>
                 {step.name}
               </span>
             </div>
             {idx < steps.length - 1 && (
               <div className="w-20 h-0.5 mx-2 mb-6 relative">
-                <div className="absolute inset-0 bg-white/10 rounded-full" />
+                <div className="absolute inset-0 bg-slate-200/60 rounded-full" />
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: isComplete ? '100%' : '0%' }}
                   transition={{ duration: 0.5, delay: 0.2 }}
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-500 to-green-500 rounded-full"
                 />
               </div>
             )}

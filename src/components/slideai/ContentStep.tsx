@@ -47,17 +47,10 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen relative z-10"
+      className="min-h-screen mesh-gradient relative z-10 font-body"
     >
-      {/* Background */}
-      <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-0 w-64 md:w-96 h-64 md:h-96 bg-indigo-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-0 w-64 md:w-96 h-64 md:h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/3 w-[400px] h-[400px] bg-pink-600/10 rounded-full blur-[100px]" />
-      </div>
-
       {/* Header */}
-      <div className="sticky top-0 z-30 bg-[#030305]/80 backdrop-blur-xl border-b border-white/5">
+      <div className="sticky top-0 z-30 nav-glass">
         <div className="max-w-4xl mx-auto px-6 py-4">
           <StepIndicator currentStep={2} />
         </div>
@@ -65,23 +58,23 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
 
       {/* Content */}
       <div className="relative z-10 max-w-4xl mx-auto px-6 py-8">
-        <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-6">
+        <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-slate-700 text-sm mb-6 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
 
-        {/* Main card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6">
+        {/* Main glass card */}
+        <div className="glass-effect rounded-2xl p-6 shadow-xl shadow-[#4F46E5]/5">
           {/* Template preview + Title */}
-          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-white/10">
+          <div className="flex items-center gap-4 mb-6 pb-6 border-b border-slate-200/50">
             <div
-              className="w-24 h-14 rounded-lg flex items-center justify-center"
+              className="w-24 h-14 rounded-lg flex items-center justify-center shadow-sm"
               style={{ backgroundColor: theme.tokens.palette.bg }}
             >
               <div className="w-12 h-2 rounded-full" style={{ backgroundColor: theme.tokens.palette.primary }} />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-white">What's your story?</h1>
-              <p className="text-sm text-slate-400">{theme.name}</p>
+              <h1 className="text-xl font-headline font-extrabold headline-tight text-slate-900">What's your story?</h1>
+              <p className="text-sm text-slate-500">{theme.name}</p>
             </div>
           </div>
 
@@ -92,12 +85,17 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
               className={cn(
                 'flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-medium transition-all',
                 contentMode === 'ai'
-                  ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-2 border-purple-500/50 text-white'
-                  : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-[#4F46E5]/10 to-[#9333EA]/10 border-2 border-[#4F46E5]/30 text-slate-900'
+                  : 'bg-white/40 border border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/60'
               )}
             >
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', contentMode === 'ai' ? 'bg-purple-500' : 'bg-white/10')}>
-                <Wand2 className="w-5 h-5 text-white" />
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                contentMode === 'ai'
+                  ? 'bg-gradient-to-br from-[#4F46E5] to-[#9333EA] shadow-lg shadow-[#4F46E5]/25'
+                  : 'bg-slate-100'
+              )}>
+                <Wand2 className={cn('w-5 h-5', contentMode === 'ai' ? 'text-white' : 'text-slate-400')} />
               </div>
               <div className="text-left">
                 <p className="font-semibold">AI writes it</p>
@@ -109,12 +107,17 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
               className={cn(
                 'flex-1 flex items-center justify-center gap-3 py-4 rounded-xl text-sm font-medium transition-all',
                 contentMode === 'upload'
-                  ? 'bg-gradient-to-r from-blue-500/20 to-cyan-500/20 border-2 border-blue-500/50 text-white'
-                  : 'bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10'
+                  ? 'bg-gradient-to-r from-sky-500/10 to-blue-500/10 border-2 border-sky-500/30 text-slate-900'
+                  : 'bg-white/40 border border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/60'
               )}
             >
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center', contentMode === 'upload' ? 'bg-blue-500' : 'bg-white/10')}>
-                <FileUp className="w-5 h-5 text-white" />
+              <div className={cn(
+                'w-10 h-10 rounded-xl flex items-center justify-center',
+                contentMode === 'upload'
+                  ? 'bg-gradient-to-br from-sky-500 to-blue-600 shadow-lg shadow-sky-500/25'
+                  : 'bg-slate-100'
+              )}>
+                <FileUp className={cn('w-5 h-5', contentMode === 'upload' ? 'text-white' : 'text-slate-400')} />
               </div>
               <div className="text-left">
                 <p className="font-semibold">Upload file</p>
@@ -131,7 +134,7 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
                   value={contentText}
                   onChange={e => onContentChange(e.target.value)}
                   placeholder={'Describe your presentation in detail...\n\nInclude: main topic, key points you want to cover, specific data or examples...'}
-                  className="w-full h-36 bg-white/5 border border-white/10 rounded-xl p-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/50 resize-none text-sm"
+                  className="w-full h-36 bg-white/60 border border-slate-200/60 rounded-xl p-4 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]/30 resize-none text-sm font-body transition-all"
                 />
                 <div className="mt-3">
                   <div className="flex items-center gap-2 text-xs text-slate-400 mb-2">
@@ -143,7 +146,7 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
                       <button
                         key={idx}
                         onClick={() => onContentChange(suggestion)}
-                        className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-slate-300 hover:bg-purple-500/20 hover:border-purple-500/30 hover:text-white transition-all"
+                        className="px-3 py-1.5 rounded-full bg-white/60 border border-slate-200/60 text-xs text-slate-500 hover:bg-[#4F46E5]/10 hover:border-[#4F46E5]/20 hover:text-[#4F46E5] transition-all"
                       >
                         {suggestion.length > 40 ? suggestion.slice(0, 40) + '...' : suggestion}
                       </button>
@@ -153,29 +156,29 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
               </motion.div>
             ) : (
               <motion.div key="upload" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <button className="w-full h-36 border-2 border-dashed border-white/20 rounded-xl flex flex-col items-center justify-center hover:border-purple-500/50 hover:bg-purple-500/5 transition-all">
+                <button className="w-full h-36 border-2 border-dashed border-slate-300/60 rounded-xl flex flex-col items-center justify-center hover:border-[#4F46E5]/40 hover:bg-[#4F46E5]/5 transition-all">
                   <Upload className="w-8 h-8 text-slate-400 mb-3" />
-                  <p className="text-white font-medium">Drop your file here</p>
-                  <p className="text-xs text-slate-500 mt-1">or click to browse</p>
+                  <p className="text-slate-700 font-medium">Drop your file here</p>
+                  <p className="text-xs text-slate-400 mt-1">or click to browse</p>
                 </button>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Options row */}
-          <div className="grid grid-cols-3 gap-4 pt-4 mt-4 border-t border-white/10">
+          <div className="grid grid-cols-3 gap-4 pt-4 mt-4 border-t border-slate-200/50">
             <div>
-              <label className="text-xs text-slate-400 mb-2 block">Audience</label>
+              <label className="text-xs text-slate-500 mb-2 block font-medium">Audience</label>
               <div className="flex flex-wrap gap-1.5">
                 {audiences.map(a => (
                   <button
                     key={a.id}
                     onClick={() => setAudience(a.id)}
                     className={cn(
-                      'h-8 px-3 rounded-md text-xs font-medium transition-all border',
+                      'h-8 px-3 rounded-full text-xs font-medium transition-all',
                       audience === a.id
-                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                        : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                        ? 'bg-[#4F46E5]/10 text-[#4F46E5] outline outline-1 outline-[#4F46E5]/20'
+                        : 'bg-white/60 text-slate-500 outline outline-1 outline-slate-200/60 hover:text-slate-700 hover:bg-white/80'
                     )}
                   >
                     {a.emoji} {a.id}
@@ -184,17 +187,17 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
               </div>
             </div>
             <div>
-              <label className="text-xs text-slate-400 mb-2 block">Tone</label>
+              <label className="text-xs text-slate-500 mb-2 block font-medium">Tone</label>
               <div className="flex flex-wrap gap-1.5">
                 {tones.map(t => (
                   <button
                     key={t.id}
                     onClick={() => setTone(t.id)}
                     className={cn(
-                      'h-8 px-3 rounded-md text-xs font-medium transition-all border',
+                      'h-8 px-3 rounded-full text-xs font-medium transition-all',
                       tone === t.id
-                        ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                        : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                        ? 'bg-[#4F46E5]/10 text-[#4F46E5] outline outline-1 outline-[#4F46E5]/20'
+                        : 'bg-white/60 text-slate-500 outline outline-1 outline-slate-200/60 hover:text-slate-700 hover:bg-white/80'
                     )}
                   >
                     {t.id}
@@ -204,8 +207,8 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
             </div>
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-xs text-slate-400">Slides</label>
-                <span className="text-xs font-bold text-purple-400">{slideCount}</span>
+                <label className="text-xs text-slate-500 font-medium">Slides</label>
+                <span className="text-xs font-bold text-[#4F46E5]">{slideCount}</span>
               </div>
               <input
                 type="range"
@@ -213,7 +216,7 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
                 max={20}
                 value={slideCount}
                 onChange={e => setSlideCount(parseInt(e.target.value))}
-                className="w-full accent-purple-500"
+                className="w-full accent-[#4F46E5]"
               />
             </div>
           </div>
@@ -225,10 +228,10 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
             onClick={onGenerate}
             disabled={!canGenerate}
             className={cn(
-              'w-full mt-6 py-4 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all',
+              'w-full mt-6 py-4 rounded-full font-semibold flex items-center justify-center gap-2 transition-all',
               canGenerate
-                ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg shadow-purple-500/25'
-                : 'bg-white/10 text-slate-500 cursor-not-allowed'
+                ? 'bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white shadow-xl shadow-[#4F46E5]/25 hover:shadow-2xl hover:shadow-[#4F46E5]/30'
+                : 'bg-slate-100 text-slate-400 cursor-not-allowed'
             )}
           >
             <Sparkles className="w-5 h-5" />

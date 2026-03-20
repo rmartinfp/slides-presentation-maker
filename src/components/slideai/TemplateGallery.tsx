@@ -225,7 +225,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
         <div className="absolute bottom-1/4 right-0 w-64 md:w-96 h-64 md:h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      <div className="sticky top-0 z-30 bg-[#030305]/80 backdrop-blur-xl border-b border-white/5">
+      <div className="sticky top-0 z-30 nav-glass border-b border-white/10">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <StepIndicator currentStep={1} />
         </div>

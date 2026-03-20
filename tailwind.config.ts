@@ -16,6 +16,8 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Montserrat', 'system-ui', 'sans-serif'],
+        headline: ['Manrope', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -67,6 +69,16 @@ export default {
           accent: "hsl(var(--slide-accent))",
           surface: "hsl(var(--slide-surface))",
           canvas: "hsl(var(--slide-canvas-bg))",
+        },
+        /* Glassmorphism design tokens */
+        glass: {
+          primary: '#4F46E5',
+          secondary: '#9333EA',
+          background: '#FDFDFF',
+          surface: 'rgba(255,255,255,0.4)',
+          'on-surface': '#1e293b',
+          'on-surface-variant': '#64748b',
+          outline: 'rgba(255,255,255,0.2)',
         },
       },
       borderRadius: {
