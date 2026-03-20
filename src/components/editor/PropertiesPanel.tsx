@@ -23,37 +23,11 @@ export default function PropertiesPanel() {
   const el = selected.length === 1 ? selected[0] : null;
 
   if (!el) {
-    // Slide properties when nothing selected
     return (
-      <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Slide</h3>
-
-        <div className="space-y-4">
-          <div>
-            <label className="text-[11px] text-slate-500 mb-1.5 block">Background</label>
-            <div className="grid grid-cols-6 gap-1.5">
-              {['#000000', '#0a0a0f', '#111118', '#1a1a24', '#FFFFFF', '#F8FAFC',
-                '#EF4444', '#F97316', '#22C55E', '#3B82F6', '#8B5CF6', '#EC4899',
-              ].map(c => (
-                <button
-                  key={c}
-                  onClick={() => setSlideBackground({ type: 'solid', value: c })}
-                  className={cn(
-                    'w-full aspect-square rounded border transition-transform hover:scale-110',
-                    slide?.background?.value === c ? 'border-indigo-500 scale-110' : 'border-slate-200'
-                  )}
-                  style={{ backgroundColor: c }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <div className="pt-2 border-t border-slate-200/60">
-            <p className="text-[11px] text-slate-500">
-              {slide?.elements?.length || 0} elements on this slide
-            </p>
-          </div>
-        </div>
+      <div className="w-56 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
+        <p className="text-[11px] text-slate-500">{slide?.elements?.length || 0} elements</p>
+        <p className="text-[10px] text-slate-400 mt-1">Select an element to edit</p>
       </div>
     );
   }

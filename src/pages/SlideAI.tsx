@@ -138,36 +138,57 @@ export default function SlideAIPage() {
         }
 
         if (matchedTemplate) {
-          // USE TEMPLATE SLIDE: keep visuals, replace text
+          // USE TEMPLATE SLIDE: keep visuals, replace ALL text intelligently
           const textElements = (matchedTemplate.elements || [])
             .filter((el: any) => el.type === 'text')
             .sort((a: any, b: any) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
 
-          // Replace title (largest text)
-          if (textElements.length > 0 && aiSlide.title) {
-            textElements[0].content = `<p>${aiSlide.title}</p>`;
-          }
+          // Classify text elements by role based on size
+          // Largest = title, numbers (short text <4 chars with big font) = keep as numbers
+          // Rest = body content that needs replacing
+          const aiContent = {
+            title: aiSlide.title || '',
+            subtitle: Array.isArray(aiSlide.subtitle) ? aiSlide.subtitle : [aiSlide.subtitle].filter(Boolean),
+            body: typeof aiSlide.body === 'string' ? aiSlide.body : (Array.isArray(aiSlide.body) ? aiSlide.body[0] : ''),
+            bullets: aiSlide.bullets || [],
+          };
 
-          // Replace body/bullets (second largest)
-          if (textElements.length > 1) {
-            if (aiSlide.bullets?.length) {
-              textElements[1].content = aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('');
-            } else if (aiSlide.body) {
-              textElements[1].content = `<p>${aiSlide.body}</p>`;
+          let bulletIdx = 0;
+          let subtitleIdx = 0;
+
+          for (let j = 0; j < textElements.length; j++) {
+            const el = textElements[j];
+            const plainText = el.content.replace(/<[^>]+>/g, '').trim();
+            const fontSize = el.style?.fontSize || 24;
+            const isNumber = /^\d{1,3}$/.test(plainText); // "01", "02", etc — keep as-is
+            const isShortLabel = plainText.length <= 5 && fontSize < 40; // Small labels like "01", arrows
+
+            if (isNumber || isShortLabel) {
+              // Keep numbers and tiny labels unchanged
+              continue;
             }
-          }
 
-          // Replace remaining placeholder text
-          for (let j = 2; j < textElements.length; j++) {
-            if (isPlaceholderText(textElements[j].content)) {
-              if (aiSlide.bullets && j - 2 < aiSlide.bullets.length) {
-                textElements[j].content = `<p>${aiSlide.bullets[j - 2]}</p>`;
-              } else if (aiSlide.body) {
-                textElements[j].content = `<p>${typeof aiSlide.body === 'string' ? aiSlide.body : aiSlide.body[0] || ''}</p>`;
-              } else if (aiSlide.subtitle) {
-                const sub = Array.isArray(aiSlide.subtitle) ? aiSlide.subtitle[0] : aiSlide.subtitle;
-                textElements[j].content = `<p>${sub}</p>`;
-              }
+            if (j === 0 && aiContent.title) {
+              // Largest text = title
+              el.content = `<p>${aiContent.title}</p>`;
+            } else if (fontSize >= 40 && aiContent.title) {
+              // Other large text = could be a section title variant
+              el.content = `<p>${aiContent.title}</p>`;
+            } else if (aiContent.bullets.length > 0 && bulletIdx < aiContent.bullets.length) {
+              // Medium text = use a bullet point (unique per box)
+              el.content = `<p>${aiContent.bullets[bulletIdx]}</p>`;
+              bulletIdx++;
+            } else if (aiContent.body) {
+              // Remaining = body text
+              el.content = `<p>${aiContent.body}</p>`;
+            } else if (aiContent.subtitle.length > subtitleIdx) {
+              el.content = `<p>${aiContent.subtitle[subtitleIdx]}</p>`;
+              subtitleIdx++;
+            }
+
+            // Fix justify alignment — use left instead
+            if (el.style?.textAlign === 'justify') {
+              el.style.textAlign = 'left';
             }
           }
 
