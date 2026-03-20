@@ -139,7 +139,7 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
           if (shapeType === 'pentagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
           if (shapeType === 'hexagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
           if (shapeType === 'heart') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'custom' && s.svgPath) return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
+          if (shapeType === 'custom' && s.svgPath) return <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none"><path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={sw} vectorEffect="non-scaling-stroke" /></svg>;
           return <div className="w-full h-full" style={{ backgroundColor: fill, borderRadius: s.borderRadius ?? 0 }} />;
         };
 

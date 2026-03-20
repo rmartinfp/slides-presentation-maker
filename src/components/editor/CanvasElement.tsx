@@ -283,8 +283,8 @@ export default function CanvasElement({
         // Custom SVG path
         if (shapeType === 'custom' && s.svgPath) {
           return (
-            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={{ pointerEvents: 'none' }}>
-              <path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none" style={{ pointerEvents: 'none' }}>
+              <path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
             </svg>
           );
         }

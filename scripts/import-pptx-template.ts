@@ -380,45 +380,83 @@ function parseImageFromSpTree(
 
 /**
  * Convert OOXML custGeom path commands to SVG path data.
- * OOXML uses <a:moveTo>, <a:lnTo>, <a:cubicBezTo>, <a:close> with <a:pt x="" y=""/> points.
+ * Preserves original coordinate space for maximum precision.
+ * Returns both the SVG path and the viewBox dimensions.
  */
-function custGeomToSvgPath(custGeomXml: string, pathWidth: number, pathHeight: number): string | null {
+function custGeomToSvgPath(custGeomXml: string, pathWidth: number, pathHeight: number): { path: string; viewBox: string } | null {
   const paths = custGeomXml.match(/<a:path[^>]*>([\s\S]*?)<\/a:path>/g);
   if (!paths) return null;
 
   let svgPath = '';
+  let vbW = 0;
+  let vbH = 0;
+
   for (const pathXml of paths) {
-    // Extract path dimensions (used for coordinate scaling)
-    const pw = pathXml.match(/w="(\d+)"/)?.[1];
-    const ph = pathXml.match(/h="(\d+)"/)?.[1];
+    // Extract path dimensions — use original coordinate space
+    const pw = pathXml.match(/\bw="(\d+)"/)?.[1];
+    const ph = pathXml.match(/\bh="(\d+)"/)?.[1];
     const coordW = pw ? parseInt(pw) : pathWidth;
     const coordH = ph ? parseInt(ph) : pathHeight;
+    vbW = Math.max(vbW, coordW);
+    vbH = Math.max(vbH, coordH);
 
-    // Scale factor from path coords to viewBox
-    const sx = coordW > 0 ? 100 / coordW : 1;
-    const sy = coordH > 0 ? 100 / coordH : 1;
+    // Track current point for arcTo endpoint calculation
+    let curX = 0, curY = 0;
 
-    // Parse commands
-    const commands = pathXml.matchAll(/<a:(moveTo|lnTo|cubicBezTo|close)\/?>([\s\S]*?)(?=<a:(?:moveTo|lnTo|cubicBezTo|close)|<\/a:path>)/g);
+    // Parse commands (include arcTo and quadBezTo)
+    const commands = pathXml.matchAll(/<a:(moveTo|lnTo|cubicBezTo|quadBezTo|arcTo|close)\s*\/?>([\s\S]*?)(?=<a:(?:moveTo|lnTo|cubicBezTo|quadBezTo|arcTo|close)|<\/a:path>)/g);
     for (const cmd of commands) {
       const type = cmd[1];
       const content = cmd[2] || '';
-      const pts = [...content.matchAll(/<a:pt\s+x="(\d+)"\s+y="(\d+)"/g)]
-        .map(p => ({ x: Math.round(parseInt(p[1]) * sx), y: Math.round(parseInt(p[2]) * sy) }));
+      const pts = [...content.matchAll(/<a:pt\s+x="(-?\d+)"\s+y="(-?\d+)"/g)]
+        .map(p => ({ x: parseInt(p[1]), y: parseInt(p[2]) }));
 
       if (type === 'moveTo' && pts.length >= 1) {
         svgPath += `M${pts[0].x} ${pts[0].y} `;
+        curX = pts[0].x; curY = pts[0].y;
       } else if (type === 'lnTo' && pts.length >= 1) {
         svgPath += `L${pts[0].x} ${pts[0].y} `;
+        curX = pts[0].x; curY = pts[0].y;
       } else if (type === 'cubicBezTo' && pts.length >= 3) {
         svgPath += `C${pts[0].x} ${pts[0].y} ${pts[1].x} ${pts[1].y} ${pts[2].x} ${pts[2].y} `;
+        curX = pts[2].x; curY = pts[2].y;
+      } else if (type === 'quadBezTo' && pts.length >= 2) {
+        svgPath += `Q${pts[0].x} ${pts[0].y} ${pts[1].x} ${pts[1].y} `;
+        curX = pts[1].x; curY = pts[1].y;
+      } else if (type === 'arcTo') {
+        // OOXML arcTo: wR, hR (radii), stAng, swAng (in 60000ths of degree)
+        const wR = parseInt(content.match(/\bwR="(\d+)"/)?.[1] || '0');
+        const hR = parseInt(content.match(/\bhR="(\d+)"/)?.[1] || '0');
+        const stAng = parseInt(content.match(/\bstAng="(-?\d+)"/)?.[1] || '0') / 60000 * Math.PI / 180;
+        const swAng = parseInt(content.match(/\bswAng="(-?\d+)"/)?.[1] || '0') / 60000 * Math.PI / 180;
+
+        if (wR > 0 && hR > 0 && swAng !== 0) {
+          // Center of the arc ellipse relative to current point
+          const cx = curX - wR * Math.cos(stAng);
+          const cy = curY - hR * Math.sin(stAng);
+          // End point
+          const endAng = stAng + swAng;
+          const endX = Math.round(cx + wR * Math.cos(endAng));
+          const endY = Math.round(cy + hR * Math.sin(endAng));
+          const largeArc = Math.abs(swAng) > Math.PI ? 1 : 0;
+          const sweep = swAng > 0 ? 1 : 0;
+          svgPath += `A${wR} ${hR} 0 ${largeArc} ${sweep} ${endX} ${endY} `;
+          curX = endX; curY = endY;
+        }
       } else if (type === 'close') {
         svgPath += 'Z ';
       }
     }
   }
 
-  return svgPath.trim() || null;
+  if (!svgPath.trim()) return null;
+
+  // Normalize viewBox — if coordinates are huge (EMU-scale), scale down for sanity
+  // but keep proportional precision
+  if (vbW === 0) vbW = pathWidth;
+  if (vbH === 0) vbH = pathHeight;
+
+  return { path: svgPath.trim(), viewBox: `0 0 ${vbW} ${vbH}` };
 }
 
 function parseShapeFromSpTree(
@@ -467,10 +505,15 @@ function parseShapeFromSpTree(
 
   // Convert custom geometry to SVG path
   let svgPath: string | null = null;
+  let svgViewBox: string | null = null;
   if (custGeom) {
     const rawW = parseInt(ext[1]);
     const rawH = parseInt(ext[2]);
-    svgPath = custGeomToSvgPath(custGeom[1], rawW, rawH);
+    const result = custGeomToSvgPath(custGeom[1], rawW, rawH);
+    if (result) {
+      svgPath = result.path;
+      svgViewBox = result.viewBox;
+    }
   }
 
   return {
@@ -489,7 +532,8 @@ function parseShapeFromSpTree(
       shapeStroke: stroke || 'transparent',
       shapeStrokeWidth: strokeWidth,
       borderRadius: geomType === 'roundRect' ? 12 : 0,
-      svgPath: svgPath || undefined, // Store SVG path for rendering
+      svgPath: svgPath || undefined,
+      svgViewBox: svgViewBox || undefined,
     },
   };
 }
@@ -510,6 +554,67 @@ function parseSlideBackground(slideXml: string, relsMap: Map<string, string>, th
   }
 
   return { type: 'solid', value: themeColors.lt1 };
+}
+
+// ---- Balanced tag utilities ----
+/** Strip all top-level occurrences of a tag, handling nested same-name tags correctly */
+function stripBalancedTags(xml: string, tagName: string): string {
+  const openTag = `<${tagName}>`;
+  const closeTag = `</${tagName}>`;
+  let result = '';
+  let i = 0;
+  while (i < xml.length) {
+    const openIdx = xml.indexOf(openTag, i);
+    if (openIdx === -1) { result += xml.slice(i); break; }
+    result += xml.slice(i, openIdx);
+    // Find matching close tag (track nesting depth)
+    let depth = 1;
+    let j = openIdx + openTag.length;
+    while (j < xml.length && depth > 0) {
+      const nextOpen = xml.indexOf(openTag, j);
+      const nextClose = xml.indexOf(closeTag, j);
+      if (nextClose === -1) break; // malformed XML
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        j = nextOpen + openTag.length;
+      } else {
+        depth--;
+        j = nextClose + closeTag.length;
+      }
+    }
+    i = j;
+  }
+  return result;
+}
+
+/** Extract all top-level occurrences of a tag (balanced, handles nesting) */
+function extractBalancedTags(xml: string, tagName: string): string[] {
+  const openTag = `<${tagName}>`;
+  const closeTag = `</${tagName}>`;
+  const results: string[] = [];
+  let i = 0;
+  while (i < xml.length) {
+    const openIdx = xml.indexOf(openTag, i);
+    if (openIdx === -1) break;
+    let depth = 1;
+    let j = openIdx + openTag.length;
+    while (j < xml.length && depth > 0) {
+      const nextOpen = xml.indexOf(openTag, j);
+      const nextClose = xml.indexOf(closeTag, j);
+      if (nextClose === -1) break;
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        depth++;
+        j = nextOpen + openTag.length;
+      } else {
+        depth--;
+        j = nextClose + closeTag.length;
+      }
+    }
+    // Inner content (between open and close tags)
+    results.push(xml.slice(openIdx + openTag.length, j - closeTag.length));
+    i = j;
+  }
+  return results;
 }
 
 // ---- Image upload ----
@@ -867,7 +972,7 @@ async function main() {
 
     // Find all sp (shapes) and pic (pictures) in the slide itself
     // Strip group shapes first to avoid double-parsing elements inside groups
-    const slideXmlNoGroups = slideXml.replace(/<p:grpSp>[\s\S]*?<\/p:grpSp>/g, '');
+    const slideXmlNoGroups = stripBalancedTags(slideXml, 'p:grpSp');
     // Text shapes: <p:sp>...</p:sp>
     const spMatches = slideXmlNoGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
     for (const m of spMatches) {
@@ -943,9 +1048,9 @@ async function main() {
     // Group shapes: <p:grpSp>...</p:grpSp>
     // Groups contain nested shapes, images, and connectors with their own coordinate system.
     // We extract the group's overall position and flatten the children using the group transform.
-    const grpMatches = slideXml.matchAll(/<p:grpSp>([\s\S]*?)<\/p:grpSp>/g);
-    for (const gm of grpMatches) {
-      const grpXml = gm[1];
+    // Use balanced tag extraction to handle nested groups correctly.
+    const grpContents = extractBalancedTags(slideXml, 'p:grpSp');
+    for (const grpXml of grpContents) {
 
       // Group transform: <a:xfrm> with <a:off> (position on slide) and <a:ext> (size on slide)
       // and <a:chOff> (child origin) and <a:chExt> (child coordinate space)
