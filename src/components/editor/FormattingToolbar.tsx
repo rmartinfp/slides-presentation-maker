@@ -2,12 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  List, ListOrdered, Type, Palette, ChevronDown, Minus, Plus,
+  List, ListOrdered, Palette, ChevronDown, Minus, Plus,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ColorPicker from './ColorPicker';
-import FontPicker from './FontPicker';
-import { loadGoogleFont } from '@/lib/font-loader';
 
 interface Props {
   editor: Editor;
@@ -18,7 +16,6 @@ const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 
 
 export default function FormattingToolbar({ editor, scale }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showFontPicker, setShowFontPicker] = useState(false);
   const [showFontSize, setShowFontSize] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -29,7 +26,6 @@ export default function FormattingToolbar({ editor, scale }: Props) {
       if (toolbarRef.current?.contains(target)) return;
       if (target.closest('[data-formatting-dropdown]')) return;
       setShowColorPicker(false);
-      setShowFontPicker(false);
       setShowFontSize(false);
     };
     document.addEventListener('mousedown', handler);
@@ -37,7 +33,6 @@ export default function FormattingToolbar({ editor, scale }: Props) {
   }, []);
 
   const currentColor = editor.getAttributes('textStyle').color || '#000000';
-  const currentFont = editor.getAttributes('textStyle').fontFamily || '';
 
   // Get current font size
   const getCurrentFontSize = (): string => {
@@ -92,32 +87,6 @@ export default function FormattingToolbar({ editor, scale }: Props) {
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
-      {/* Font family */}
-      <div className="relative">
-        <button
-          onMouseDown={(e) => { e.preventDefault(); setShowFontPicker(!showFontPicker); setShowColorPicker(false); setShowFontSize(false); }}
-          className="flex items-center gap-1 px-2 h-8 text-xs text-slate-700 hover:bg-slate-100 rounded-md max-w-[130px] border border-slate-200"
-        >
-          <Type className="w-3.5 h-3.5 shrink-0 text-slate-400" />
-          <span className="truncate font-medium">{currentFont || 'Font'}</span>
-          <ChevronDown className="w-3 h-3 shrink-0 text-slate-400" />
-        </button>
-        {showFontPicker && (
-          <div className="absolute bottom-full left-0 mb-2">
-            <FontPicker
-              currentFont={currentFont}
-              onSelect={(font) => {
-                loadGoogleFont(font);
-                editor.chain().focus().setFontFamily(font).run();
-                setShowFontPicker(false);
-              }}
-            />
-          </div>
-        )}
-      </div>
-
-      <div className="w-px h-6 bg-slate-200 mx-0.5" />
-
       {/* Font size with +/- */}
       <div className="relative flex items-center">
         <button
