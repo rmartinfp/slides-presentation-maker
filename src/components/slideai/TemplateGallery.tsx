@@ -133,6 +133,17 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
   const [isHovering, setIsHovering] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const imageCount = template.slideImages?.length || 0;
+  const cardRef = React.useRef<HTMLDivElement>(null);
+  const [popoverSide, setPopoverSide] = useState<'right' | 'left'>('right');
+
+  // Determine which side the popover should appear on
+  React.useEffect(() => {
+    if (isHovering && cardRef.current) {
+      const rect = cardRef.current.getBoundingClientRect();
+      const spaceRight = window.innerWidth - rect.right;
+      setPopoverSide(spaceRight > 520 ? 'right' : 'left');
+    }
+  }, [isHovering]);
 
   // Auto-cycle slides on hover (use real images if available)
   React.useEffect(() => {
@@ -147,6 +158,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
   }, [isHovering, imageCount]);
 
   return (
+    <div ref={cardRef} className="relative">
     <motion.div
 
       whileHover={{ y: -6 }}
@@ -241,6 +253,37 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
         </div>
       </div>
     </motion.div>
+
+    {/* Hover popover — large slide preview */}
+    <AnimatePresence>
+      {isHovering && hasSlideImages && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.15, delay: 0.3 }}
+          className={cn(
+            'absolute top-0 z-50 pointer-events-none',
+            popoverSide === 'right' ? 'left-[calc(100%+12px)]' : 'right-[calc(100%+12px)]'
+          )}
+          style={{ width: 480 }}
+        >
+          <div className="rounded-xl overflow-hidden shadow-2xl border border-slate-200/80 bg-slate-900">
+            <div className="aspect-video relative">
+              <img
+                src={template.slideImages![currentSlide]}
+                alt={`Slide ${currentSlide + 1}`}
+                className="w-full h-full object-contain"
+              />
+              <div className="absolute bottom-2 left-3 px-2 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
+                {currentSlide + 1} / {imageCount}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+    </div>
   );
 }
 
