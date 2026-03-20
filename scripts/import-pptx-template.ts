@@ -193,7 +193,9 @@ function parseTextFromSpTree(
   spXml: string,
   themeColors: ThemeColors,
   defaultFonts: { titleFont: string; bodyFont: string },
-  layoutPlaceholderSizes?: Map<string, number>, // phType → fontSize in hundredths of pt
+  layoutPlaceholderSizes?: Map<string, number>,
+  layoutPlaceholderFonts?: Map<string, string>,
+  layoutPlaceholderBold?: Map<string, boolean>,
 ): ParsedElement | null {
   // Extract position (support negative offsets)
   const off = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
@@ -301,23 +303,33 @@ function parseTextFromSpTree(
     }
   }
 
-  // Inherit font size from layout placeholder if not set
+  // Inherit font size from layout/master placeholder if not set
   if (!firstFontSize && phType && layoutPlaceholderSizes) {
     const layoutSize = layoutPlaceholderSizes.get(phType);
     if (layoutSize) firstFontSize = Math.round(layoutSize / 100 * 2.666);
   }
 
-  // Inherit font family from theme based on placeholder type
-  // ALL text elements without an explicit font (or with generic 'Arial') should
-  // inherit from theme fonts: titleFont for title/section placeholders, bodyFont otherwise
+  // Inherit bold from layout/master placeholder if not set
+  if (!firstBold && phType && layoutPlaceholderBold) {
+    if (layoutPlaceholderBold.get(phType)) firstBold = true;
+  }
+
+  // Inherit font family: 1) from layout/master placeholder, 2) from theme
   if (!firstFontFamily || firstFontFamily === 'Arial') {
-    if (phType === 'ctrTitle' || phType === 'title' || phType === 'sldNum') {
-      firstFontFamily = defaultFonts.titleFont;
-    } else if (phType === 'body' || phType === 'subTitle' || phType === 'dt' || phType === 'ftr') {
-      firstFontFamily = defaultFonts.bodyFont;
-    } else {
-      // No placeholder type — infer from position/size: large text = title font, rest = body
-      firstFontFamily = (firstFontSize && firstFontSize >= 48) ? defaultFonts.titleFont : defaultFonts.bodyFont;
+    // Try layout/master placeholder font first
+    if (phType && layoutPlaceholderFonts) {
+      const layoutFont = layoutPlaceholderFonts.get(phType);
+      if (layoutFont && layoutFont !== 'Arial') firstFontFamily = layoutFont;
+    }
+    // Fall back to theme fonts
+    if (!firstFontFamily || firstFontFamily === 'Arial') {
+      if (phType === 'ctrTitle' || phType === 'title' || phType === 'sldNum') {
+        firstFontFamily = defaultFonts.titleFont;
+      } else if (phType === 'body' || phType === 'subTitle' || phType === 'dt' || phType === 'ftr') {
+        firstFontFamily = defaultFonts.bodyFont;
+      } else {
+        firstFontFamily = (firstFontSize && firstFontSize >= 48) ? defaultFonts.titleFont : defaultFonts.bodyFont;
+      }
     }
   }
   // Clean the font name in case it has query params
@@ -939,28 +951,72 @@ async function main() {
       }
     }
 
-    // Extract layout name and placeholder font sizes for inheritance
+    // Extract layout name and placeholder styles for inheritance
     let layoutName = 'unknown';
     const layoutPlaceholderSizes = new Map<string, number>();
+    const layoutPlaceholderFonts = new Map<string, string>();
+    const layoutPlaceholderBold = new Map<string, boolean>();
+    let layoutXml = '';
     const layoutRef = relsMap.get('rId1'); // Usually rId1 points to layout
+    let layoutPath = '';
     if (layoutRef) {
-      const layoutPath = layoutRef.startsWith('../')
+      layoutPath = layoutRef.startsWith('../')
         ? 'ppt/' + layoutRef.replace('../', '')
         : layoutRef;
       const layoutFile = zip.files[layoutPath];
       if (layoutFile) {
-        const layoutXml = await layoutFile.async('string');
+        layoutXml = await layoutFile.async('string');
         // Extract layout name
         const nameMatch = layoutXml.match(/<p:cSld\s+name="([^"]*)"/);
         if (nameMatch) layoutName = nameMatch[1];
-        // Find placeholders with defRPr sz
+        // Find placeholders with defRPr sz, font, bold
         const phMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const pm of phMatches) {
           const phTypeMatch = pm[1].match(/<p:ph[^>]*type="(\w+)"/);
           if (phTypeMatch) {
-            const defSzMatch = pm[1].match(/<a:defRPr[^>]*\bsz="(\d+)"/);
-            if (defSzMatch) {
-              layoutPlaceholderSizes.set(phTypeMatch[1], parseInt(defSzMatch[1]));
+            const phType = phTypeMatch[1];
+            const defRPr = pm[1].match(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+            if (defRPr) {
+              const attrs = defRPr[1] + (defRPr[2] || '');
+              const szMatch = attrs.match(/\bsz="(\d+)"/);
+              if (szMatch) layoutPlaceholderSizes.set(phType, parseInt(szMatch[1]));
+              const bMatch = attrs.match(/\bb="1"/);
+              if (bMatch) layoutPlaceholderBold.set(phType, true);
+              const fontMatch = attrs.match(/<a:latin\s+typeface="([^"]+)"/);
+              if (fontMatch) layoutPlaceholderFonts.set(phType, cleanFontName(fontMatch[1]));
+            }
+          }
+        }
+      }
+    }
+
+    // Also check slide master for placeholder styles (deeper inheritance)
+    if (slideMasterId) {
+      const masterPath = `ppt/slideMasters/${slideMasterId}`;
+      const masterFile = zip.files[masterPath];
+      if (masterFile) {
+        const masterXml = await masterFile.async('string');
+        const phMatches = masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+        for (const pm of phMatches) {
+          const phTypeMatch = pm[1].match(/<p:ph[^>]*type="(\w+)"/);
+          if (phTypeMatch) {
+            const phType = phTypeMatch[1];
+            // Only set if layout didn't already define it
+            const defRPr = pm[1].match(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+            if (defRPr) {
+              const attrs = defRPr[1] + (defRPr[2] || '');
+              if (!layoutPlaceholderSizes.has(phType)) {
+                const szMatch = attrs.match(/\bsz="(\d+)"/);
+                if (szMatch) layoutPlaceholderSizes.set(phType, parseInt(szMatch[1]));
+              }
+              if (!layoutPlaceholderBold.has(phType)) {
+                const bMatch = attrs.match(/\bb="1"/);
+                if (bMatch) layoutPlaceholderBold.set(phType, true);
+              }
+              if (!layoutPlaceholderFonts.has(phType)) {
+                const fontMatch = attrs.match(/<a:latin\s+typeface="([^"]+)"/);
+                if (fontMatch) layoutPlaceholderFonts.set(phType, cleanFontName(fontMatch[1]));
+              }
             }
           }
         }
@@ -1107,7 +1163,7 @@ async function main() {
       const spXml = m[1];
 
       // Try as text first
-      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes);
+      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold);
       if (textEl) {
         textEl.zIndex = zIndex++;
         elements.push(textEl);
@@ -1230,7 +1286,7 @@ async function main() {
         }
 
         // Try as text
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes);
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold);
         if (textEl) {
           const childOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const childExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
@@ -1497,6 +1553,19 @@ async function main() {
     is_active: true,
     sort_order: 0,
   };
+
+  // Check if template already exists — preserve thumbnail URLs and slide preview images
+  const { data: existing } = await supabase.from('templates').select('id, thumbnail_url, layouts').eq('name', title).single();
+  if (existing) {
+    // Preserve preview thumbnails if they are real URLs (not dummy 'slide-1' strings)
+    const hasRealThumbnails = Array.isArray(existing.layouts) && existing.layouts.length > 0
+      && typeof existing.layouts[0] === 'string' && existing.layouts[0].startsWith('http');
+    if (hasRealThumbnails) {
+      template.thumbnail_url = existing.thumbnail_url || template.thumbnail_url;
+      template.layouts = existing.layouts;
+      console.log(`  Preserved ${existing.layouts.length} preview thumbnails from existing template`);
+    }
+  }
 
   // Delete existing template with same name
   await supabase.from('templates').delete().eq('name', title);
