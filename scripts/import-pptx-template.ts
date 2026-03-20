@@ -866,8 +866,10 @@ async function main() {
     }
 
     // Find all sp (shapes) and pic (pictures) in the slide itself
+    // Strip group shapes first to avoid double-parsing elements inside groups
+    const slideXmlNoGroups = slideXml.replace(/<p:grpSp>[\s\S]*?<\/p:grpSp>/g, '');
     // Text shapes: <p:sp>...</p:sp>
-    const spMatches = slideXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+    const spMatches = slideXmlNoGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
     for (const m of spMatches) {
       const spXml = m[1];
 
@@ -887,8 +889,8 @@ async function main() {
       }
     }
 
-    // Pictures: <p:pic>...</p:pic> (also inside groups <p:grpSp>)
-    const picMatches = slideXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
+    // Pictures: <p:pic>...</p:pic> (groups handled separately above)
+    const picMatches = slideXmlNoGroups.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
     for (const m of picMatches) {
       const result = parseImageFromSpTree(m[1], relsMap);
       if (result) {
@@ -938,8 +940,159 @@ async function main() {
       }
     }
 
-    // Connectors (lines): <p:cxnSp>...</p:cxnSp>
-    const cxnMatches = slideXml.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g);
+    // Group shapes: <p:grpSp>...</p:grpSp>
+    // Groups contain nested shapes, images, and connectors with their own coordinate system.
+    // We extract the group's overall position and flatten the children using the group transform.
+    const grpMatches = slideXml.matchAll(/<p:grpSp>([\s\S]*?)<\/p:grpSp>/g);
+    for (const gm of grpMatches) {
+      const grpXml = gm[1];
+
+      // Group transform: <a:xfrm> with <a:off> (position on slide) and <a:ext> (size on slide)
+      // and <a:chOff> (child origin) and <a:chExt> (child coordinate space)
+      const grpOff = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+      const grpExt = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+      const chOff = grpXml.match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+      const chExt = grpXml.match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
+
+      if (!grpOff || !grpExt) continue;
+
+      const gx = parseInt(grpOff[1]);
+      const gy = parseInt(grpOff[2]);
+      const gw = parseInt(grpExt[1]);
+      const gh = parseInt(grpExt[2]);
+      const cox = chOff ? parseInt(chOff[1]) : gx;
+      const coy = chOff ? parseInt(chOff[2]) : gy;
+      const cow = chExt ? parseInt(chExt[1]) : gw;
+      const coh = chExt ? parseInt(chExt[2]) : gh;
+
+      // Scale factors from child coords to slide coords
+      const scaleGX = cow > 0 ? gw / cow : 1;
+      const scaleGY = coh > 0 ? gh / coh : 1;
+
+      // Helper: transform child EMU coordinates to slide EMU coordinates
+      const toSlideX = (cx: number) => gx + (cx - cox) * scaleGX;
+      const toSlideY = (cy: number) => gy + (cy - coy) * scaleGY;
+      const toSlideW = (cw: number) => cw * scaleGX;
+      const toSlideH = (ch: number) => ch * scaleGY;
+
+      // Extract shapes inside group
+      const grpSpMatches = grpXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+      for (const sm of grpSpMatches) {
+        const spXml = sm[1];
+        // Try as shape (most group children are decorative shapes)
+        const shapeEl = parseShapeFromSpTree(spXml, themeColors);
+        if (shapeEl) {
+          // Re-calculate position using group transform
+          const childOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const childExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (childOff && childExt) {
+            shapeEl.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
+            shapeEl.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
+            shapeEl.width = emuToPxX(toSlideW(parseInt(childExt[1])));
+            shapeEl.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+          }
+          shapeEl.zIndex = zIndex++;
+          elements.push(shapeEl);
+          continue;
+        }
+
+        // Try as text
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes);
+        if (textEl) {
+          const childOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const childExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (childOff && childExt) {
+            textEl.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
+            textEl.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
+            textEl.width = emuToPxX(toSlideW(parseInt(childExt[1])));
+            textEl.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+          }
+          textEl.zIndex = zIndex++;
+          elements.push(textEl);
+        }
+      }
+
+      // Extract images inside group
+      const grpPicMatches = grpXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
+      for (const pm of grpPicMatches) {
+        const result = parseImageFromSpTree(pm[1], relsMap);
+        if (result) {
+          const childOff = pm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const childExt = pm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (childOff && childExt) {
+            result.element.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
+            result.element.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
+            result.element.width = emuToPxX(toSlideW(parseInt(childExt[1])));
+            result.element.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+          }
+          result.element.zIndex = zIndex++;
+
+          if (result.imageRef) {
+            let normalizedPath: string;
+            if (result.imageRef.startsWith('../')) {
+              normalizedPath = 'ppt/' + result.imageRef.replace('../', '');
+            } else {
+              normalizedPath = `ppt/slides/${result.imageRef}`;
+            }
+            let imgFile = zip.files[normalizedPath];
+            if (!imgFile) {
+              const baseName = normalizedPath.replace(/\.\w+$/, '');
+              for (const ext of ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.emf', '.wmf']) {
+                imgFile = zip.files[baseName + ext];
+                if (imgFile) break;
+              }
+            }
+            if (imgFile) {
+              const imgData = await imgFile.async('nodebuffer');
+              const ext = normalizedPath.match(/\.(\w+)$/)?.[1] || 'png';
+              const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
+              const url = await uploadImage(imgData, mimeType);
+              result.element.content = url;
+            }
+          }
+
+          if (result.element.content) {
+            elements.push(result.element);
+          }
+        }
+      }
+
+      // Extract connectors inside group
+      const grpCxnMatches = grpXml.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g);
+      for (const cm of grpCxnMatches) {
+        const cxnXml = cm[1];
+        const childOff = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+        const childExt = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+        if (!childOff || !childExt) continue;
+
+        const cx = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
+        const cy = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
+        const cw = emuToPxX(toSlideW(parseInt(childExt[1])));
+        const ch = Math.max(emuToPxY(toSlideH(parseInt(childExt[2]))), 2);
+
+        const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
+        const scheme = cxnXml.match(/<a:schemeClr\s+val="(\w+)"/);
+        let lineColor = themeColors.dk1;
+        if (srgb) lineColor = `#${srgb[1]}`;
+        else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
+
+        const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
+        const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
+
+        elements.push({
+          id: genId(),
+          type: 'shape',
+          content: '',
+          x: cx, y: cy, width: cw, height: ch,
+          rotation: 0, opacity: 1, locked: false, visible: true,
+          zIndex: zIndex++,
+          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth },
+        });
+      }
+    }
+
+    // Connectors (lines): <p:cxnSp>...</p:cxnSp> (groups handled separately above)
+    const cxnMatches = slideXmlNoGroups.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g);
     for (const m of cxnMatches) {
       const cxnXml = m[1];
       const off = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
