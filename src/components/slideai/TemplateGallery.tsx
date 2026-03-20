@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Check, ChevronRight, ArrowLeft, Loader2, Play, Sparkles } from 'lucide-react';
+import { Search, Check, ChevronRight, ChevronLeft, ArrowLeft, Loader2, Play, Sparkles, Eye, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PresentationTheme, Slide } from '@/types/presentation';
 import { supabase } from '@/lib/supabase';
@@ -38,7 +38,96 @@ function useDbTemplates() {
   });
 }
 
-function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void }) {
+function SlidePreviewModal({ template, onClose }: { template: UnifiedTemplate; onClose: () => void }) {
+  const images = template.slideImages || [];
+  const [current, setCurrent] = React.useState(0);
+
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setCurrent(c => Math.min(c + 1, images.length - 1));
+      if (e.key === 'ArrowLeft') setCurrent(c => Math.max(c - 1, 0));
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [images.length, onClose]);
+
+  if (!images.length) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative w-full max-w-5xl mx-4" onClick={e => e.stopPropagation()}>
+        {/* Close */}
+        <button onClick={onClose} className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors">
+          <X className="w-6 h-6" />
+        </button>
+
+        {/* Title */}
+        <div className="absolute -top-12 left-0 text-white/90 text-sm font-medium">
+          {template.name} — Slide {current + 1} / {images.length}
+        </div>
+
+        {/* Main image */}
+        <div className="relative aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={current}
+              src={images[current]}
+              alt={`Slide ${current + 1}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-full h-full object-contain"
+            />
+          </AnimatePresence>
+
+          {/* Nav arrows */}
+          {current > 0 && (
+            <button
+              onClick={() => setCurrent(c => c - 1)}
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )}
+          {current < images.length - 1 && (
+            <button
+              onClick={() => setCurrent(c => c + 1)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Thumbnail strip */}
+        <div className="flex gap-2 mt-4 justify-center overflow-x-auto pb-2">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              className={cn(
+                'flex-shrink-0 w-20 h-12 rounded-md overflow-hidden border-2 transition-all',
+                current === idx ? 'border-white shadow-lg scale-105' : 'border-transparent opacity-50 hover:opacity-80'
+              )}
+            >
+              <img src={img} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void; onPreview: (t: UnifiedTemplate) => void }) {
   const hasSlides = template.slides && template.slides.length > 0;
   const hasSlideImages = template.slideImages && template.slideImages.length > 0;
   const [isHovering, setIsHovering] = useState(false);
@@ -95,6 +184,16 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        {/* Preview button */}
+        {hasSlideImages && isHovering && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onPreview(template); }}
+            className="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center shadow-lg transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Slide progress dots on hover */}
         {isHovering && imageCount > 1 && (
@@ -158,6 +257,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
   const [activeTab, setActiveTab] = useState<'classic' | 'cinematic'>('classic');
   const [selectedTemplate, setSelectedTemplate] = useState<UnifiedTemplate | null>(null);
   const [selectedCinematicPreset, setSelectedCinematicPreset] = useState<CinematicPreset | null>(null);
+  const [previewTemplate, setPreviewTemplate] = useState<UnifiedTemplate | null>(null);
 
   const { data: dbTemplates, isLoading: loadingDb } = useDbTemplates();
 
@@ -314,6 +414,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                   template={template}
                   isSelected={selectedTemplate?.id === template.id}
                   onSelect={handleSelect}
+                  onPreview={setPreviewTemplate}
                 />
               ))}
             </div>
@@ -427,6 +528,13 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
               </motion.button>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Slide preview lightbox */}
+      <AnimatePresence>
+        {previewTemplate && (
+          <SlidePreviewModal template={previewTemplate} onClose={() => setPreviewTemplate(null)} />
         )}
       </AnimatePresence>
     </motion.div>
