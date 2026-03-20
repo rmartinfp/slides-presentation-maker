@@ -24,7 +24,7 @@ export default function PropertiesPanel() {
 
   if (!el) {
     return (
-      <div className="w-56 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
+      <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
         <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
         <p className="text-[11px] text-slate-500">{slide?.elements?.length || 0} elements</p>
         <p className="text-[10px] text-slate-400 mt-1">Select an element to edit</p>
