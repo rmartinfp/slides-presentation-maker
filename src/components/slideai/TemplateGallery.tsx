@@ -18,6 +18,7 @@ export interface UnifiedTemplate {
   theme: PresentationTheme;
   slides?: Slide[];
   thumbnailUrl?: string;
+  slideImages?: string[]; // PNG thumbnails of each slide from Google Slides
   colors: { primary: string; secondary: string; accent: string; bg: string; text: string };
 }
 
@@ -39,23 +40,22 @@ function useDbTemplates() {
 
 function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void }) {
   const hasSlides = template.slides && template.slides.length > 0;
+  const hasSlideImages = template.slideImages && template.slideImages.length > 0;
   const [isHovering, setIsHovering] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const slideCount = template.slides?.length || 0;
+  const imageCount = template.slideImages?.length || 0;
 
-  // Auto-cycle slides on hover
+  // Auto-cycle slides on hover (use real images if available)
   React.useEffect(() => {
-    if (!isHovering || slideCount <= 1) {
+    if (!isHovering || imageCount <= 1) {
       setCurrentSlide(0);
       return;
     }
     const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % slideCount);
-    }, 1200);
+      setCurrentSlide(prev => (prev + 1) % imageCount);
+    }, 1500);
     return () => clearInterval(interval);
-  }, [isHovering, slideCount]);
-
-  const previewSlide = hasSlides ? template.slides![currentSlide] : null;
+  }, [isHovering, imageCount]);
 
   return (
     <motion.div
@@ -72,52 +72,19 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
-        {/* Show thumbnail when not hovering, live slides when hovering */}
-        {!isHovering && template.thumbnailUrl ? (
-          <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
-        ) : previewSlide ? (
+        {/* Cover image by default, cycle real slide PNGs on hover */}
+        {isHovering && hasSlideImages ? (
           <AnimatePresence mode="wait">
-            <motion.div
+            <motion.img
               key={currentSlide}
+              src={template.slideImages![currentSlide]}
+              alt={`Slide ${currentSlide + 1}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="absolute inset-0"
-            >
-              <div
-                className="w-full h-full relative"
-                style={{
-                  backgroundColor: previewSlide.background?.type === 'solid' ? previewSlide.background.value : template.colors.bg,
-                }}
-              >
-                {previewSlide.background?.type === 'image' && previewSlide.background.value && (
-                  <img src={previewSlide.background.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                )}
-                {previewSlide.elements?.slice(0, 10).map((el) => {
-                  const s = 280 / 1920;
-                  return (
-                    <div
-                      key={el.id}
-                      className="absolute overflow-hidden"
-                      style={{
-                        left: el.x * s, top: el.y * s, width: el.width * s, height: el.height * s,
-                        fontSize: `${(el.style.fontSize ?? 16) * s}px`, fontFamily: el.style.fontFamily,
-                        fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
-                        color: el.style.color, textAlign: el.style.textAlign as React.CSSProperties['textAlign'],
-                        opacity: el.opacity,
-                        backgroundColor: el.type === 'shape' && el.style.shapeFill !== 'transparent' ? el.style.shapeFill : undefined,
-                        borderRadius: el.type === 'shape' && el.style.shapeType === 'circle' ? '50%' : undefined,
-                        border: el.type === 'shape' && el.style.shapeStroke && el.style.shapeStroke !== 'transparent' ? `1px solid ${el.style.shapeStroke}` : undefined,
-                      }}
-                    >
-                      {el.type === 'text' && <span className="line-clamp-2 leading-tight">{el.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}</span>}
-                      {el.type === 'image' && el.content && <img src={el.content} alt="" className="w-full h-full object-cover" />}
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
+              transition={{ duration: 0.25 }}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
           </AnimatePresence>
         ) : template.thumbnailUrl ? (
           <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
@@ -130,9 +97,9 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
         {/* Slide progress dots on hover */}
-        {isHovering && slideCount > 1 && (
+        {isHovering && imageCount > 1 && (
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-            {template.slides!.slice(0, Math.min(slideCount, 12)).map((_, idx) => (
+            {template.slideImages!.slice(0, Math.min(imageCount, 14)).map((_, idx) => (
               <div
                 key={idx}
                 className={cn(
@@ -144,9 +111,9 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
           </div>
         )}
 
-        {hasSlides && !isHovering && (
+        {imageCount > 0 && !isHovering && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur text-white text-[10px] font-medium rounded-full">
-            {slideCount} slides
+            {imageCount} slides
           </div>
         )}
 
@@ -205,6 +172,9 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
         theme: t.theme as PresentationTheme,
         slides: t.preview_slides as Slide[],
         thumbnailUrl: t.thumbnail_url,
+        slideImages: Array.isArray(t.layouts) && t.layouts.length > 0 && typeof t.layouts[0] === 'string'
+          ? t.layouts as string[]
+          : undefined,
         colors: {
           primary: colors.primary || '#6366f1',
           secondary: colors.secondary || '#666666',
