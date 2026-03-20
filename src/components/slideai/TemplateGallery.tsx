@@ -383,9 +383,9 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       <AnimatePresence>
         {(selectedTemplate || selectedCinematicPreset) && (
           <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="fixed bottom-0 left-0 right-0 nav-glass border-t border-slate-200/60 py-4 px-6 z-40"
           >
             <div className="max-w-6xl mx-auto flex items-center justify-between">

@@ -18,8 +18,8 @@ export default function Entry() {
     <div className="min-h-screen mesh-gradient text-slate-900 overflow-hidden font-body">
       {/* Fixed Navigation */}
       <motion.nav
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
         transition={{ duration: 0.4 }}
         className="fixed top-0 left-0 right-0 z-50 nav-glass"
       >
@@ -56,8 +56,8 @@ export default function Entry() {
       <div className="relative pt-32 sm:pt-40 pb-16 sm:pb-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             {/* Headline */}
@@ -106,8 +106,8 @@ export default function Entry() {
       <div className="py-20 sm:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
             className="text-center mb-14"
@@ -124,8 +124,8 @@ export default function Entry() {
             {templatePreviews.map((template, i) => (
               <motion.div
                 key={template.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 onClick={() => navigate('/create')}
@@ -166,8 +166,8 @@ export default function Entry() {
             ].map((f, i) => (
               <motion.div
                 key={f.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.1 }}
                 className="glass-effect rounded-2xl p-6 hover:shadow-2xl hover:shadow-[#4F46E5]/10 hover:-translate-y-2 transition-all duration-300 group"

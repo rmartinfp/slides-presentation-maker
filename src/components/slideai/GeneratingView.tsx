@@ -152,9 +152,9 @@ export default function GeneratingView({ theme }: Props) {
         <AnimatePresence mode="wait">
           <motion.h2
             key={currentStage}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             className="text-xl font-headline font-extrabold text-slate-900 mb-2"
           >
             {currentStage < stages.length ? stages[currentStage].label : 'Almost ready!'}
