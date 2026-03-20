@@ -63,186 +63,93 @@ export default function SlideAIPage() {
     const theme = selectedTheme || THEME_CATALOG[0];
 
     try {
-      if (templateSlides && templateSlides.length > 0) {
-        // DB template: use AI to replace text content while keeping layout/design
-        const result = await generatePresentation({
-          prompt: contentText,
-          length: 'informative',
-          tone: 'professional',
-          audience: 'general',
-        });
+      // UNIFIED FLOW: Layout Library + Theme for ALL presentations
+      // The AI picks layouts from the library, the renderer applies the theme
+      // Template PPTX only contributes: background images for cover/section slides
+      const result = await generatePresentation({
+        prompt: contentText,
+        length: 'informative',
+        tone: 'professional',
+        audience: 'general',
+      });
 
-        // Map AI-generated content onto the template slides
-        // Use template slides as visual layouts, replace text with AI content
-        const aiSlides = result.slides;
-        const filledSlides: Slide[] = [];
-
-        for (let i = 0; i < Math.min(templateSlides.length, aiSlides.length); i++) {
-          const templateSlide = JSON.parse(JSON.stringify(templateSlides[i]));
-          const aiSlide = aiSlides[i];
-          const slideLayout = (templateSlide as any).layout || 'content';
-
-          // Find text elements sorted by font size (largest = title)
-          const textElements = (templateSlide.elements || [])
-            .filter((el: any) => el.type === 'text')
-            .sort((a: any, b: any) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
-
-          // Detect template placeholder text — generic filler that should be replaced
-          const isPlaceholderText = (html: string): boolean => {
-            const plain = html.replace(/<[^>]+>/g, '').trim().toLowerCase();
-            if (!plain || plain.length < 3) return false;
-            // Common Slidesgo/template placeholder patterns
-            const placeholderPatterns = [
-              /mercury is the closest/i,
-              /venus has a beautiful/i,
-              /jupiter is the biggest/i,
-              /saturn is the ringed/i,
-              /mars is actually a cold/i,
-              /neptune is the farthest/i,
-              /name of the section/i,
-              /write the title here/i,
-              /write your subtitle here/i,
-              /you can describe the topic/i,
-              /despite being red/i,
-              /lorem ipsum/i,
-              /placeholder/i,
-              /your text here/i,
-              /click to edit/i,
-              /insert text/i,
-              /add text/i,
-              /subtitle here/i,
-              /title of (?:your|the) (?:presentation|section)/i,
-            ];
-            return placeholderPatterns.some(p => p.test(plain));
-          };
-
-          // Handle TOC slides differently
-          if (slideLayout === 'toc' && aiSlide.bullets?.length) {
-            // Title = first/largest text element
-            if (textElements.length > 0 && aiSlide.title) {
-              textElements[0].content = `<p>${aiSlide.title}</p>`;
-            }
-            // Fill remaining text elements with TOC items (bullet points)
-            for (let j = 1; j < textElements.length && j - 1 < aiSlide.bullets.length; j++) {
-              textElements[j].content = `<p>${aiSlide.bullets[j - 1]}</p>`;
-            }
-          } else {
-            // Largest text = title
-            if (textElements.length > 0 && aiSlide.title) {
-              textElements[0].content = `<p>${aiSlide.title}</p>`;
-            }
-
-            // Second largest = body or bullets
-            if (textElements.length > 1) {
-              if (aiSlide.bullets?.length) {
-                textElements[1].content = aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('');
-              } else if (aiSlide.body) {
-                textElements[1].content = `<p>${aiSlide.body}</p>`;
-              }
-            }
-
-            // Replace ALL remaining text elements that contain placeholder/template text
-            const usedBullets = new Set<number>();
-            for (let j = 2; j < textElements.length; j++) {
-              const el = textElements[j];
-              if (isPlaceholderText(el.content)) {
-                // Try to fill with a bullet point
-                if (aiSlide.bullets) {
-                  // Find next unused bullet
-                  let bulletIdx = 0;
-                  while (usedBullets.has(bulletIdx) && bulletIdx < aiSlide.bullets.length) bulletIdx++;
-                  if (bulletIdx < aiSlide.bullets.length) {
-                    el.content = `<p>${aiSlide.bullets[bulletIdx]}</p>`;
-                    usedBullets.add(bulletIdx);
-                    continue;
-                  }
-                }
-                // Fall back to body text or subtitle
-                if (aiSlide.body) {
-                  el.content = `<p>${aiSlide.body}</p>`;
-                } else if (aiSlide.subtitle) {
-                  el.content = `<p>${aiSlide.subtitle}</p>`;
-                }
-              }
-            }
+      // Extract background images from template for cover/section slides
+      const templateBackgrounds: Record<string, string> = {};
+      if (templateSlides) {
+        for (let i = 0; i < Math.min(templateSlides.length, 5); i++) {
+          const s = templateSlides[i];
+          const type = (s as any).layout || '';
+          if (s.background?.type === 'image' && s.background.value) {
+            if (type === 'cover' || i === 0) templateBackgrounds['cover'] = s.background.value;
+            else if (type === 'section') templateBackgrounds['section'] = s.background.value;
+            else if (type === 'image') templateBackgrounds['image'] = s.background.value;
+            else if (type === 'closing') templateBackgrounds['closing'] = s.background.value;
           }
-
-          filledSlides.push(templateSlide);
         }
+      }
 
-        // Don't re-migrate — slides already have proper elements from the template
-        sessionStorage.setItem('presentation', JSON.stringify({
-          id: Math.random().toString(36).substring(2, 11),
-          title: result.title,
-          slides: filledSlides,
-          theme,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-      } else {
-        // No PPTX template — use layout library to build slides
-        const result = await generatePresentation({
-          prompt: contentText,
-          length: 'informative',
-          tone: 'professional',
-          audience: 'general',
-        });
+      // Convert AI output to slides using Layout Library + Theme
+      const slides: Slide[] = result.slides.map((aiSlide: any, index: number) => {
+        const layoutId = aiSlide.layout || 'content-title-body';
+        const layout = getLayoutById(layoutId);
 
-        // Convert AI output to slides using layout renderer
-        const slides: Slide[] = result.slides.map((aiSlide: any) => {
-          const layoutId = aiSlide.layout || 'content-title-body';
-          const layout = getLayoutById(layoutId);
+        const content: SlideContent = {
+          title: aiSlide.title,
+          subtitle: aiSlide.subtitle,
+          body: aiSlide.body,
+          stats: aiSlide.stats,
+          bullets: aiSlide.bullets,
+          quote: aiSlide.quote,
+          quoteAuthor: aiSlide.quoteAuthor,
+          labels: aiSlide.labels,
+          sectionNumber: aiSlide.sectionNumber || (index > 0 ? String(index).padStart(2, '0') : undefined),
+        };
 
-          if (layout) {
-            // Use layout library to position elements
-            const content: SlideContent = {
-              title: aiSlide.title,
-              subtitle: aiSlide.subtitle,
-              body: aiSlide.body,
-              stats: aiSlide.stats,
-              bullets: aiSlide.bullets,
-              quote: aiSlide.quote,
-              quoteAuthor: aiSlide.quoteAuthor,
-              labels: aiSlide.labels,
-              sectionNumber: aiSlide.sectionNumber,
-            };
+        if (layout) {
+          const { elements, background } = renderLayout(layout, content, theme.tokens);
 
-            const { elements, background } = renderLayout(layout, content, theme.tokens);
-
-            return {
-              id: generateId(),
-              elements,
-              background,
-              notes: aiSlide.notes || '',
-              layout: layout.category,
-            } as Slide;
+          // Apply template background images where appropriate
+          let finalBg = background;
+          if (layout.category === 'cover' && templateBackgrounds['cover']) {
+            finalBg = { type: 'image', value: templateBackgrounds['cover'] };
+          } else if (layout.category === 'section' && templateBackgrounds['section']) {
+            finalBg = { type: 'image', value: templateBackgrounds['section'] };
+          } else if (layout.category === 'visual' && templateBackgrounds['image']) {
+            finalBg = { type: 'image', value: templateBackgrounds['image'] };
+          } else if (layout.category === 'closing' && templateBackgrounds['closing']) {
+            finalBg = { type: 'image', value: templateBackgrounds['closing'] };
           }
 
-          // Fallback: migrate legacy format
           return {
             id: generateId(),
-            elements: [],
-            background: { type: 'solid' as const, value: theme.tokens.palette.bg },
-            layout: 'content',
-            title: aiSlide.title || '',
-            body: aiSlide.body || '',
-            bullets: aiSlide.bullets || [],
+            elements,
+            background: finalBg,
             notes: aiSlide.notes || '',
+            layout: layout.category,
           } as Slide;
-        });
+        }
 
-        // Migrate any fallback slides
-        const migrated = migrateAllSlides(slides, theme.tokens);
+        // Fallback for unknown layouts
+        const fallbackLayout = getLayoutById('content-title-body')!;
+        const { elements, background } = renderLayout(fallbackLayout, content, theme.tokens);
+        return {
+          id: generateId(),
+          elements,
+          background,
+          notes: aiSlide.notes || '',
+          layout: 'content',
+        } as Slide;
+      });
 
-        sessionStorage.setItem('presentation', JSON.stringify({
-          id: Math.random().toString(36).substring(2, 11),
-          title: result.title,
-          slides: migrated,
-          theme,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-      }
+      // Store presentation
+      sessionStorage.setItem('presentation', JSON.stringify({
+        id: Math.random().toString(36).substring(2, 11),
+        title: result.title,
+        slides,
+        theme,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }));
 
       // Store cinematic preset if selected
       if (cinematicPreset) {
