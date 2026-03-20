@@ -68,6 +68,15 @@ export default function EditorPage() {
 
   useKeyboardShortcuts();
 
+  const [cinematicPreset, setCinematicPreset] = React.useState<CinematicPreset | null>(() => {
+    const stored = sessionStorage.getItem('cinematicPreset');
+    if (stored) {
+      sessionStorage.removeItem('cinematicPreset');
+      return JSON.parse(stored);
+    }
+    return null;
+  });
+
   // Auto-launch cinematic mode when content arrives
   useEffect(() => {
     if (cinematicPreset && presentation.slides.length > 0 && !isPresentationMode) {
@@ -172,14 +181,6 @@ export default function EditorPage() {
 
   const [isPresenterView, setIsPresenterView] = React.useState(false);
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
-  const [cinematicPreset, setCinematicPreset] = React.useState<CinematicPreset | null>(() => {
-    const stored = sessionStorage.getItem('cinematicPreset');
-    if (stored) {
-      sessionStorage.removeItem('cinematicPreset');
-      return JSON.parse(stored);
-    }
-    return null;
-  });
 
   if (idFromUrl && presentation.slides.length === 0) return <EditorSkeleton />;
 
