@@ -900,6 +900,8 @@ async function main() {
     themeFonts.bodyFont = googleFonts[0];
   }
 
+  // Master font override moved below after primaryMasterId is resolved
+
   console.log('Theme colors:', themeColors);
   console.log('Theme fonts:', themeFonts);
   if (googleFonts.length) console.log('Google Fonts:', googleFonts);
@@ -940,6 +942,33 @@ async function main() {
     }
   }
   console.log(`Primary master: ${primaryMasterId || 'unknown'}`);
+
+  // Override theme fonts with slide master fonts (higher priority than theme)
+  // Slidesgo templates often define the real fonts in the master, not the theme
+  if (primaryMasterId) {
+    const primaryMasterFile = zip.files[`ppt/slideMasters/${primaryMasterId}`];
+    if (primaryMasterFile) {
+      const masterXml = await primaryMasterFile.async('string');
+      const titlePh = [...masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)]
+        .find(m => m[1].includes('type="title"') || m[1].includes('type="ctrTitle"'));
+      if (titlePh) {
+        const masterTitleFont = titlePh[1].match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+        if (masterTitleFont && masterTitleFont !== 'Arial') {
+          themeFonts.titleFont = cleanFontName(masterTitleFont);
+          console.log(`  Master override titleFont: ${themeFonts.titleFont}`);
+        }
+      }
+      const bodyPh = [...masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)]
+        .find(m => m[1].includes('type="body"'));
+      if (bodyPh) {
+        const masterBodyFont = bodyPh[1].match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+        if (masterBodyFont && masterBodyFont !== 'Arial') {
+          themeFonts.bodyFont = cleanFontName(masterBodyFont);
+          console.log(`  Master override bodyFont: ${themeFonts.bodyFont}`);
+        }
+      }
+    }
+  }
 
   // Helper: resolve slide → slideLayout → slideMaster chain
   async function getSlideMasterId(slideNum: number): Promise<string | null> {
