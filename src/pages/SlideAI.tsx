@@ -145,7 +145,17 @@ export default function SlideAIPage() {
       // If we have template slides, analyze them and send a brief to the AI
       // so it generates content that maps 1:1 to the template's text boxes.
       if (templateSlides && templateSlides.length > 0) {
-        const templateBrief = buildTemplateBrief(templateSlides);
+        // Filter out leaked final pages (instructions, resources — have 20+ elements)
+        const cleanSlides = templateSlides.filter(s => {
+          const elCount = s.elements?.length || 0;
+          if (elCount > 25) return false; // Resource/instruction pages have many elements
+          // Also filter "Instructions for use" text
+          const allText = (s.elements || []).map(e => e.content).join(' ').toLowerCase();
+          if (allText.includes('instructions for use') || allText.includes('for more info')) return false;
+          return true;
+        });
+
+        const templateBrief = buildTemplateBrief(cleanSlides);
 
         const result = await generatePresentation({
           prompt: contentText,
@@ -155,8 +165,8 @@ export default function SlideAIPage() {
           templateBrief,
         });
 
-        // Map AI content back onto template slides
-        const slides: Slide[] = templateSlides.map((templateSlide, slideIndex) => {
+        // Map AI content back onto clean template slides
+        const slides: Slide[] = cleanSlides.map((templateSlide, slideIndex) => {
           const aiSlide = result.slides.find((s: any) => s.slideIndex === slideIndex)
             || result.slides[slideIndex];
 
