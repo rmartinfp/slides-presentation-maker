@@ -762,11 +762,89 @@ async function main() {
       }
     }
 
-    // Parse elements
+    // Parse elements — start with layout decorations (images, shapes that aren't placeholders)
     const elements: ParsedElement[] = [];
     let zIndex = 1;
 
-    // Find all sp (shapes) and pic (pictures) in the slide
+    // Inherit non-placeholder elements from layout (background images, decorative shapes, lines)
+    if (layoutRef) {
+      const layoutPath = layoutRef.startsWith('../') ? 'ppt/' + layoutRef.replace('../', '') : layoutRef;
+      const layoutFile = zip.files[layoutPath];
+      if (layoutFile) {
+        const layoutXml = await layoutFile.async('string');
+
+        // Build layout rels map for image references
+        const layoutFileName = layoutPath.split('/').pop() || '';
+        const layoutRelsPath = layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/') + '.rels';
+        const layoutRelsMap = new Map<string, string>();
+        if (zip.files[layoutRelsPath]) {
+          const layoutRelsXml = await zip.file(layoutRelsPath)!.async('string');
+          const lRelMatches = layoutRelsXml.matchAll(/Id="(rId\d+)"[^>]+Target="([^"]+)"/g);
+          for (const m of lRelMatches) {
+            layoutRelsMap.set(m[1], m[2]);
+          }
+        }
+
+        // Extract pics from layout (background images, decorations)
+        const layoutPicMatches = layoutXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
+        for (const m of layoutPicMatches) {
+          // Skip placeholder images
+          if (m[1].includes('<p:ph')) continue;
+
+          const result = parseImageFromSpTree(m[1], layoutRelsMap);
+          if (result && result.imageRef) {
+            result.element.zIndex = zIndex++;
+            let normalizedPath: string;
+            if (result.imageRef.startsWith('../')) {
+              normalizedPath = 'ppt/' + result.imageRef.replace('../', '');
+            } else {
+              normalizedPath = `ppt/slideLayouts/${result.imageRef}`;
+            }
+            let imgFile = zip.files[normalizedPath];
+            if (!imgFile) {
+              const baseName = normalizedPath.replace(/\.\w+$/, '');
+              for (const ext of ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.emf', '.wmf']) {
+                imgFile = zip.files[baseName + ext];
+                if (imgFile) break;
+              }
+            }
+            if (imgFile) {
+              const imgData = await imgFile.async('nodebuffer');
+              const ext = normalizedPath.match(/\.(\w+)$/)?.[1] || 'png';
+              const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
+              const url = await uploadImage(imgData, mimeType);
+              result.element.content = url;
+
+              // If full-bleed image, make it the background
+              if (result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
+                background = { type: 'image', value: url };
+                console.log(`  Layout bg image uploaded`);
+              } else if (url) {
+                elements.push(result.element);
+                console.log(`  Layout decoration image uploaded`);
+              }
+            }
+          }
+        }
+
+        // Extract non-placeholder shapes from layout (decorative lines, shapes)
+        const layoutSpMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+        for (const m of layoutSpMatches) {
+          // Skip placeholders
+          if (m[1].includes('<p:ph')) continue;
+          // Skip text boxes (they're placeholders even without the tag sometimes)
+          if (m[1].includes('<p:txBody>') && m[1].includes('<a:t>')) continue;
+
+          const shapeEl = parseShapeFromSpTree(m[1], themeColors);
+          if (shapeEl) {
+            shapeEl.zIndex = zIndex++;
+            elements.push(shapeEl);
+          }
+        }
+      }
+    }
+
+    // Find all sp (shapes) and pic (pictures) in the slide itself
     // Text shapes: <p:sp>...</p:sp>
     const spMatches = slideXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
     for (const m of spMatches) {
