@@ -24,12 +24,12 @@ function OrbitParticle({ index, total, radius }: { index: number; total: number;
       <motion.div
         animate={{ scale: [1, 1.5, 1], opacity: [0.6, 1, 0.6] }}
         transition={{ duration: 2, repeat: Infinity, delay: index * 0.2 }}
-        className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-purple-400 to-pink-400"
+        className="absolute w-2 h-2 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA]"
         style={{
           left: `calc(50% + ${Math.cos(angle) * radius}px)`,
           top: `calc(50% + ${Math.sin(angle) * radius}px)`,
           transform: 'translate(-50%, -50%)',
-          boxShadow: '0 0 15px 3px rgba(168,85,247,0.5)',
+          boxShadow: '0 0 15px 3px rgba(79,70,229,0.3)',
         }}
       />
     </motion.div>
@@ -67,18 +67,18 @@ export default function GeneratingView({ theme }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-[#030305] overflow-hidden"
+      className="fixed inset-0 mesh-gradient overflow-hidden"
     >
       {/* Background glow */}
       <motion.div
-        animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+        animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.2, 0.1] }}
         transition={{ duration: 4, repeat: Infinity }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-purple-600/30 blur-[120px]"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-[#4F46E5]/15 blur-[120px]"
       />
       <motion.div
-        animate={{ scale: [1.2, 1, 1.2], opacity: [0.15, 0.3, 0.15] }}
+        animate={{ scale: [1.2, 1, 1.2], opacity: [0.08, 0.15, 0.08] }}
         transition={{ duration: 5, repeat: Infinity, delay: 1 }}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-pink-600/30 blur-[100px]"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full bg-[#9333EA]/15 blur-[100px]"
       />
 
       {/* Header */}
@@ -103,7 +103,7 @@ export default function GeneratingView({ theme }: Props) {
             transition={{ duration: 3, repeat: Infinity }}
             className="absolute inset-0 flex items-center justify-center"
           >
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-pink-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-purple-500/40">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center shadow-2xl shadow-[#4F46E5]/30">
               <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}>
                 <Sparkles className="w-10 h-10 text-white" />
               </motion.div>
@@ -114,14 +114,14 @@ export default function GeneratingView({ theme }: Props) {
             transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
             className="absolute inset-0"
           >
-            <div className="absolute inset-6 rounded-full border border-purple-500/20" />
+            <div className="absolute inset-6 rounded-full border border-[#4F46E5]/20" />
           </motion.div>
           <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
             className="absolute inset-0"
           >
-            <div className="absolute inset-0 rounded-full border border-dashed border-pink-500/20" />
+            <div className="absolute inset-0 rounded-full border border-dashed border-[#9333EA]/15" />
           </motion.div>
         </div>
 
@@ -137,9 +137,9 @@ export default function GeneratingView({ theme }: Props) {
                 animate={isCurrent ? { scale: [1, 1.2, 1] } : {}}
                 transition={{ duration: 0.5, repeat: isCurrent ? Infinity : 0 }}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center ${
-                  isComplete ? 'bg-green-500/20 text-green-400' :
-                  isCurrent ? 'bg-purple-500/30 text-purple-300' :
-                  'bg-white/5 text-slate-600'
+                  isComplete ? 'bg-emerald-100 text-emerald-600' :
+                  isCurrent ? 'bg-[#4F46E5]/15 text-[#4F46E5]' :
+                  'bg-slate-100 text-slate-400'
                 }`}
               >
                 {isComplete ? <CheckCircle2 className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
@@ -155,26 +155,26 @@ export default function GeneratingView({ theme }: Props) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="text-xl font-semibold text-white mb-2"
+            className="text-xl font-headline font-extrabold text-slate-900 mb-2"
           >
             {currentStage < stages.length ? stages[currentStage].label : 'Almost ready!'}
           </motion.h2>
         </AnimatePresence>
-        <p className="text-slate-400 text-sm mb-8">Creating your presentation with AI magic</p>
+        <p className="text-slate-500 text-sm mb-8">Creating your presentation with AI magic</p>
 
         {/* Progress bar */}
         <div className="w-72">
-          <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progress}%` }}
-              className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
-              style={{ boxShadow: '0 0 20px rgba(168,85,247,0.6)' }}
+              className="h-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] rounded-full"
+              style={{ boxShadow: '0 0 20px rgba(79,70,229,0.4)' }}
             />
           </div>
           <div className="flex justify-between mt-2 text-xs">
             <span className="text-slate-500">Generating...</span>
-            <span className="text-purple-400 font-medium">{Math.round(progress)}%</span>
+            <span className="text-[#4F46E5] font-medium">{Math.round(progress)}%</span>
           </div>
         </div>
       </div>

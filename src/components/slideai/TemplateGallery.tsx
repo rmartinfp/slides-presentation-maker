@@ -67,8 +67,8 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
       className={cn(
         'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full cursor-pointer',
         isSelected
-          ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#0a0a0c] shadow-xl shadow-purple-500/25'
-          : 'hover:shadow-xl hover:shadow-purple-500/10'
+          ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white shadow-xl shadow-[#4F46E5]/20'
+          : 'hover:shadow-xl hover:shadow-[#4F46E5]/10'
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
@@ -121,22 +121,22 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center shadow-lg"
+            className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg"
           >
             <Check className="w-4 h-4 text-white" />
           </motion.div>
         )}
       </div>
 
-      <div className="p-3 bg-slate-900/80 backdrop-blur-sm">
+      <div className="p-3 bg-white/80 backdrop-blur-sm">
         <div className="flex items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-white text-sm truncate">{template.name}</h3>
-            <p className="text-xs text-slate-400 mt-0.5">{template.category}</p>
+            <h3 className="font-medium text-slate-800 text-sm truncate">{template.name}</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{template.category}</p>
           </div>
           <div className="flex gap-1 flex-shrink-0">
             {[template.colors.primary, template.colors.secondary].map((color, idx) => (
-              <div key={idx} className="w-3 h-3 rounded-full ring-1 ring-white/20" style={{ backgroundColor: color }} />
+              <div key={idx} className="w-3 h-3 rounded-full ring-1 ring-slate-300" style={{ backgroundColor: color }} />
             ))}
           </div>
         </div>
@@ -218,14 +218,9 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen relative z-10"
+      className="min-h-screen mesh-gradient relative z-10 font-body"
     >
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-0 w-64 md:w-96 h-64 md:h-96 bg-indigo-600/20 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-0 w-64 md:w-96 h-64 md:h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
-
-      <div className="sticky top-0 z-30 nav-glass border-b border-white/10">
+      <div className="sticky top-0 z-30 nav-glass border-b border-slate-200/60">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <StepIndicator currentStep={1} />
         </div>
@@ -233,12 +228,12 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm">
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-slate-700 text-sm transition-colors">
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-white">Pick your template</h1>
-            <p className="text-slate-400 text-sm mt-1">Choose a design that fits your story</p>
+            <h1 className="text-2xl font-headline font-extrabold headline-tight text-slate-900">Pick your template</h1>
+            <p className="text-slate-500 text-sm mt-1">Choose a design that fits your story</p>
           </div>
         </div>
 
@@ -249,8 +244,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             className={cn(
               'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all border',
               activeTab === 'classic'
-                ? 'bg-purple-500/15 border-purple-500/30 text-white'
-                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                ? 'bg-[#4F46E5]/10 border-[#4F46E5]/20 text-[#4F46E5]'
+                : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
             )}
           >
             <Sparkles className="w-4 h-4" />
@@ -261,32 +256,32 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             className={cn(
               'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all border',
               activeTab === 'cinematic'
-                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 text-white'
-                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                ? 'bg-gradient-to-r from-[#4F46E5]/10 to-[#9333EA]/10 border-[#4F46E5]/20 text-[#4F46E5]'
+                : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
             )}
           >
             <Play className="w-4 h-4" />
             Cinematic
-            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">NEW</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white">NEW</span>
           </button>
         </div>
 
         {activeTab === 'classic' ? (
           <>
-            <div className="flex items-center gap-3 mb-6 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl flex-wrap">
+            <div className="flex items-center gap-3 mb-6 p-2 glass-effect rounded-xl flex-wrap">
               <div className="relative flex-shrink-0">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Search templates..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  className="w-44 h-8 pl-8 pr-3 bg-white/5 border border-white/10 rounded-md text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/40"
+                  className="w-44 h-8 pl-8 pr-3 bg-white/60 border border-slate-200/60 rounded-md text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]/30"
                 />
               </div>
               {categories.length > 2 && (
                 <>
-                  <div className="w-px h-5 bg-white/10" />
+                  <div className="w-px h-5 bg-slate-200/60" />
                   {categories.map(cat => (
                     <button
                       key={cat}
@@ -294,8 +289,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                       className={cn(
                         'h-8 px-3 rounded-md text-xs font-medium transition-all border',
                         activeCategory === cat
-                          ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                          : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                          ? 'bg-[#4F46E5]/10 border-[#4F46E5]/20 text-[#4F46E5]'
+                          : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
                       )}
                     >
                       {cat}
@@ -325,12 +320,12 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
 
             {filtered.length === 0 && !loadingDb && (
               <div className="text-center py-16">
-                <p className="text-slate-400">No templates found</p>
+                <p className="text-slate-500">No templates found</p>
               </div>
             )}
             {loadingDb && filtered.length === 0 && (
               <div className="text-center py-16">
-                <Loader2 className="w-6 h-6 animate-spin text-purple-400 mx-auto mb-3" />
+                <Loader2 className="w-6 h-6 animate-spin text-[#4F46E5] mx-auto mb-3" />
                 <p className="text-slate-400">Loading templates...</p>
               </div>
             )}
@@ -349,8 +344,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                   className={cn(
                     'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
                     selectedCinematicPreset?.id === preset.id
-                      ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#0a0a0c]'
-                      : 'hover:ring-1 hover:ring-white/20'
+                      ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white'
+                      : 'hover:ring-1 hover:ring-slate-300'
                   )}
                 >
                   <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: preset.backgroundColor }}>
@@ -363,14 +358,14 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                     </div>
                     <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle at top right, ${preset.accentColor}, transparent)` }} />
                     {selectedCinematicPreset?.id === preset.id && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center">
                         <Check className="w-4 h-4 text-white" />
                       </motion.div>
                     )}
                   </div>
-                  <div className="p-3 bg-slate-900/80 backdrop-blur-sm flex items-center justify-between">
+                  <div className="p-3 bg-white/80 backdrop-blur-sm flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-medium text-white">{preset.name}</h3>
+                      <h3 className="text-sm font-medium text-slate-800">{preset.name}</h3>
                       <p className="text-[11px] text-slate-500 mt-0.5">{preset.fontHeading} / {preset.fontBody}</p>
                     </div>
                     <div className="flex gap-1">
@@ -391,29 +386,29 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="fixed bottom-0 left-0 right-0 bg-[#0a0a0c]/95 backdrop-blur-xl border-t border-white/10 py-4 px-6 z-40"
+            className="fixed bottom-0 left-0 right-0 nav-glass border-t border-slate-200/60 py-4 px-6 z-40"
           >
             <div className="max-w-6xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
                 {selectedCinematicPreset ? (
                   <>
-                    <div className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center" style={{ backgroundColor: selectedCinematicPreset.backgroundColor }}>
+                    <div className="w-16 h-9 rounded-lg ring-2 ring-[#4F46E5] flex items-center justify-center" style={{ backgroundColor: selectedCinematicPreset.backgroundColor }}>
                       <Play className="w-5 h-5" style={{ color: selectedCinematicPreset.accentColor }} />
                     </div>
                     <div>
-                      <p className="font-medium text-white text-sm">{selectedCinematicPreset.name}</p>
-                      <p className="text-xs text-slate-400">Cinematic presentation</p>
+                      <p className="font-medium text-slate-800 text-sm">{selectedCinematicPreset.name}</p>
+                      <p className="text-xs text-slate-500">Cinematic presentation</p>
                     </div>
                   </>
                 ) : selectedTemplate ? (
                   <>
-                    <div className="w-16 h-9 rounded-lg ring-2 ring-purple-500 overflow-hidden" style={{ backgroundColor: selectedTemplate.colors.bg }}>
+                    <div className="w-16 h-9 rounded-lg ring-2 ring-[#4F46E5] overflow-hidden" style={{ backgroundColor: selectedTemplate.colors.bg }}>
                       {selectedTemplate.slides?.[0]?.background?.type === 'image' && (
                         <img src={selectedTemplate.slides[0].background.value} alt="" className="w-full h-full object-cover" />
                       )}
                     </div>
                     <div>
-                      <p className="font-medium text-white text-sm">{selectedTemplate.name}</p>
+                      <p className="font-medium text-slate-800 text-sm">{selectedTemplate.name}</p>
                       <p className="text-xs text-slate-400">
                         {selectedTemplate.slides ? `${selectedTemplate.slides.length} slides` : 'Template'}
                       </p>
@@ -425,7 +420,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleContinue}
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500 text-white font-medium shadow-lg shadow-purple-500/25 flex items-center gap-2"
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white font-medium shadow-xl shadow-[#4F46E5]/25 flex items-center gap-2"
               >
                 Continue
                 <ChevronRight className="w-4 h-4" />

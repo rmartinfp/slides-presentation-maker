@@ -241,12 +241,11 @@ export default function SlideAIPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030305] text-white overflow-hidden">
+    <div className="min-h-screen mesh-gradient text-slate-900 overflow-hidden font-body">
       {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-purple-600/10 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[150px]" />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#030305]/50 to-[#030305]" />
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-1/4 left-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl" />
       </div>
 
       <LayoutGroup>
