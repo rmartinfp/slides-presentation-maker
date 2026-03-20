@@ -39,11 +39,30 @@ function useDbTemplates() {
 
 function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void }) {
   const hasSlides = template.slides && template.slides.length > 0;
+  const [isHovering, setIsHovering] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const slideCount = template.slides?.length || 0;
+
+  // Auto-cycle slides on hover
+  React.useEffect(() => {
+    if (!isHovering || slideCount <= 1) {
+      setCurrentSlide(0);
+      return;
+    }
+    const interval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % slideCount);
+    }, 1200);
+    return () => clearInterval(interval);
+  }, [isHovering, slideCount]);
+
+  const previewSlide = hasSlides ? template.slides![currentSlide] : null;
 
   return (
     <motion.div
       layout
       whileHover={{ y: -6 }}
+      onHoverStart={() => setIsHovering(true)}
+      onHoverEnd={() => { setIsHovering(false); setCurrentSlide(0); }}
       onClick={() => onSelect(template)}
       className={cn(
         'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full cursor-pointer',
@@ -53,7 +72,54 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
-        {template.thumbnailUrl ? (
+        {/* Show thumbnail when not hovering, live slides when hovering */}
+        {!isHovering && template.thumbnailUrl ? (
+          <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
+        ) : previewSlide ? (
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0"
+            >
+              <div
+                className="w-full h-full relative"
+                style={{
+                  backgroundColor: previewSlide.background?.type === 'solid' ? previewSlide.background.value : template.colors.bg,
+                }}
+              >
+                {previewSlide.background?.type === 'image' && previewSlide.background.value && (
+                  <img src={previewSlide.background.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                )}
+                {previewSlide.elements?.slice(0, 10).map((el) => {
+                  const s = 280 / 1920;
+                  return (
+                    <div
+                      key={el.id}
+                      className="absolute overflow-hidden"
+                      style={{
+                        left: el.x * s, top: el.y * s, width: el.width * s, height: el.height * s,
+                        fontSize: `${(el.style.fontSize ?? 16) * s}px`, fontFamily: el.style.fontFamily,
+                        fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
+                        color: el.style.color, textAlign: el.style.textAlign as React.CSSProperties['textAlign'],
+                        opacity: el.opacity,
+                        backgroundColor: el.type === 'shape' && el.style.shapeFill !== 'transparent' ? el.style.shapeFill : undefined,
+                        borderRadius: el.type === 'shape' && el.style.shapeType === 'circle' ? '50%' : undefined,
+                        border: el.type === 'shape' && el.style.shapeStroke && el.style.shapeStroke !== 'transparent' ? `1px solid ${el.style.shapeStroke}` : undefined,
+                      }}
+                    >
+                      {el.type === 'text' && <span className="line-clamp-2 leading-tight">{el.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}</span>}
+                      {el.type === 'image' && el.content && <img src={el.content} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        ) : template.thumbnailUrl ? (
           <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: template.colors.bg }}>
@@ -63,9 +129,24 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {hasSlides && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-500/90 text-white text-[10px] font-medium rounded-full">
-            {template.slides!.length} slides
+        {/* Slide progress dots on hover */}
+        {isHovering && slideCount > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
+            {template.slides!.slice(0, Math.min(slideCount, 12)).map((_, idx) => (
+              <div
+                key={idx}
+                className={cn(
+                  'h-1 rounded-full transition-all duration-300',
+                  currentSlide === idx ? 'w-4 bg-white' : 'w-1 bg-white/40'
+                )}
+              />
+            ))}
+          </div>
+        )}
+
+        {hasSlides && !isHovering && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur text-white text-[10px] font-medium rounded-full">
+            {slideCount} slides
           </div>
         )}
 
