@@ -3,10 +3,10 @@ import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
 import TemplateGallery from '@/components/slideai/TemplateGallery';
 import ContentStep from '@/components/slideai/ContentStep';
 import GeneratingView from '@/components/slideai/GeneratingView';
-import { PresentationTheme, Slide, WizardStep } from '@/types/presentation';
+import { PresentationTheme, Slide, SlideElement, WizardStep } from '@/types/presentation';
 import { CinematicPreset } from '@/types/cinematic';
 import { THEME_CATALOG } from '@/lib/themes';
-import { generatePresentation } from '@/lib/ai-generate';
+import { generatePresentation, TemplateBriefSlide, TemplateBriefSlot } from '@/lib/ai-generate';
 import { migrateAllSlides } from '@/lib/slide-migration';
 import { getLayoutById } from '@/lib/layout-library';
 import { renderLayout, SlideContent } from '@/lib/layout-renderer';
@@ -58,16 +58,164 @@ export default function SlideAIPage() {
     setStep('content');
   };
 
+  // ─── Template analysis helpers ───
+
+  /** Classify a text element's role based on font size and content */
+  const classifyTextRole = (
+    el: SlideElement,
+    isLargest: boolean,
+  ): 'title' | 'subtitle' | 'body' | 'number' | 'item' => {
+    const plainText = el.content.replace(/<[^>]+>/g, '').trim();
+    const fontSize = el.style?.fontSize || 24;
+
+    // Numbers like "01", "02", "1", "2" etc — keep unchanged
+    if (/^\d{1,3}$/.test(plainText)) return 'number';
+
+    // Largest text element = title
+    if (isLargest) return 'title';
+
+    // Second largest or medium font = subtitle
+    if (fontSize >= 28) return 'subtitle';
+
+    // Everything else = body
+    return 'body';
+  };
+
+  /** Calculate max characters for a text box based on dimensions and font size */
+  const calcMaxChars = (el: SlideElement): number => {
+    const fontSize = el.style?.fontSize || 24;
+    const area = el.width * el.height;
+    return Math.floor(area / (fontSize * 0.8));
+  };
+
+  /** Build a template brief from the template slides */
+  const buildTemplateBrief = (slides: Slide[]): TemplateBriefSlide[] => {
+    return slides.map((slide, slideIndex) => {
+      const type = (slide as any).layout || 'content';
+      const textElements = (slide.elements || [])
+        .filter((el) => el.type === 'text')
+        .sort((a, b) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
+
+      const textSlots: TemplateBriefSlot[] = [];
+      const isToc = type === 'toc';
+
+      // For TOC slides, group similar small-text elements as repeated "item" slots
+      if (isToc) {
+        let titleDone = false;
+        const itemSlots: { maxChars: number }[] = [];
+
+        for (const el of textElements) {
+          const plainText = el.content.replace(/<[^>]+>/g, '').trim();
+          if (/^\d{1,3}$/.test(plainText)) continue; // skip numbers
+
+          if (!titleDone) {
+            textSlots.push({ role: 'title', maxChars: calcMaxChars(el) });
+            titleDone = true;
+          } else {
+            itemSlots.push({ maxChars: calcMaxChars(el) });
+          }
+        }
+
+        if (itemSlots.length > 0) {
+          // Use the smallest maxChars among items as the limit, count = how many
+          const minChars = Math.min(...itemSlots.map(s => s.maxChars));
+          textSlots.push({ role: 'item', maxChars: minChars, count: itemSlots.length });
+        }
+      } else {
+        // Non-TOC slides: classify each element
+        for (let i = 0; i < textElements.length; i++) {
+          const el = textElements[i];
+          const role = classifyTextRole(el, i === 0);
+          if (role === 'number') continue; // skip number slots
+          textSlots.push({ role, maxChars: calcMaxChars(el) });
+        }
+      }
+
+      return { slideIndex, type, textSlots };
+    });
+  };
+
   const handleGenerate = async () => {
     setStep('generating');
     const theme = selectedTheme || THEME_CATALOG[0];
 
     try {
-      // HYBRID FLOW:
-      // 1. AI generates content with layout IDs from the library
-      // 2. For each AI slide, try to match a real template slide (by type)
-      //    → If match: use template slide visuals + replace text with AI content
-      //    → If no match: use Layout Library to create the slide with theme colors
+      // ─── TEMPLATE-DRIVEN FLOW ───
+      // If we have template slides, analyze them and send a brief to the AI
+      // so it generates content that maps 1:1 to the template's text boxes.
+      if (templateSlides && templateSlides.length > 0) {
+        const templateBrief = buildTemplateBrief(templateSlides);
+
+        const result = await generatePresentation({
+          prompt: contentText,
+          length: 'informative',
+          tone: 'professional',
+          audience: 'general',
+          templateBrief,
+        });
+
+        // Map AI content back onto template slides
+        const slides: Slide[] = templateSlides.map((templateSlide, slideIndex) => {
+          const aiSlide = result.slides.find((s: any) => s.slideIndex === slideIndex)
+            || result.slides[slideIndex];
+
+          const newSlide = JSON.parse(JSON.stringify(templateSlide)) as Slide;
+          newSlide.id = generateId();
+          newSlide.notes = aiSlide?.notes || '';
+
+          if (!aiSlide?.texts || !Array.isArray(aiSlide.texts)) {
+            return newSlide;
+          }
+
+          // Get text elements sorted by fontSize desc (same order used for brief)
+          const textElements = (newSlide.elements || [])
+            .filter((el) => el.type === 'text')
+            .sort((a, b) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
+
+          // Filter out number elements — they keep their original content
+          const replaceableElements: SlideElement[] = [];
+          for (const el of textElements) {
+            const plainText = el.content.replace(/<[^>]+>/g, '').trim();
+            if (/^\d{1,3}$/.test(plainText)) continue; // number — skip
+            replaceableElements.push(el);
+          }
+
+          // Map AI texts 1:1 to replaceable elements
+          let textIdx = 0;
+          for (const el of replaceableElements) {
+            if (textIdx < aiSlide.texts.length) {
+              const aiText = aiSlide.texts[textIdx].content || '';
+              el.content = `<p>${aiText}</p>`;
+              textIdx++;
+            }
+
+            // Fix justify alignment
+            if (el.style?.textAlign === 'justify') {
+              el.style.textAlign = 'left';
+            }
+          }
+
+          return newSlide;
+        });
+
+        // Store presentation
+        sessionStorage.setItem('presentation', JSON.stringify({
+          id: Math.random().toString(36).substring(2, 11),
+          title: result.title,
+          slides,
+          theme,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }));
+
+        if (cinematicPreset) {
+          sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
+        }
+        navigate('/editor');
+        return;
+      }
+
+      // ─── LEGACY FREE-FORM FLOW (no template) ───
       const result = await generatePresentation({
         prompt: contentText,
         length: 'informative',
@@ -75,131 +223,11 @@ export default function SlideAIPage() {
         audience: 'general',
       });
 
-      // Build a pool of template slides indexed by type
-      const templatePool: Record<string, any[]> = {};
-      if (templateSlides) {
-        for (const s of templateSlides) {
-          const type = (s as any).layout || 'content';
-          if (!templatePool[type]) templatePool[type] = [];
-          templatePool[type].push(JSON.parse(JSON.stringify(s)));
-        }
-      }
-      const usedTemplateSlides = new Set<number>();
-
-      // Placeholder detection for template text replacement
-      const isPlaceholderText = (html: string): boolean => {
-        const plain = html.replace(/<[^>]+>/g, '').trim().toLowerCase();
-        if (!plain || plain.length < 3) return false;
-        const patterns = [
-          /mercury|venus|jupiter|saturn|mars|neptune/i,
-          /name of the section/i, /lorem ipsum/i, /placeholder/i,
-          /your text here/i, /click to edit/i, /subtitle here/i,
-          /write.*title.*here/i, /you can describe/i, /despite being red/i,
-        ];
-        return patterns.some(p => p.test(plain));
-      };
-
-      // Map layout categories to template slide types
-      const categoryToType: Record<string, string[]> = {
-        'cover': ['cover'],
-        'section': ['section'],
-        'content': ['content', 'two-column'],
-        'data': ['content'],
-        'comparison': ['two-column', 'content'],
-        'visual': ['image', 'content'],
-        'list': ['content'],
-        'closing': ['closing'],
-        'toc': ['toc', 'content'],
-      };
-
       const slides: Slide[] = result.slides.map((aiSlide: any, index: number) => {
         const layoutId = aiSlide.layout || 'content-title-body';
         const layout = getLayoutById(layoutId);
         const category = layout?.category || 'content';
 
-        // Try to find a matching template slide
-        const matchTypes = categoryToType[category] || ['content'];
-        let matchedTemplate: any = null;
-
-        for (const type of matchTypes) {
-          const pool = templatePool[type];
-          if (pool && pool.length > 0) {
-            // Pick first unused from pool
-            const idx = pool.findIndex((_: any, i: number) => !usedTemplateSlides.has(i));
-            if (idx !== -1) {
-              matchedTemplate = JSON.parse(JSON.stringify(pool[idx]));
-              usedTemplateSlides.add(idx);
-              break;
-            }
-            // If all used, reuse first
-            matchedTemplate = JSON.parse(JSON.stringify(pool[0]));
-            break;
-          }
-        }
-
-        if (matchedTemplate) {
-          // USE TEMPLATE SLIDE: keep visuals, replace ALL text intelligently
-          const textElements = (matchedTemplate.elements || [])
-            .filter((el: any) => el.type === 'text')
-            .sort((a: any, b: any) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
-
-          // Classify text elements by role based on size
-          // Largest = title, numbers (short text <4 chars with big font) = keep as numbers
-          // Rest = body content that needs replacing
-          const aiContent = {
-            title: aiSlide.title || '',
-            subtitle: Array.isArray(aiSlide.subtitle) ? aiSlide.subtitle : [aiSlide.subtitle].filter(Boolean),
-            body: typeof aiSlide.body === 'string' ? aiSlide.body : (Array.isArray(aiSlide.body) ? aiSlide.body[0] : ''),
-            bullets: aiSlide.bullets || [],
-          };
-
-          let bulletIdx = 0;
-          let subtitleIdx = 0;
-
-          for (let j = 0; j < textElements.length; j++) {
-            const el = textElements[j];
-            const plainText = el.content.replace(/<[^>]+>/g, '').trim();
-            const fontSize = el.style?.fontSize || 24;
-            const isNumber = /^\d{1,3}$/.test(plainText); // "01", "02", etc — keep as-is
-            const isShortLabel = plainText.length <= 5 && fontSize < 40; // Small labels like "01", arrows
-
-            if (isNumber || isShortLabel) {
-              // Keep numbers and tiny labels unchanged
-              continue;
-            }
-
-            if (j === 0 && aiContent.title) {
-              // Largest text = title
-              el.content = `<p>${aiContent.title}</p>`;
-            } else if (fontSize >= 40 && aiContent.title) {
-              // Other large text = could be a section title variant
-              el.content = `<p>${aiContent.title}</p>`;
-            } else if (aiContent.bullets.length > 0 && bulletIdx < aiContent.bullets.length) {
-              // Medium text = use a bullet point (unique per box)
-              el.content = `<p>${aiContent.bullets[bulletIdx]}</p>`;
-              bulletIdx++;
-            } else if (aiContent.body) {
-              // Remaining = body text
-              el.content = `<p>${aiContent.body}</p>`;
-            } else if (aiContent.subtitle.length > subtitleIdx) {
-              el.content = `<p>${aiContent.subtitle[subtitleIdx]}</p>`;
-              subtitleIdx++;
-            }
-
-            // Fix justify alignment — use left instead
-            if (el.style?.textAlign === 'justify') {
-              el.style.textAlign = 'left';
-            }
-          }
-
-          return {
-            ...matchedTemplate,
-            id: generateId(),
-            notes: aiSlide.notes || '',
-          } as Slide;
-        }
-
-        // NO TEMPLATE MATCH: use Layout Library + Theme
         const content: SlideContent = {
           title: aiSlide.title,
           subtitle: aiSlide.subtitle,
@@ -244,7 +272,6 @@ export default function SlideAIPage() {
         updatedAt: new Date().toISOString(),
       }));
 
-      // Store cinematic preset if selected
       if (cinematicPreset) {
         sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
       }

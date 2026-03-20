@@ -1,10 +1,23 @@
 import { supabase } from './supabase';
 
+export interface TemplateBriefSlot {
+  role: 'title' | 'subtitle' | 'body' | 'number' | 'item';
+  maxChars: number;
+  count?: number; // for repeated slots like TOC items
+}
+
+export interface TemplateBriefSlide {
+  slideIndex: number;
+  type: string; // cover, toc, section, content, closing
+  textSlots: TemplateBriefSlot[];
+}
+
 interface GenerateOptions {
   prompt: string;
   length?: 'short' | 'informative' | 'detailed';
   tone?: string;
   audience?: string;
+  templateBrief?: TemplateBriefSlide[];
 }
 
 interface GeneratedSlide {
@@ -23,13 +36,19 @@ interface GeneratedPresentation {
 }
 
 export async function generatePresentation(options: GenerateOptions): Promise<GeneratedPresentation> {
+  const body: Record<string, unknown> = {
+    prompt: options.prompt,
+    length: options.length || 'informative',
+    tone: options.tone || 'professional',
+    audience: options.audience || 'general',
+  };
+
+  if (options.templateBrief) {
+    body.templateBrief = options.templateBrief;
+  }
+
   const { data, error } = await supabase.functions.invoke('generate-presentation', {
-    body: {
-      prompt: options.prompt,
-      length: options.length || 'informative',
-      tone: options.tone || 'professional',
-      audience: options.audience || 'general',
-    },
+    body,
   });
 
   if (error) {
@@ -40,7 +59,15 @@ export async function generatePresentation(options: GenerateOptions): Promise<Ge
     throw new Error(data.error);
   }
 
-  // Map slide types to our layout system
+  // When template brief is used, the AI returns texts arrays — pass through directly
+  if (options.templateBrief) {
+    return {
+      title: data.title,
+      slides: data.slides,
+    };
+  }
+
+  // Legacy path: Map slide types to our layout system
   const slides = data.slides.map((slide: GeneratedSlide) => ({
     id: slide.id,
     layout: mapSlideType(slide.type),

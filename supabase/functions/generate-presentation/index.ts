@@ -133,7 +133,7 @@ Deno.serve(async (req) => {
       throw new Error("ANTHROPIC_API_KEY not configured");
     }
 
-    const { prompt, length = "informative", tone = "professional", audience = "general" } = await req.json();
+    const { prompt, length = "informative", tone = "professional", audience = "general", templateBrief } = await req.json();
 
     if (!prompt || prompt.length < 3) {
       return new Response(
@@ -142,9 +142,78 @@ Deno.serve(async (req) => {
       );
     }
 
-    const slideCount = length === "short" ? "5-7" : length === "detailed" ? "12-15" : "8-10";
+    let systemPrompt: string;
+    let userMessage: string;
 
-    const userMessage = `Create a presentation with ${slideCount} slides.
+    if (templateBrief && Array.isArray(templateBrief) && templateBrief.length > 0) {
+      // ─── TEMPLATE-DRIVEN MODE ───
+      // The AI must generate content matching the exact template structure
+      systemPrompt = `You are an expert presentation content writer. You will receive a template brief describing the EXACT structure of a presentation — how many slides, what type each slide is, and what text slots each slide has with character limits.
+
+Your job: generate compelling content that fits EXACTLY into this structure.
+
+RULES:
+1. Generate EXACTLY the number of slides specified in the brief — no more, no less.
+2. Each slide must have a "texts" array with EXACTLY the number of entries matching the textSlots (expand "count" slots into individual entries).
+3. Each text entry must respect the maxChars limit strictly. Never exceed it.
+4. Slot roles guide the tone:
+   - "title": concise, impactful heading
+   - "subtitle": supporting tagline or description
+   - "body": detailed paragraph or explanation
+   - "item": short label or bullet point (for TOC items, list items, etc.)
+   - "number": SKIP these — do not generate text for number slots
+5. Write in the same language as the user's prompt.
+6. Make the content flow as a coherent narrative across slides.
+7. Do NOT include any text for "number" role slots — they are handled by the template.
+8. Cover slide = first. Closing/thank-you slide = last. Follow the brief order exactly.
+
+RESPOND ONLY WITH VALID JSON:
+{
+  "title": "Presentation Title",
+  "slides": [
+    {
+      "slideIndex": 0,
+      "texts": [
+        { "content": "Main Title Here" },
+        { "content": "A compelling subtitle" }
+      ],
+      "notes": "Optional speaker notes"
+    }
+  ]
+}`;
+
+      // Build a readable description of the brief
+      const briefDescription = templateBrief.map((slide: { slideIndex: number; type: string; textSlots: Array<{ role: string; maxChars: number; count?: number }> }) => {
+        const slots = slide.textSlots
+          .filter((s: { role: string }) => s.role !== 'number')
+          .map((s: { role: string; maxChars: number; count?: number }) => {
+            if (s.count && s.count > 1) {
+              return `${s.count}x "${s.role}" (max ${s.maxChars} chars each)`;
+            }
+            return `1x "${s.role}" (max ${s.maxChars} chars)`;
+          })
+          .join(', ');
+        return `Slide ${slide.slideIndex} [${slide.type}]: ${slots}`;
+      }).join('\n');
+
+      userMessage = `Create content for a presentation with the following template structure:
+
+${briefDescription}
+
+Topic: ${prompt}
+Tone: ${tone}
+Audience: ${audience}
+
+Generate content that fits EXACTLY into each slot. Respect character limits. Do NOT generate entries for "number" slots. For slots with count > 1, generate that many separate text entries in the texts array.
+
+Generate the JSON now.`;
+    } else {
+      // ─── LEGACY FREE-FORM MODE ───
+      systemPrompt = SYSTEM_PROMPT;
+
+      const slideCount = length === "short" ? "5-7" : length === "detailed" ? "12-15" : "8-10";
+
+      userMessage = `Create a presentation with ${slideCount} slides.
 
 Topic: ${prompt}
 Tone: ${tone}
@@ -153,6 +222,7 @@ Audience: ${audience}
 IMPORTANT: Pick varied layouts from the catalog. Don't repeat the same layout more than twice. Use stats, lists, comparisons, and quotes where appropriate for the topic. The narrative structure should fit the topic naturally.
 
 Generate the slides JSON now.`;
+    }
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -164,7 +234,7 @@ Generate the slides JSON now.`;
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
         max_tokens: 8192,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         messages: [{ role: "user", content: userMessage }],
       }),
     });
