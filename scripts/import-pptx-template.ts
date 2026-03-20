@@ -355,6 +355,49 @@ function parseImageFromSpTree(
   };
 }
 
+/**
+ * Convert OOXML custGeom path commands to SVG path data.
+ * OOXML uses <a:moveTo>, <a:lnTo>, <a:cubicBezTo>, <a:close> with <a:pt x="" y=""/> points.
+ */
+function custGeomToSvgPath(custGeomXml: string, pathWidth: number, pathHeight: number): string | null {
+  const paths = custGeomXml.match(/<a:path[^>]*>([\s\S]*?)<\/a:path>/g);
+  if (!paths) return null;
+
+  let svgPath = '';
+  for (const pathXml of paths) {
+    // Extract path dimensions (used for coordinate scaling)
+    const pw = pathXml.match(/w="(\d+)"/)?.[1];
+    const ph = pathXml.match(/h="(\d+)"/)?.[1];
+    const coordW = pw ? parseInt(pw) : pathWidth;
+    const coordH = ph ? parseInt(ph) : pathHeight;
+
+    // Scale factor from path coords to viewBox
+    const sx = coordW > 0 ? 100 / coordW : 1;
+    const sy = coordH > 0 ? 100 / coordH : 1;
+
+    // Parse commands
+    const commands = pathXml.matchAll(/<a:(moveTo|lnTo|cubicBezTo|close)\/?>([\s\S]*?)(?=<a:(?:moveTo|lnTo|cubicBezTo|close)|<\/a:path>)/g);
+    for (const cmd of commands) {
+      const type = cmd[1];
+      const content = cmd[2] || '';
+      const pts = [...content.matchAll(/<a:pt\s+x="(\d+)"\s+y="(\d+)"/g)]
+        .map(p => ({ x: Math.round(parseInt(p[1]) * sx), y: Math.round(parseInt(p[2]) * sy) }));
+
+      if (type === 'moveTo' && pts.length >= 1) {
+        svgPath += `M${pts[0].x} ${pts[0].y} `;
+      } else if (type === 'lnTo' && pts.length >= 1) {
+        svgPath += `L${pts[0].x} ${pts[0].y} `;
+      } else if (type === 'cubicBezTo' && pts.length >= 3) {
+        svgPath += `C${pts[0].x} ${pts[0].y} ${pts[1].x} ${pts[1].y} ${pts[2].x} ${pts[2].y} `;
+      } else if (type === 'close') {
+        svgPath += 'Z ';
+      }
+    }
+  }
+
+  return svgPath.trim() || null;
+}
+
 function parseShapeFromSpTree(
   spXml: string,
   themeColors: ThemeColors,
@@ -372,7 +415,8 @@ function parseShapeFromSpTree(
 
   // Determine shape type
   const prstGeom = spXml.match(/<a:prstGeom\s+prst="(\w+)"/);
-  const geomType = prstGeom?.[1] || 'rect';
+  const custGeom = spXml.match(/<a:custGeom>([\s\S]*?)<\/a:custGeom>/);
+  const geomType = prstGeom?.[1] || (custGeom ? 'custom' : 'rect');
 
   const shapeMap: Record<string, string> = {
     rect: 'rectangle', roundRect: 'rectangle', ellipse: 'circle',
@@ -398,10 +442,18 @@ function parseShapeFromSpTree(
   const noFill = spXml.includes('<a:noFill/>') || (!fill && !solidFill);
   if (noFill && !stroke) return null;
 
+  // Convert custom geometry to SVG path
+  let svgPath: string | null = null;
+  if (custGeom) {
+    const rawW = parseInt(ext[1]);
+    const rawH = parseInt(ext[2]);
+    svgPath = custGeomToSvgPath(custGeom[1], rawW, rawH);
+  }
+
   return {
     id: genId(),
     type: 'shape',
-    content: '',
+    content: svgPath || '', // SVG path data for custom shapes
     x, y, width, height,
     rotation: 0,
     opacity: 1,
@@ -409,11 +461,12 @@ function parseShapeFromSpTree(
     visible: true,
     zIndex: 0,
     style: {
-      shapeType: shapeMap[geomType] || 'rectangle',
+      shapeType: svgPath ? 'custom' : (shapeMap[geomType] || 'rectangle'),
       shapeFill: noFill ? 'transparent' : (fill || themeColors.accent1),
       shapeStroke: stroke || 'transparent',
       shapeStrokeWidth: strokeWidth,
       borderRadius: geomType === 'roundRect' ? 12 : 0,
+      svgPath: svgPath || undefined, // Store SVG path for rendering
     },
   };
 }

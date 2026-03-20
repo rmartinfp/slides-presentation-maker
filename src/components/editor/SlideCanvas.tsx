@@ -192,6 +192,13 @@ function StaticElement({ element }: { element: SlideElement }) {
             </svg>
           );
         }
+        if (shapeType === 'custom' && s.svgPath) {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none">
+              <path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
         return (
           <div
             className="w-full h-full"
