@@ -237,12 +237,12 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
           </div>
         </div>
 
-        {/* Mode tabs */}
-        <div className="flex gap-2 mb-6">
+        {/* Mode tabs + search in same row */}
+        <div className="flex items-center gap-2 mb-6">
           <button
             onClick={() => { setActiveTab('classic'); setSelectedCinematicPreset(null); }}
             className={cn(
-              'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all border',
+              'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
               activeTab === 'classic'
                 ? 'bg-[#4F46E5]/10 border-[#4F46E5]/20 text-[#4F46E5]'
                 : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
@@ -254,7 +254,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
           <button
             onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); }}
             className={cn(
-              'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all border',
+              'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
               activeTab === 'cinematic'
                 ? 'bg-gradient-to-r from-[#4F46E5]/10 to-[#9333EA]/10 border-[#4F46E5]/20 text-[#4F46E5]'
                 : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
@@ -264,30 +264,32 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             Cinematic
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white">NEW</span>
           </button>
+
+          {activeTab === 'classic' && (
+            <div className="relative ml-auto flex-shrink-0">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="w-40 h-9 pl-8 pr-3 bg-white/60 border border-slate-200/60 rounded-full text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]/30"
+              />
+            </div>
+          )}
         </div>
 
         {activeTab === 'classic' ? (
           <>
-            <div className="flex items-center gap-3 mb-6 p-2 glass-effect rounded-xl flex-wrap">
-              <div className="relative flex-shrink-0">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-                <input
-                  type="text"
-                  placeholder="Search templates..."
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  className="w-44 h-8 pl-8 pr-3 bg-white/60 border border-slate-200/60 rounded-md text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]/30"
-                />
-              </div>
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
               {categories.length > 2 && (
                 <>
-                  <div className="w-px h-5 bg-slate-200/60" />
                   {categories.map(cat => (
                     <button
                       key={cat}
                       onClick={() => setActiveCategory(cat)}
                       className={cn(
-                        'h-8 px-3 rounded-md text-xs font-medium transition-all border',
+                        'h-8 px-3 rounded-full text-xs font-medium transition-all border',
                         activeCategory === cat
                           ? 'bg-[#4F46E5]/10 border-[#4F46E5]/20 text-[#4F46E5]'
                           : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
