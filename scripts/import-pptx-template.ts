@@ -249,6 +249,17 @@ function parseTextFromSpTree(
     const align = parseAlignment(pXml);
     if (align && !firstAlign) firstAlign = align;
 
+    // Check paragraph-level default run properties for bold/italic inheritance
+    const pDefRPr = pXml.match(/<a:pPr[^>]*>[\s\S]*?<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+    const pDefBold = pDefRPr ? isBold(pDefRPr[1] + (pDefRPr[2] || '')) : false;
+    const pDefItalic = pDefRPr ? isItalic(pDefRPr[1] + (pDefRPr[2] || '')) : false;
+    // Also check endParaRPr (end paragraph run properties) — often defines the style for the whole paragraph
+    const endParaRPr = pXml.match(/<a:endParaRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:endParaRPr>)/);
+    const endBold = endParaRPr ? isBold(endParaRPr[1] + (endParaRPr[2] || '')) : false;
+    const endItalic = endParaRPr ? isItalic(endParaRPr[1] + (endParaRPr[2] || '')) : false;
+    const paragraphBold = pDefBold || endBold;
+    const paragraphItalic = pDefItalic || endItalic;
+
     const runs = pXml.match(/<a:r>([\s\S]*?)<\/a:r>/g) || [];
     let pContent = '';
 
@@ -267,7 +278,10 @@ function parseTextFromSpTree(
       if (!firstFontSize && fontSize) firstFontSize = fontSize;
       if (!firstFontFamily && fontFamily) firstFontFamily = fontFamily;
       if (!firstColor && color) firstColor = color;
-      if (!firstBold && isBold(rPrXml)) firstBold = true;
+      // Bold from run OR inherited from paragraph default
+      const runBold = isBold(rPrXml) || paragraphBold;
+      const runItalic = isItalic(rPrXml) || paragraphItalic;
+      if (!firstBold && runBold) firstBold = true;
 
       // Extract text
       const textMatch = rXml.match(/<a:t>([\s\S]*?)<\/a:t>/);
@@ -281,8 +295,8 @@ function parseTextFromSpTree(
       if (fontFamily) styles.push(`font-family:${fontFamily}`);
       if (fontSize) styles.push(`font-size:${fontSize}px`);
 
-      if (isBold(rPrXml)) text = `<strong>${text}</strong>`;
-      if (isItalic(rPrXml)) text = `<em>${text}</em>`;
+      if (runBold) text = `<strong>${text}</strong>`;
+      if (runItalic) text = `<em>${text}</em>`;
 
       if (styles.length) {
         text = `<span style="${styles.join(';')}">${text}</span>`;
