@@ -711,43 +711,60 @@ async function uploadImage(data: Buffer, contentType: string): Promise<string> {
 
 // ---- Main ----
 async function main() {
-  const presentationId = process.argv[2];
-  if (!presentationId) {
-    console.error('Usage: npx tsx scripts/import-pptx-template.ts <google-slides-id>');
+  const arg = process.argv[2];
+  if (!arg) {
+    console.error('Usage:\n  npx tsx scripts/import-pptx-template.ts <google-slides-id>\n  npx tsx scripts/import-pptx-template.ts /path/to/file.pptx');
     process.exit(1);
   }
 
-  // Step 1: Enable Drive API scope and download PPTX
-  console.log(`Downloading PPTX for ${presentationId}...`);
+  const isLocalFile = arg.endsWith('.pptx') || arg.endsWith('.pptx"') || arg.startsWith('/') || arg.startsWith('.');
+  let title: string;
+  let pptxBuffer: Buffer;
 
-  // Also get title from Slides API
-  const metaRes = await fetch(
-    `https://slides.googleapis.com/v1/presentations/${presentationId}?fields=title,pageSize`,
-    { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } },
-  );
-  const meta = await metaRes.json();
-  const title = meta.title || 'Untitled';
-  console.log(`Title: ${title}`);
+  if (isLocalFile) {
+    // ---- Local PPTX file ----
+    const filePath = arg.replace(/^["']|["']$/g, ''); // strip quotes
+    if (!fs.existsSync(filePath)) {
+      console.error(`File not found: ${filePath}`);
+      process.exit(1);
+    }
+    pptxBuffer = fs.readFileSync(filePath);
+    // Derive title from filename
+    title = filePath.split('/').pop()!.replace(/\.pptx$/i, '');
+    console.log(`Local PPTX: ${filePath} (${(pptxBuffer.length / 1024 / 1024).toFixed(1)}MB)`);
+    console.log(`Title: ${title}`);
+  } else {
+    // ---- Google Slides ID → download PPTX ----
+    const presentationId = arg;
+    console.log(`Downloading PPTX for ${presentationId}...`);
 
-  if (meta.pageSize) {
-    slideWidthEmu = meta.pageSize.width?.magnitude || slideWidthEmu;
-    slideHeightEmu = meta.pageSize.height?.magnitude || slideHeightEmu;
-    console.log(`Page size: ${slideWidthEmu} x ${slideHeightEmu} EMU`);
+    const metaRes = await fetch(
+      `https://slides.googleapis.com/v1/presentations/${presentationId}?fields=title,pageSize`,
+      { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } },
+    );
+    const meta = await metaRes.json();
+    title = meta.title || 'Untitled';
+    console.log(`Title: ${title}`);
+
+    if (meta.pageSize) {
+      slideWidthEmu = meta.pageSize.width?.magnitude || slideWidthEmu;
+      slideHeightEmu = meta.pageSize.height?.magnitude || slideHeightEmu;
+      console.log(`Page size: ${slideWidthEmu} x ${slideHeightEmu} EMU`);
+    }
+
+    const pptxRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${presentationId}/export?mimeType=application/vnd.openxmlformats-officedocument.presentationml.presentation`,
+      { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } },
+    );
+
+    if (!pptxRes.ok) {
+      console.error(`Failed to download PPTX: ${pptxRes.status} ${await pptxRes.text()}`);
+      process.exit(1);
+    }
+
+    pptxBuffer = Buffer.from(await pptxRes.arrayBuffer());
+    console.log(`Downloaded PPTX: ${(pptxBuffer.length / 1024 / 1024).toFixed(1)}MB`);
   }
-
-  // Download as PPTX via Drive export
-  const pptxRes = await fetch(
-    `https://www.googleapis.com/drive/v3/files/${presentationId}/export?mimeType=application/vnd.openxmlformats-officedocument.presentationml.presentation`,
-    { headers: { Authorization: `Bearer ${ACCESS_TOKEN}` } },
-  );
-
-  if (!pptxRes.ok) {
-    console.error(`Failed to download PPTX: ${pptxRes.status} ${await pptxRes.text()}`);
-    process.exit(1);
-  }
-
-  const pptxBuffer = Buffer.from(await pptxRes.arrayBuffer());
-  console.log(`Downloaded PPTX: ${(pptxBuffer.length / 1024 / 1024).toFixed(1)}MB`);
 
   // Step 2: Parse PPTX (ZIP)
   const zip = await JSZip.loadAsync(pptxBuffer);
