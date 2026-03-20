@@ -700,7 +700,10 @@ async function main() {
     const isSecondaryMaster = primaryMasterId && slideMasterId && slideMasterId !== primaryMasterId;
 
     // Heuristic final page detection (branding, excessive elements, resource pages)
-    const isFinalPageHeuristic = plainText.includes('slidesgo') || plainText.includes('freepik') || plainText.includes('flaticon')
+    // Note: check "freepik" only in branding context, not in example emails
+    const hasFreepikBranding = (plainText.includes('freepik') && !plainText.includes('@freepik'))
+      || plainText.includes('slidesgo') || plainText.includes('flaticon');
+    const isFinalPageHeuristic = hasFreepikBranding
       || elementCount > 50
       || (/\bicons?\b/.test(plainText) && elementCount > 15)
       || plainText.includes('fonts & colors') || plainText.includes('fonts used')
@@ -709,15 +712,28 @@ async function main() {
 
     const isFinalPage = isSecondaryMaster || isFinalPageHeuristic;
 
-    // Exception: explicitly KEEP "Thank You" / "Thanks" slides even if flagged
-    const isThanksSlide = /\bthanks?\b/i.test(plainText) || /\bthank\s+you\b/i.test(plainText);
+    // Detect real "Thank You" slides: title must be "thank you" or "thanks",
+    // AND must have few elements (real thank you slides have <15 elements)
+    // AND must NOT be an instructions page (which can also contain "thank")
+    const isThanksSlide = elementCount <= 15
+      && (/\bthank\s+you\b/i.test(plainText) || /\bthanks\b/i.test(plainText))
+      && !plainText.includes('instructions for use')
+      && !plainText.includes('instructions (')
+      && !plainText.includes('you can delete');
 
-    if (isFinalPage && !isThanksSlide) {
-      console.log(`  Skipping final page (${elementCount} elements, master=${slideMasterId})`);
+    // Heuristic for instruction/resource pages that leak through master filter
+    const isInstructionPage = plainText.includes('instructions for use')
+      || plainText.includes('instructions (')
+      || plainText.includes('you can delete this slide')
+      || plainText.includes('freepik premium')
+      || (elementCount > 25 && !isThanksSlide);
+
+    if ((isFinalPage || isInstructionPage) && !isThanksSlide) {
+      console.log(`  Skipping: ${isSecondaryMaster ? 'secondary master' : isInstructionPage ? 'instruction page' : 'final page'} (${elementCount} elements)`);
       continue;
     }
-    if (isThanksSlide && isFinalPage) {
-      console.log(`  Keeping "Thank You" slide despite final-page match`);
+    if (isThanksSlide) {
+      console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
     }
 
     // Parse relationships for this slide
