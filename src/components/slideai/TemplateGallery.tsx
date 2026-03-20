@@ -173,21 +173,8 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
-        {/* Cover image by default, cycle real slide PNGs on hover */}
-        {isHovering && hasSlideImages ? (
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={currentSlide}
-              src={template.slideImages![currentSlide]}
-              alt={`Slide ${currentSlide + 1}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.25 }}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </AnimatePresence>
-        ) : template.thumbnailUrl ? (
+        {/* Always show cover — slide cycling only in the hover popover */}
+        {template.thumbnailUrl ? (
           <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: template.colors.bg }}>
@@ -197,32 +184,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {/* Preview button */}
-        {hasSlideImages && isHovering && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onPreview(template); }}
-            className="absolute bottom-2 right-2 z-10 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-slate-700 flex items-center justify-center shadow-lg transition-colors"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-        )}
-
-        {/* Slide progress dots on hover */}
-        {isHovering && imageCount > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10">
-            {template.slideImages!.slice(0, Math.min(imageCount, 14)).map((_, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  'h-1 rounded-full transition-all duration-300',
-                  currentSlide === idx ? 'w-4 bg-white' : 'w-1 bg-white/40'
-                )}
-              />
-            ))}
-          </div>
-        )}
-
-        {!isHovering && (template.slides?.length || imageCount) > 0 && (
+        {(template.slides?.length || imageCount) > 0 && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur text-white text-[10px] font-medium rounded-full">
             {template.slides?.length || imageCount} slides
           </div>
