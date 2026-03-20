@@ -143,6 +143,19 @@
     line-height: 1.05;
   }
 
+  /* Custom range slider */
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #4F46E5, #9333EA);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+  }
+
   /* Slide scaling */
   .slide-stage {
     width: 1920px;
