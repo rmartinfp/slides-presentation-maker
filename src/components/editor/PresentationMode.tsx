@@ -122,25 +122,28 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
       }
 
       case 'shape': {
-        const fill = s.shapeFill || s.backgroundColor || '#6366f1';
+        const fillColor = s.shapeFill || s.backgroundColor || '#6366f1';
+        const fill = s.shapeGradient ? 'url(#grad)' : fillColor;
         const stroke = s.shapeStroke || 'transparent';
         const sw = s.shapeStrokeWidth || 0;
         const shapeType = s.shapeType || 'rectangle';
+        const da = s.shapeStrokeDash as string | undefined;
+        const sp = { stroke, strokeWidth: sw, strokeDasharray: da || undefined };
 
         const renderShape = () => {
-          if (shapeType === 'circle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'line') return <svg width="100%" height="100%" preserveAspectRatio="none"><line x1="0" y1="50%" x2="100%" y2="50%" stroke={fill} strokeWidth={Math.max(sw, 2)} /></svg>;
-          if (shapeType === 'arrow-right') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'arrow-left') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="100,15 30,15 30,0 0,30 30,60 30,45 100,45" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'arrow-up') return <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none"><polygon points="30,0 60,30 45,30 45,100 15,100 15,30 0,30" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'arrow-down') return <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none"><polygon points="15,0 45,0 45,70 60,70 30,100 0,70 15,70" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'star') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 63,38 98,38 70,60 80,95 50,75 20,95 30,60 2,38 37,38" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'pentagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'hexagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'heart') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
-          if (shapeType === 'custom' && s.svgPath) return <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none"><path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={sw} vectorEffect="non-scaling-stroke" /></svg>;
-          return <div className="w-full h-full" style={{ backgroundColor: fill, borderRadius: s.borderRadius ?? 0 }} />;
+          if (shapeType === 'circle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'line') return <svg width="100%" height="100%" preserveAspectRatio="none"><line x1="0" y1="50%" x2="100%" y2="50%" stroke={fillColor} strokeWidth={Math.max(sw, 2)} strokeDasharray={da || undefined} /></svg>;
+          if (shapeType === 'arrow-right') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'arrow-left') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="100,15 30,15 30,0 0,30 30,60 30,45 100,45" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'arrow-up') return <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none"><polygon points="30,0 60,30 45,30 45,100 15,100 15,30 0,30" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'arrow-down') return <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none"><polygon points="15,0 45,0 45,70 60,70 30,100 0,70 15,70" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'star') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 63,38 98,38 70,60 80,95 50,75 20,95 30,60 2,38 37,38" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'pentagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'hexagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'heart') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'custom' && s.svgPath) return <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none"><path d={s.svgPath} fill={fill} {...sp} vectorEffect="non-scaling-stroke" /></svg>;
+          return <div className="w-full h-full" style={{ background: s.shapeGradient as string || fillColor, borderRadius: s.borderRadius ?? 0, border: stroke !== 'transparent' ? `${sw}px ${da ? 'dashed' : 'solid'} ${stroke}` : undefined }} />;
         };
 
         return (

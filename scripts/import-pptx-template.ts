@@ -474,6 +474,10 @@ function parseShapeFromSpTree(
 
   if (width < 5 || height < 5) return null;
 
+  // Extract rotation from xfrm
+  const rotMatch = spXml.match(/<a:xfrm[^>]*\brot="(-?\d+)"/);
+  const rotation = rotMatch ? Math.round(parseInt(rotMatch[1]) / 60000) : 0;
+
   // Determine shape type
   const prstGeom = spXml.match(/<a:prstGeom\s+prst="(\w+)"/);
   const custGeom = spXml.match(/<a:custGeom>([\s\S]*?)<\/a:custGeom>/);
@@ -484,23 +488,30 @@ function parseShapeFromSpTree(
     triangle: 'triangle', rightArrow: 'arrow-right',
   };
 
-  // Get fill
+  // Get fill — solid or gradient
   const solidFill = spXml.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
   const fill = solidFill ? parseColorFromShapeXml(solidFill[1], themeColors) : null;
+  let gradientFill: string | null = null;
+  if (!solidFill) {
+    const gradFill = spXml.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
+    if (gradFill) gradientFill = parseGradientFill(gradFill[1], themeColors);
+  }
 
   // Get outline
   const ln = spXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
   let stroke: string | null = null;
   let strokeWidth = 0;
+  let strokeDash: string | null = null;
   if (ln) {
     const lnFill = ln[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
     stroke = lnFill ? parseColorFromShapeXml(lnFill[1], themeColors) : null;
     const w = ln[0].match(/\bw="(\d+)"/);
-    strokeWidth = w ? Math.round(parseInt(w[1]) / 12700) : 1;
+    strokeWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
+    strokeDash = parseDashStyle(ln[1]);
   }
 
   // Skip if no fill AND no stroke (invisible)
-  const noFill = spXml.includes('<a:noFill/>') || (!fill && !solidFill);
+  const noFill = spXml.includes('<a:noFill/>') || (!fill && !solidFill && !gradientFill);
   if (noFill && !stroke) return null;
 
   // Convert custom geometry to SVG path
@@ -519,9 +530,9 @@ function parseShapeFromSpTree(
   return {
     id: genId(),
     type: 'shape',
-    content: svgPath || '', // SVG path data for custom shapes
+    content: svgPath || '',
     x, y, width, height,
-    rotation: 0,
+    rotation,
     opacity: 1,
     locked: false,
     visible: true,
@@ -529,8 +540,10 @@ function parseShapeFromSpTree(
     style: {
       shapeType: svgPath ? 'custom' : (shapeMap[geomType] || 'rectangle'),
       shapeFill: noFill ? 'transparent' : (fill || themeColors.accent1),
+      shapeGradient: gradientFill || undefined,
       shapeStroke: stroke || 'transparent',
       shapeStrokeWidth: strokeWidth,
+      shapeStrokeDash: strokeDash || undefined,
       borderRadius: geomType === 'roundRect' ? 12 : 0,
       svgPath: svgPath || undefined,
       svgViewBox: svgViewBox || undefined,
@@ -538,16 +551,67 @@ function parseShapeFromSpTree(
   };
 }
 
+function parseGradientFill(gradXml: string, themeColors: ThemeColors): string | null {
+  // Extract gradient stops: <a:gs pos="0"><a:srgbClr val="..."/></a:gs>
+  const stops: { pos: number; color: string }[] = [];
+  const gsMatches = gradXml.matchAll(/<a:gs\s+pos="(\d+)">([\s\S]*?)<\/a:gs>/g);
+  for (const gs of gsMatches) {
+    const pos = parseInt(gs[1]) / 1000; // OOXML pos is in thousandths of percent
+    const color = parseColorFromShapeXml(gs[2], themeColors);
+    if (color) stops.push({ pos, color });
+  }
+  if (stops.length < 2) return null;
+
+  // Determine direction from <a:lin ang="..."/> (in 60000ths of degree)
+  const linMatch = gradXml.match(/<a:lin\s+ang="(\d+)"/);
+  const angle = linMatch ? Math.round(parseInt(linMatch[1]) / 60000) : 180;
+
+  const cssStops = stops.map(s => `${s.color} ${s.pos}%`).join(', ');
+  return `linear-gradient(${angle}deg, ${cssStops})`;
+}
+
+function parseDashStyle(xml: string): string | null {
+  // <a:prstDash val="dash"/> or <a:prstDash val="dot"/> etc.
+  const dash = xml.match(/<a:prstDash\s+val="(\w+)"/);
+  if (!dash) return null;
+  const map: Record<string, string> = {
+    dash: '8 4',
+    dot: '2 4',
+    dashDot: '8 4 2 4',
+    lgDash: '16 6',
+    lgDashDot: '16 6 2 6',
+    lgDashDotDot: '16 6 2 6 2 6',
+    sysDash: '6 2',
+    sysDot: '2 2',
+    sysDashDot: '6 2 2 2',
+    sysDashDotDot: '6 2 2 2 2 2',
+  };
+  return map[dash[1]] || null;
+}
+
 function parseSlideBackground(slideXml: string, relsMap: Map<string, string>, themeColors: ThemeColors): { type: string; value: string } {
+  // Extract <p:bg> section first
+  const bgSection = slideXml.match(/<p:bg>([\s\S]*?)<\/p:bg>/);
+  if (!bgSection) return { type: 'solid', value: themeColors.lt1 };
+
+  const bgXml = bgSection[1];
+
+  // Gradient fill background
+  const gradFill = bgXml.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
+  if (gradFill) {
+    const gradient = parseGradientFill(gradFill[1], themeColors);
+    if (gradient) return { type: 'gradient', value: gradient };
+  }
+
   // Solid fill background
-  const bgSolid = slideXml.match(/<p:bg>[\s\S]*?<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
-  if (bgSolid) {
-    const color = parseColorFromShapeXml(bgSolid[1], themeColors);
+  const solidFill = bgXml.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+  if (solidFill) {
+    const color = parseColorFromShapeXml(solidFill[1], themeColors);
     if (color) return { type: 'solid', value: color };
   }
 
   // Image background: blipFill
-  const bgBlip = slideXml.match(/<p:bg>[\s\S]*?r:embed="(rId\d+)"/);
+  const bgBlip = bgXml.match(/r:embed="(rId\d+)"/);
   if (bgBlip) {
     const ref = relsMap.get(bgBlip[1]);
     if (ref) return { type: 'image', value: ref };
@@ -1183,6 +1247,7 @@ async function main() {
 
         const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
         const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
+        const lineDash = parseDashStyle(cxnXml);
 
         elements.push({
           id: genId(),
@@ -1191,7 +1256,7 @@ async function main() {
           x: cx, y: cy, width: cw, height: ch,
           rotation: 0, opacity: 1, locked: false, visible: true,
           zIndex: zIndex++,
-          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth },
+          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: lineDash || undefined },
         });
       }
     }
@@ -1207,7 +1272,7 @@ async function main() {
       const x = emuToPxX(Math.max(0, parseInt(off[1])));
       const y = emuToPxY(Math.max(0, parseInt(off[2])));
       const width = emuToPxX(parseInt(ext[1]));
-      const height = Math.max(emuToPxY(parseInt(ext[2])), 2); // Min 2px for horizontal lines
+      const height = Math.max(emuToPxY(parseInt(ext[2])), 2);
 
       // Get line color
       const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
@@ -1216,9 +1281,11 @@ async function main() {
       if (srgb) lineColor = `#${srgb[1]}`;
       else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
 
-      // Get line width
+      // Get line width and dash pattern
+      const lnMatch = cxnXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
       const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
       const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
+      const lineDash = lnMatch ? parseDashStyle(lnMatch[1]) : null;
 
       elements.push({
         id: genId(),
@@ -1235,6 +1302,7 @@ async function main() {
           shapeFill: lineColor,
           shapeStroke: lineColor,
           shapeStrokeWidth: strokeWidth,
+          shapeStrokeDash: lineDash || undefined,
         },
       });
     }

@@ -197,86 +197,118 @@ export default function CanvasElement({
 
       case 'shape': {
         const shapeType = s.shapeType || 'rectangle';
-        const fill = s.shapeFill || s.backgroundColor || '#6366f1';
+        const fill = s.shapeGradient ? 'url(#grad)' : (s.shapeFill || s.backgroundColor || '#6366f1');
         const stroke = s.shapeStroke || 'transparent';
         const strokeWidth = s.shapeStrokeWidth || 0;
+        const dashArray = s.shapeStrokeDash as string | undefined;
 
         const svgStyle: React.CSSProperties = { pointerEvents: 'none' };
+        const strokeProps = { stroke, strokeWidth, strokeDasharray: dashArray || undefined };
+
+        // Gradient definition (reusable across shape types)
+        const gradDef = s.shapeGradient ? (() => {
+          // Parse CSS gradient to SVG: linear-gradient(Xdeg, #c1 0%, #c2 100%)
+          const m = (s.shapeGradient as string).match(/linear-gradient\((\d+)deg,\s*(.*)\)/);
+          if (!m) return null;
+          const angle = parseInt(m[1]);
+          const rad = (angle - 90) * Math.PI / 180;
+          const stops = m[2].split(',').map(s => s.trim());
+          return (
+            <defs>
+              <linearGradient id="grad" x1={`${50 - 50 * Math.cos(rad)}%`} y1={`${50 - 50 * Math.sin(rad)}%`} x2={`${50 + 50 * Math.cos(rad)}%`} y2={`${50 + 50 * Math.sin(rad)}%`}>
+                {stops.map((stop, i) => {
+                  const parts = stop.match(/(#[A-Fa-f0-9]+|rgb[^)]+\))\s*(\d+)%/);
+                  return parts ? <stop key={i} offset={`${parts[2]}%`} stopColor={parts[1]} /> : null;
+                })}
+              </linearGradient>
+            </defs>
+          );
+        })() : null;
 
         if (shapeType === 'circle') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
-              <ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'triangle') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="50,2 98,98 2,98" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="50,2 98,98 2,98" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'line') {
           return (
             <svg width="100%" height="100%" preserveAspectRatio="none" style={svgStyle}>
-              <line x1="0" y1="50%" x2="100%" y2="50%" stroke={fill} strokeWidth={Math.max(strokeWidth, 2)} />
+              <line x1="0" y1="50%" x2="100%" y2="50%" stroke={s.shapeFill || stroke} strokeWidth={Math.max(strokeWidth, 2)} strokeDasharray={dashArray || undefined} />
             </svg>
           );
         }
         if (shapeType === 'arrow-right') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'arrow-left') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="100,15 30,15 30,0 0,30 30,60 30,45 100,45" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="100,15 30,15 30,0 0,30 30,60 30,45 100,45" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'arrow-up') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="30,0 60,30 45,30 45,100 15,100 15,30 0,30" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="30,0 60,30 45,30 45,100 15,100 15,30 0,30" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'arrow-down') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="15,0 45,0 45,70 60,70 30,100 0,70 15,70" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="15,0 45,0 45,70 60,70 30,100 0,70 15,70" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'star') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="50,2 63,38 98,38 70,60 80,95 50,75 20,95 30,60 2,38 37,38" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="50,2 63,38 98,38 70,60 80,95 50,75 20,95 30,60 2,38 37,38" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'pentagon') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'hexagon') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
-              <polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} {...strokeProps} />
             </svg>
           );
         }
         if (shapeType === 'heart') {
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
-              <path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+              {gradDef}
+              <path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} {...strokeProps} />
             </svg>
           );
         }
@@ -284,7 +316,8 @@ export default function CanvasElement({
         if (shapeType === 'custom' && s.svgPath) {
           return (
             <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none" style={{ pointerEvents: 'none' }}>
-              <path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={strokeWidth} vectorEffect="non-scaling-stroke" />
+              {gradDef}
+              <path d={s.svgPath} fill={fill} {...strokeProps} vectorEffect="non-scaling-stroke" />
             </svg>
           );
         }
@@ -293,9 +326,9 @@ export default function CanvasElement({
           <div
             className="w-full h-full pointer-events-none"
             style={{
-              backgroundColor: fill,
+              background: s.shapeGradient as string || fill,
               borderRadius: s.borderRadius ?? 0,
-              border: stroke !== 'transparent' ? `${strokeWidth}px solid ${stroke}` : undefined,
+              border: stroke !== 'transparent' ? `${strokeWidth}px ${dashArray ? 'dashed' : 'solid'} ${stroke}` : undefined,
             }}
           />
         );
