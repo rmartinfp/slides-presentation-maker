@@ -152,6 +152,8 @@ export default function SlideAIPage() {
           // Also filter "Instructions for use" text
           const allText = (s.elements || []).map(e => e.content).join(' ').toLowerCase();
           if (allText.includes('instructions for use') || allText.includes('for more info')) return false;
+          // Skip title-only slides (no real content structure)
+          if ((s as any).layout === 'title-only') return false;
           return true;
         });
 

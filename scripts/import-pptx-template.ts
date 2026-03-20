@@ -933,6 +933,49 @@ async function main() {
       }
     }
 
+    // Connectors (lines): <p:cxnSp>...</p:cxnSp>
+    const cxnMatches = slideXml.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g);
+    for (const m of cxnMatches) {
+      const cxnXml = m[1];
+      const off = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+      const ext = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+      if (!off || !ext) continue;
+
+      const x = emuToPxX(Math.max(0, parseInt(off[1])));
+      const y = emuToPxY(Math.max(0, parseInt(off[2])));
+      const width = emuToPxX(parseInt(ext[1]));
+      const height = Math.max(emuToPxY(parseInt(ext[2])), 2); // Min 2px for horizontal lines
+
+      // Get line color
+      const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
+      const scheme = cxnXml.match(/<a:schemeClr\s+val="(\w+)"/);
+      let lineColor = themeColors.dk1;
+      if (srgb) lineColor = `#${srgb[1]}`;
+      else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
+
+      // Get line width
+      const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
+      const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
+
+      elements.push({
+        id: genId(),
+        type: 'shape',
+        content: '',
+        x, y, width, height,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        zIndex: zIndex++,
+        style: {
+          shapeType: 'line',
+          shapeFill: lineColor,
+          shapeStroke: lineColor,
+          shapeStrokeWidth: strokeWidth,
+        },
+      });
+    }
+
     // Also handle background images from rels
     if (background.type === 'image' && !background.value.startsWith('http')) {
       let normalizedBgPath: string;
@@ -963,20 +1006,27 @@ async function main() {
       && (layoutName === 'TITLE_ONLY' || layoutName.includes('CUSTOM'))
       && texts.length >= 3; // Multiple text elements = TOC items
 
-    // Detect "Thank You" / closing slides
-    const isClosingSlide = /\bthanks?\b/i.test(plainText) || /\bthank\s+you\b/i.test(plainText);
+    // Detect "Thank You" / closing slides — check actual text elements
+    const allTexts = (elements.filter(e => e.type === 'text') as any[])
+      .map(e => e.content.replace(/<[^>]+>/g, '').toLowerCase().trim())
+      .join(' ');
+    const isClosingSlide = allTexts.includes('thank you') || allTexts.includes('thanks')
+      || /\bthank\s+you\b/i.test(plainText);
+
+    // Skip TITLE_ONLY slides (just a title, no real content structure)
+    const isTitleOnly = layoutName === 'TITLE_ONLY' || layoutName.startsWith('TITLE_ONLY');
 
     // Classify slide type from layout name
     const slideTypeMap: Record<string, string> = {
       'TITLE': 'cover',
       'SECTION_HEADER': 'section',
-      'TITLE_ONLY': 'content',
       'TITLE_AND_TWO_COLUMNS': 'two-column',
       'CAPTION_ONLY': 'image',
       'BLANK': 'blank',
     };
     const slideType = isTocSlide ? 'toc'
       : isClosingSlide ? 'closing'
+      : isTitleOnly ? 'title-only'
       : slideTypeMap[layoutName] ||
       (layoutName.includes('CUSTOM') && elements.length <= 5 ? 'content' : 'content');
 
