@@ -220,26 +220,45 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
     <AnimatePresence>
       {isHovering && hasSlideImages && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.15, delay: 0.3 }}
+          initial={{ opacity: 0, scale: 0.92, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.92, y: 8 }}
+          transition={{ duration: 0.2, delay: 0.25, ease: 'easeOut' }}
           className={cn(
             'absolute top-0 z-50 pointer-events-none',
-            popoverSide === 'right' ? 'left-[calc(100%+12px)]' : 'right-[calc(100%+12px)]'
+            popoverSide === 'right' ? 'left-[calc(100%+16px)]' : 'right-[calc(100%+16px)]'
           )}
-          style={{ width: 480 }}
+          style={{ width: 640 }}
         >
-          <div className="rounded-xl overflow-hidden shadow-2xl border border-slate-200/80 bg-slate-900">
-            <div className="aspect-video relative">
-              <img
-                src={template.slideImages![currentSlide]}
-                alt={`Slide ${currentSlide + 1}`}
-                className="w-full h-full object-contain"
-              />
-              <div className="absolute bottom-2 left-3 px-2 py-0.5 bg-black/60 text-white text-[10px] rounded-full">
-                {currentSlide + 1} / {imageCount}
+          <div className="rounded-2xl overflow-hidden shadow-[0_20px_60px_-12px_rgba(0,0,0,0.4)] border border-white/10 bg-slate-900">
+            <div className="aspect-video relative overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={currentSlide}
+                  src={template.slideImages![currentSlide]}
+                  alt={`Slide ${currentSlide + 1}`}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="w-full h-full object-contain"
+                />
+              </AnimatePresence>
+            </div>
+            <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90">
+              <span className="text-white/60 text-[11px]">{template.name}</span>
+              <div className="flex items-center gap-1.5">
+                {template.slideImages!.slice(0, Math.min(imageCount, 14)).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={cn(
+                      'rounded-full transition-all duration-300',
+                      currentSlide === idx ? 'w-4 h-1.5 bg-[#4F46E5]' : 'w-1.5 h-1.5 bg-white/25'
+                    )}
+                  />
+                ))}
               </div>
+              <span className="text-white/40 text-[11px]">{currentSlide + 1}/{imageCount}</span>
             </div>
           </div>
         </motion.div>
