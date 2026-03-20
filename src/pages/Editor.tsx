@@ -328,6 +328,23 @@ export default function EditorPage() {
                             onClick={() => setActiveSlideIndex(idx)}
                           >
                             <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-600 bg-white/80 rounded px-1">{idx + 1}</div>
+                            {/* Slide actions on hover */}
+                            <div className="absolute top-1 right-1 z-10 hidden group-hover:flex gap-0.5">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); duplicateSlide(idx); }}
+                                className="w-5 h-5 rounded bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-[#4F46E5]"
+                                title="Duplicate"
+                              >
+                                <Copy className="w-3 h-3" />
+                              </button>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); deleteSlide(idx); }}
+                                className="w-5 h-5 rounded bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-red-500"
+                                title="Delete"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
                             <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
                               <div style={{ width: 1920 * 0.09, height: 1080 * 0.09 }}>
                                 <SlideCanvas
