@@ -21,8 +21,13 @@ const ACCESS_TOKEN = process.env.GOOGLE_ACCESS_TOKEN || '';
 const CANVAS_W = 1920;
 const CANVAS_H = 1080;
 
-if (!SUPABASE_KEY || !ACCESS_TOKEN) {
-  console.error('Set SUPABASE_SERVICE_ROLE_KEY and GOOGLE_ACCESS_TOKEN env vars');
+const isLocal = process.argv[2] && (process.argv[2].endsWith('.pptx') || process.argv[2].startsWith('/') || process.argv[2].startsWith('.'));
+if (!SUPABASE_KEY) {
+  console.error('Set SUPABASE_SERVICE_ROLE_KEY env var');
+  process.exit(1);
+}
+if (!isLocal && !ACCESS_TOKEN) {
+  console.error('Set GOOGLE_ACCESS_TOKEN env var (not needed for local .pptx files)');
   process.exit(1);
 }
 
