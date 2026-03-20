@@ -153,17 +153,20 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
         );
       }
 
-      case 'image':
+      case 'image': {
+        const br = s.borderRadius ?? 0;
+        const imgBorder = s.borderColor && s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
         return (
-          <div key={element.id} style={{ ...wrapperStyle, boxShadow: s.boxShadow || undefined, filter: s.filter || undefined }}>
+          <div key={element.id} style={{ ...wrapperStyle, borderRadius: br, overflow: br ? 'hidden' : undefined, border: imgBorder, boxShadow: s.boxShadow || undefined, filter: s.filter || undefined }}>
             <img
               src={element.content}
               alt=""
               className="w-full h-full"
-              style={{ objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover', borderRadius: s.borderRadius ?? 0 }}
+              style={{ objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover' }}
             />
           </div>
         );
+      }
 
       default:
         return null;

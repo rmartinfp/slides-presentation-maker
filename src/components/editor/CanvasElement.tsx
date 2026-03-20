@@ -335,17 +335,22 @@ export default function CanvasElement({
       }
 
       case 'image': {
+        const br = s.borderRadius ?? 0;
+        const imgBorder = s.borderColor && s.borderWidth
+          ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
         return (
-          <img
-            src={element.content}
-            alt=""
+          <div
             className="w-full h-full pointer-events-none"
-            style={{
-              objectFit: s.objectFit || 'cover',
-              borderRadius: s.borderRadius ?? 0,
-            }}
-            draggable={false}
-          />
+            style={{ borderRadius: br, overflow: br ? 'hidden' : undefined, border: imgBorder }}
+          >
+            <img
+              src={element.content}
+              alt=""
+              className="w-full h-full"
+              style={{ objectFit: s.objectFit || 'cover' }}
+              draggable={false}
+            />
+          </div>
         );
       }
 

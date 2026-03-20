@@ -274,19 +274,21 @@ function StaticElement({ element }: { element: SlideElement }) {
         );
       }
 
-      case 'image':
+      case 'image': {
+        const br = s.borderRadius ?? 0;
+        const imgBorder = s.borderColor && s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
         return (
-          <img
-            src={element.content}
-            alt=""
-            className="w-full h-full"
-            style={{
-              objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover',
-              borderRadius: s.borderRadius ?? 0,
-            }}
-            draggable={false}
-          />
+          <div className="w-full h-full" style={{ borderRadius: br, overflow: br ? 'hidden' : undefined, border: imgBorder }}>
+            <img
+              src={element.content}
+              alt=""
+              className="w-full h-full"
+              style={{ objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover' }}
+              draggable={false}
+            />
+          </div>
         );
+      }
 
       default:
         return null;

@@ -352,6 +352,7 @@ function parseTextFromSpTree(
 function parseImageFromSpTree(
   picXml: string,
   relsMap: Map<string, string>,
+  themeColors?: ThemeColors,
 ): { element: ParsedElement; imageRef: string | null } | null {
   const off = picXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
   const ext = picXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
@@ -366,18 +367,52 @@ function parseImageFromSpTree(
   const embed = picXml.match(/r:embed="(rId\d+)"/);
   const imageRef = embed ? (relsMap.get(embed[1]) || null) : null;
 
+  // Extract rotation
+  const rotMatch = picXml.match(/<a:xfrm[^>]*\brot="(-?\d+)"/);
+  const rotation = rotMatch ? Math.round(parseInt(rotMatch[1]) / 60000) : 0;
+
+  // Extract border radius from geometry preset
+  let borderRadius = 0;
+  const prstGeom = picXml.match(/<a:prstGeom\s+prst="(\w+)"/);
+  if (prstGeom?.[1] === 'roundRect' || prstGeom?.[1] === 'ellipse') {
+    borderRadius = prstGeom[1] === 'ellipse' ? 9999 : 12; // default
+    const adj = picXml.match(/<a:gd\s+name="adj"\s+fmla="val\s+(\d+)"/);
+    if (adj) {
+      // OOXML adj value is in 1/100000 of the shape size — convert to approx px
+      const adjVal = parseInt(adj[1]) / 100000;
+      const minDim = Math.min(width, height);
+      borderRadius = Math.round(adjVal * minDim);
+    }
+  }
+
+  // Extract border (outline) from <a:ln>
+  let borderColor: string | undefined;
+  let borderWidth = 0;
+  const ln = picXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
+  if (ln && themeColors) {
+    const lnFill = ln[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+    borderColor = lnFill ? (parseColorFromShapeXml(lnFill[1], themeColors) || undefined) : undefined;
+    const w = ln[0].match(/\bw="(\d+)"/);
+    borderWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
+  }
+
   return {
     element: {
       id: genId(),
       type: 'image',
-      content: '', // Will be filled with uploaded URL
+      content: '',
       x, y, width, height,
-      rotation: 0,
+      rotation,
       opacity: 1,
       locked: false,
       visible: true,
       zIndex: 0,
-      style: { objectFit: 'cover', borderRadius: 0 },
+      style: {
+        objectFit: 'cover',
+        borderRadius,
+        borderColor,
+        borderWidth: borderWidth || undefined,
+      },
     },
     imageRef,
   };
@@ -549,7 +584,14 @@ function parseShapeFromSpTree(
       shapeStroke: stroke || 'transparent',
       shapeStrokeWidth: strokeWidth,
       shapeStrokeDash: strokeDash || undefined,
-      borderRadius: geomType === 'roundRect' ? 12 : 0,
+      borderRadius: geomType === 'roundRect' ? (() => {
+        const adj = spXml.match(/<a:gd\s+name="adj"\s+fmla="val\s+(\d+)"/);
+        if (adj) {
+          const adjVal = parseInt(adj[1]) / 100000;
+          return Math.round(adjVal * Math.min(width, height));
+        }
+        return 12; // default if no adj specified
+      })() : 0,
       svgPath: svgPath || undefined,
       svgViewBox: svgViewBox || undefined,
     },
@@ -1003,7 +1045,7 @@ async function main() {
           // Skip placeholder images
           if (m[1].includes('<p:ph')) continue;
 
-          const result = parseImageFromSpTree(m[1], layoutRelsMap);
+          const result = parseImageFromSpTree(m[1], layoutRelsMap, themeColors);
           if (result && result.imageRef) {
             result.element.zIndex = zIndex++;
             let normalizedPath: string;
@@ -1083,7 +1125,7 @@ async function main() {
     // Pictures: <p:pic>...</p:pic> (groups handled separately above)
     const picMatches = slideXmlNoGroups.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
     for (const m of picMatches) {
-      const result = parseImageFromSpTree(m[1], relsMap);
+      const result = parseImageFromSpTree(m[1], relsMap, themeColors);
       if (result) {
         result.element.zIndex = zIndex++;
 
@@ -1206,7 +1248,7 @@ async function main() {
       // Extract images inside group
       const grpPicMatches = grpXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
       for (const pm of grpPicMatches) {
-        const result = parseImageFromSpTree(pm[1], relsMap);
+        const result = parseImageFromSpTree(pm[1], relsMap, themeColors);
         if (result) {
           const childOff = pm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const childExt = pm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
