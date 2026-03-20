@@ -84,8 +84,9 @@ export default function SlideAIPage() {
   /** Calculate max characters for a text box based on dimensions and font size */
   const calcMaxChars = (el: SlideElement): number => {
     const fontSize = el.style?.fontSize || 24;
-    const area = el.width * el.height;
-    return Math.floor(area / (fontSize * 0.8));
+    const charsPerLine = Math.floor(el.width / (fontSize * 0.55));
+    const lines = Math.floor(el.height / (fontSize * 1.3));
+    return Math.max(10, charsPerLine * Math.max(1, lines));
   };
 
   /** Build a template brief from the template slides */
@@ -180,11 +181,16 @@ export default function SlideAIPage() {
             replaceableElements.push(el);
           }
 
-          // Map AI texts 1:1 to replaceable elements
+          // Map AI texts 1:1 to replaceable elements, truncating if too long
           let textIdx = 0;
           for (const el of replaceableElements) {
             if (textIdx < aiSlide.texts.length) {
-              const aiText = aiSlide.texts[textIdx].content || '';
+              let aiText = aiSlide.texts[textIdx].content || '';
+              // Truncate to fit the box
+              const maxChars = calcMaxChars(el);
+              if (aiText.length > maxChars) {
+                aiText = aiText.slice(0, maxChars - 3).replace(/\s+\S*$/, '') + '...';
+              }
               el.content = `<p>${aiText}</p>`;
               textIdx++;
             }
