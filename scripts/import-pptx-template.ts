@@ -998,6 +998,9 @@ async function main() {
       }
     }
 
+    // Resolve slide master ID early (needed for both inheritance and filtering)
+    const slideMasterId = await getSlideMasterId(slideNum);
+
     // Also check slide master for placeholder styles (deeper inheritance)
     if (slideMasterId) {
       const masterPath = `ppt/slideMasters/${slideMasterId}`;
@@ -1034,7 +1037,6 @@ async function main() {
     // ---- Filtering logic (needs layoutName from above) ----
 
     // Check if slide belongs to the secondary (non-primary) master = "Final Pages"
-    const slideMasterId = await getSlideMasterId(slideNum);
     const isSecondaryMaster = primaryMasterId && slideMasterId && slideMasterId !== primaryMasterId;
 
     // Heuristic final page detection (branding, excessive elements, resource pages)
