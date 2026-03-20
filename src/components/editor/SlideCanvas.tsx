@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import { Slide, PresentationTheme, SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import CanvasElement from './CanvasElement';
@@ -73,8 +73,78 @@ export default function SlideCanvas({
 
   const activeElementId = selectedElementIds.length === 1 ? selectedElementIds[0] : null;
 
+  // ---- Marquee (drag-to-select) ----
+  const stageRef = useRef<HTMLDivElement>(null);
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const isDragging = useRef(false);
+
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only start marquee if clicking directly on canvas background
+    if (!isEditing || e.target !== e.currentTarget) return;
+    e.preventDefault();
+    const rect = stageRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = (e.clientX - rect.left) / scale;
+    const y = (e.clientY - rect.top) / scale;
+    isDragging.current = true;
+    setMarquee({ x1: x, y1: y, x2: x, y2: y });
+    if (!e.shiftKey) clearSelection();
+  }, [isEditing, scale, clearSelection]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isDragging.current || !stageRef.current) return;
+    const rect = stageRef.current.getBoundingClientRect();
+    const x = (e.clientX - rect.left) / scale;
+    const y = (e.clientY - rect.top) / scale;
+    setMarquee(prev => prev ? { ...prev, x2: x, y2: y } : null);
+  }, [scale]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging.current || !marquee) {
+      isDragging.current = false;
+      setMarquee(null);
+      return;
+    }
+    isDragging.current = false;
+
+    // Calculate marquee bounds
+    const left = Math.min(marquee.x1, marquee.x2);
+    const right = Math.max(marquee.x1, marquee.x2);
+    const top = Math.min(marquee.y1, marquee.y2);
+    const bottom = Math.max(marquee.y1, marquee.y2);
+
+    // Only select if dragged a meaningful distance (>5px)
+    if (right - left > 5 || bottom - top > 5) {
+      const intersecting = (slide.elements || [])
+        .filter(el => !el.locked &&
+          !(el.x + el.width < left || el.x > right || el.y + el.height < top || el.y > bottom)
+        )
+        .map(el => el.id);
+
+      if (intersecting.length > 0) {
+        setSelectedElementIds(intersecting);
+      }
+    }
+    setMarquee(null);
+  }, [marquee, slide.elements, setSelectedElementIds]);
+
+  // Marquee box style
+  const marqueeStyle: React.CSSProperties | null = marquee ? {
+    position: 'absolute',
+    left: Math.min(marquee.x1, marquee.x2),
+    top: Math.min(marquee.y1, marquee.y2),
+    width: Math.abs(marquee.x2 - marquee.x1),
+    height: Math.abs(marquee.y2 - marquee.y1),
+    border: '1.5px dashed #4F46E5',
+    backgroundColor: 'rgba(79, 70, 229, 0.08)',
+    borderRadius: 2,
+    pointerEvents: 'none',
+    zIndex: 9999,
+  } : null;
+
   return (
     <div
+      ref={stageRef}
       className="slide-stage origin-top-left select-text relative"
       style={{
         transform: `scale(${scale})`,
@@ -82,6 +152,10 @@ export default function SlideCanvas({
         ...bgStyle,
       }}
       onClick={isEditing ? handleCanvasClick : undefined}
+      onMouseDown={isEditing ? handleMouseDown : undefined}
+      onMouseMove={isEditing ? handleMouseMove : undefined}
+      onMouseUp={isEditing ? handleMouseUp : undefined}
+      onMouseLeave={isEditing ? handleMouseUp : undefined}
     >
       {isEditing && (
         <AlignmentGuides
@@ -100,10 +174,12 @@ export default function SlideCanvas({
             onSelect={handleSelect}
           />
         ) : (
-          // Read-only render for thumbnails / presentation mode
           <StaticElement key={element.id} element={element} />
         )
       ))}
+
+      {/* Marquee selection box */}
+      {marqueeStyle && <div style={marqueeStyle} />}
     </div>
   );
 }
