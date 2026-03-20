@@ -41,6 +41,8 @@ export interface EditorState {
   updateSlideNotes: (notes: string) => void;
   setSlideBackground: (bg: SlideBackground) => void;
 
+  reorderSlides: (startIndex: number, endIndex: number) => void;
+
   // Element actions
   addElement: (element: Omit<SlideElement, 'id' | 'zIndex'>) => void;
   updateElement: (elementId: string, updates: Partial<SlideElement>) => void;
@@ -350,6 +352,23 @@ export const useEditorStore = create<EditorState>()((set, get) => {
             slide.background = bg;
             state.presentation.updatedAt = new Date().toISOString();
           }
+        }),
+      ),
+
+    reorderSlides: (startIndex, endIndex) =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const [removed] = state.presentation.slides.splice(startIndex, 1);
+          state.presentation.slides.splice(endIndex, 0, removed);
+          // Keep the same slide active (follow it to new position)
+          if (state.activeSlideIndex === startIndex) {
+            state.activeSlideIndex = endIndex;
+          } else if (startIndex < state.activeSlideIndex && endIndex >= state.activeSlideIndex) {
+            state.activeSlideIndex -= 1;
+          } else if (startIndex > state.activeSlideIndex && endIndex <= state.activeSlideIndex) {
+            state.activeSlideIndex += 1;
+          }
+          state.presentation.updatedAt = new Date().toISOString();
         }),
       ),
 

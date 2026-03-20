@@ -8,8 +8,13 @@ export type ShapeType =
   | 'triangle'
   | 'arrow-right'
   | 'arrow-left'
+  | 'arrow-up'
+  | 'arrow-down'
   | 'line'
-  | 'star';
+  | 'star'
+  | 'pentagon'
+  | 'hexagon'
+  | 'heart';
 
 export interface ElementStyle {
   // Text
@@ -34,6 +39,7 @@ export interface ElementStyle {
   // Effects
   opacity?: number;
   boxShadow?: string;
+  filter?: string;
 
   // Shape-specific
   shapeType?: ShapeType;

@@ -134,6 +134,8 @@ export default function CanvasElement({
     userSelect: isEditing ? 'text' : 'none',
     // Critical: prevent browser default drag behavior
     WebkitUserDrag: 'none' as any,
+    boxShadow: element.style.boxShadow || undefined,
+    filter: element.style.filter || undefined,
   };
 
   // Render element content based on type
@@ -222,6 +224,55 @@ export default function CanvasElement({
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={svgStyle}>
               <polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'arrow-left') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none" style={svgStyle}>
+              <polygon points="100,15 30,15 30,0 0,30 30,60 30,45 100,45" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'arrow-up') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none" style={svgStyle}>
+              <polygon points="30,0 60,30 45,30 45,100 15,100 15,30 0,30" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'arrow-down') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none" style={svgStyle}>
+              <polygon points="15,0 45,0 45,70 60,70 30,100 0,70 15,70" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'star') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
+              <polygon points="50,2 63,38 98,38 70,60 80,95 50,75 20,95 30,60 2,38 37,38" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'pentagon') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
+              <polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'hexagon') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
+              <polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
+            </svg>
+          );
+        }
+        if (shapeType === 'heart') {
+          return (
+            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
+              <path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} stroke={stroke} strokeWidth={strokeWidth} />
             </svg>
           );
         }

@@ -9,6 +9,7 @@ import SlideCanvas from '@/components/editor/SlideCanvas';
 import SlideList from '@/components/editor/SlideList';
 import SpeakerNotes from '@/components/editor/SpeakerNotes';
 import PresentationMode from '@/components/editor/PresentationMode';
+import PresenterView from '@/components/editor/PresenterView';
 import CinematicPresentation from '@/components/cinematic/CinematicPresentation';
 import { CinematicPreset } from '@/types/cinematic';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
@@ -22,12 +23,14 @@ import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
 import { exportToPdfFromSlides } from '@/lib/pdf-export';
 import { AnimatePresence } from 'framer-motion';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
 import {
   ArrowLeft, Undo2, Redo2, Share2, Download, Play, ChevronLeft, ChevronRight,
   Type, Square, Circle, Triangle, Image, ArrowRight as ArrowRightIcon, Minus,
   Trash2, Copy, Lock, Unlock, ArrowUpToLine, ArrowDownToLine, Sparkles,
-  FileText, FileDown, ChevronDown, Plus, MoreVertical,
+  FileText, FileDown, ChevronDown, Plus, MoreVertical, Star, Pentagon, Hexagon,
+  Heart, MoveLeft, ArrowUp, ArrowDown, Monitor,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -55,6 +58,7 @@ export default function EditorPage() {
     setIsPresentationMode, setShowAIRewrite, setSaveStatus,
     undo, redo, deleteElements, clearSelection, addElement,
     duplicateElements, lockElement, bringToFront, sendToBack,
+    reorderSlides,
   } = useEditorStore();
 
   const activeSlide = presentation.slides[activeSlideIndex];
@@ -166,6 +170,7 @@ export default function EditorPage() {
     });
   };
 
+  const [isPresenterView, setIsPresenterView] = React.useState(false);
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [cinematicPreset, setCinematicPreset] = React.useState<CinematicPreset | null>(() => {
     const stored = sessionStorage.getItem('cinematicPreset');
@@ -181,16 +186,28 @@ export default function EditorPage() {
   const handleAddShape = (shapeType: ShapeType) => {
     const sizes: Record<string, { w: number; h: number }> = {
       rectangle: { w: 300, h: 200 }, circle: { w: 200, h: 200 },
-      triangle: { w: 200, h: 200 }, 'arrow-right': { w: 250, h: 100 }, line: { w: 400, h: 4 },
+      triangle: { w: 200, h: 200 }, 'arrow-right': { w: 250, h: 100 },
+      'arrow-left': { w: 250, h: 100 }, 'arrow-up': { w: 100, h: 250 },
+      'arrow-down': { w: 100, h: 250 }, line: { w: 400, h: 4 },
+      star: { w: 200, h: 200 }, pentagon: { w: 200, h: 200 },
+      hexagon: { w: 200, h: 200 }, heart: { w: 200, h: 200 },
     };
     const s = sizes[shapeType] ?? { w: 200, h: 200 };
     addElement({ type: 'shape', content: '', x: 600, y: 400, width: s.w, height: s.h, rotation: 0, opacity: 1, locked: false, visible: true, style: { shapeType, shapeFill: theme.palette.primary, borderRadius: shapeType === 'rectangle' ? 8 : 0 } });
   };
 
+  const handleDragEnd = (result: DropResult) => {
+    if (!result.destination || result.source.index === result.destination.index) return;
+    reorderSlides(result.source.index, result.destination.index);
+  };
+
   return (
     <>
-      {isPresentationMode && !cinematicPreset && (
+      {isPresentationMode && !cinematicPreset && !isPresenterView && (
         <PresentationMode slides={presentation.slides} theme={presentation.theme} startIndex={activeSlideIndex} onExit={() => setIsPresentationMode(false)} />
+      )}
+      {isPresenterView && (
+        <PresenterView slides={presentation.slides} theme={presentation.theme} startIndex={activeSlideIndex} onExit={() => setIsPresenterView(false)} />
       )}
       {cinematicPreset && isPresentationMode && (
         <CinematicPresentation
@@ -251,18 +268,29 @@ export default function EditorPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button
-              size="sm"
-              className={cn(
-                'text-white h-8 gap-1.5 ml-1',
-                cinematicPreset
-                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-                  : 'bg-indigo-600 hover:bg-indigo-700'
-              )}
-              onClick={() => setIsPresentationMode(true)}
-            >
-              <Play className="w-3.5 h-3.5" />{cinematicPreset ? cinematicPreset.name : 'Present'}
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  size="sm"
+                  className={cn(
+                    'text-white h-8 gap-1.5 ml-1',
+                    cinematicPreset
+                      ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                      : 'bg-indigo-600 hover:bg-indigo-700'
+                  )}
+                >
+                  <Play className="w-3.5 h-3.5" />{cinematicPreset ? cinematicPreset.name : 'Present'}<ChevronDown className="w-3 h-3 ml-0.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setIsPresentationMode(true)}>
+                  <Play className="w-4 h-4 mr-2" />Present
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setIsPresenterView(true)}>
+                  <Monitor className="w-4 h-4 mr-2" />Presenter View
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -276,30 +304,48 @@ export default function EditorPage() {
                 <Plus className="w-3 h-3" />Add
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
-              {presentation.slides.map((slide, idx) => (
-                <div
-                  key={slide.id}
-                  className={cn(
-                    'relative rounded-lg cursor-pointer transition-all group',
-                    activeSlideIndex === idx ? 'ring-2 ring-indigo-500' : 'hover:ring-1 hover:ring-white/20'
-                  )}
-                  onClick={() => setActiveSlideIndex(idx)}
-                >
-                  <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-white/60 bg-black/40 rounded px-1">{idx + 1}</div>
-                  <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
-                    <div style={{ width: 1920 * 0.09, height: 1080 * 0.09 }}>
-                      <SlideCanvas
-                        slide={slide}
-                        theme={presentation.theme}
-                        scale={0.09}
-                        isEditing={false}
-                      />
-                    </div>
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="slide-list">
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="flex-1 overflow-y-auto px-2 pb-2 space-y-2"
+                  >
+                    {presentation.slides.map((slide, idx) => (
+                      <Draggable key={slide.id} draggableId={slide.id} index={idx}>
+                        {(provided, snapshot) => (
+                          <div
+                            ref={provided.innerRef}
+                            {...provided.draggableProps}
+                            {...provided.dragHandleProps}
+                            className={cn(
+                              'relative rounded-lg cursor-pointer transition-all group',
+                              activeSlideIndex === idx ? 'ring-2 ring-indigo-500' : 'hover:ring-1 hover:ring-white/20',
+                              snapshot.isDragging && 'ring-2 ring-indigo-400 opacity-90 shadow-lg shadow-indigo-500/20'
+                            )}
+                            onClick={() => setActiveSlideIndex(idx)}
+                          >
+                            <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-white/60 bg-black/40 rounded px-1">{idx + 1}</div>
+                            <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
+                              <div style={{ width: 1920 * 0.09, height: 1080 * 0.09 }}>
+                                <SlideCanvas
+                                  slide={slide}
+                                  theme={presentation.theme}
+                                  scale={0.09}
+                                  isEditing={false}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
                   </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
 
           {/* Canvas area */}
@@ -338,7 +384,16 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => handleAddShape('rectangle')}><Square className="w-4 h-4 mr-2" />Rectangle</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddShape('circle')}><Circle className="w-4 h-4 mr-2" />Circle</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddShape('triangle')}><Triangle className="w-4 h-4 mr-2" />Triangle</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('arrow-right')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('star')}><Star className="w-4 h-4 mr-2" />Star</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('pentagon')}><Pentagon className="w-4 h-4 mr-2" />Pentagon</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('hexagon')}><Hexagon className="w-4 h-4 mr-2" />Hexagon</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('heart')}><Heart className="w-4 h-4 mr-2" />Heart</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleAddShape('arrow-right')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Right</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('arrow-left')}><MoveLeft className="w-4 h-4 mr-2" />Arrow Left</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('arrow-up')}><ArrowUp className="w-4 h-4 mr-2" />Arrow Up</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddShape('arrow-down')}><ArrowDown className="w-4 h-4 mr-2" />Arrow Down</DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleAddShape('line')}><Minus className="w-4 h-4 mr-2" />Line</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

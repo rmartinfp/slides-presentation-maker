@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import {
   RotateCw, Move, Maximize2, Eye, Palette, Type,
   Lock, Unlock, Trash2, Copy, ArrowUpToLine, ArrowDownToLine,
+  BoxSelect, ImageIcon,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -219,6 +220,58 @@ export default function PropertiesPanel() {
                   min={0} max={50} step={1}
                 />
               </div>
+            </div>
+          </Section>
+        )}
+
+        {/* Image Filters */}
+        {el.type === 'image' && (
+          <Section icon={<ImageIcon className="w-3 h-3" />} title="Filter">
+            <div className="grid grid-cols-3 gap-1">
+              {([
+                { label: 'None', value: '' },
+                { label: 'Gray', value: 'grayscale(100%)' },
+                { label: 'Sepia', value: 'sepia(100%)' },
+                { label: 'Blur', value: 'blur(2px)' },
+                { label: 'Bright', value: 'brightness(1.3)' },
+                { label: 'Contrast', value: 'contrast(1.4)' },
+              ] as const).map(preset => (
+                <button
+                  key={preset.label}
+                  onClick={() => updateStyle({ filter: preset.value })}
+                  className={cn(
+                    'py-1 rounded text-[10px] font-medium transition-colors',
+                    (el.style.filter || '') === preset.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </Section>
+        )}
+
+        {/* Shadow — for shapes and images */}
+        {(el.type === 'shape' || el.type === 'image') && (
+          <Section icon={<BoxSelect className="w-3 h-3" />} title="Shadow">
+            <div className="grid grid-cols-2 gap-1">
+              {([
+                { label: 'None', value: '' },
+                { label: 'Small', value: '0 2px 8px rgba(0,0,0,0.25)' },
+                { label: 'Medium', value: '0 4px 16px rgba(0,0,0,0.35)' },
+                { label: 'Large', value: '0 8px 32px rgba(0,0,0,0.45)' },
+              ] as const).map(preset => (
+                <button
+                  key={preset.label}
+                  onClick={() => updateStyle({ boxShadow: preset.value })}
+                  className={cn(
+                    'py-1 rounded text-[10px] font-medium transition-colors',
+                    (el.style.boxShadow || '') === preset.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                  )}
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
           </Section>
         )}
