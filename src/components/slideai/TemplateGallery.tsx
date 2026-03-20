@@ -226,15 +226,15 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="flex items-center gap-4 mb-6">
-          <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-slate-700 text-sm transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-headline font-extrabold headline-tight text-slate-900">Pick your template</h1>
-            <p className="text-slate-500 text-sm mt-1">Choose a design that fits your story</p>
-          </div>
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-slate-700 text-sm mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+
+        <div className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-headline font-extrabold headline-tight text-slate-900">
+            Pick your template
+          </h1>
         </div>
 
         {/* Mode tabs + search in same row */}
