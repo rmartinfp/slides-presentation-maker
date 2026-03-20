@@ -79,8 +79,10 @@ export default function SlideCanvas({
   const isDragging = useRef(false);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only start marquee if clicking directly on canvas background
-    if (!isEditing || e.target !== e.currentTarget) return;
+    if (!isEditing) return;
+    // Don't start marquee if clicking on a canvas element (they handle their own selection)
+    const target = e.target as HTMLElement;
+    if (target.closest('.canvas-element')) return;
     e.preventDefault();
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -91,42 +93,49 @@ export default function SlideCanvas({
     if (!e.shiftKey) clearSelection();
   }, [isEditing, scale, clearSelection]);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current || !stageRef.current) return;
-    const rect = stageRef.current.getBoundingClientRect();
-    const x = (e.clientX - rect.left) / scale;
-    const y = (e.clientY - rect.top) / scale;
-    setMarquee(prev => prev ? { ...prev, x2: x, y2: y } : null);
-  }, [scale]);
+  // Use window-level listeners so dragging outside canvas still works
+  React.useEffect(() => {
+    if (!isEditing) return;
 
-  const handleMouseUp = useCallback(() => {
-    if (!isDragging.current || !marquee) {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current || !stageRef.current) return;
+      const rect = stageRef.current.getBoundingClientRect();
+      const x = (e.clientX - rect.left) / scale;
+      const y = (e.clientY - rect.top) / scale;
+      setMarquee(prev => prev ? { ...prev, x2: x, y2: y } : null);
+    };
+
+    const handleMouseUp = () => {
+      if (!isDragging.current) return;
       isDragging.current = false;
-      setMarquee(null);
-      return;
-    }
-    isDragging.current = false;
+      setMarquee(prev => {
+        if (!prev) return null;
+        const left = Math.min(prev.x1, prev.x2);
+        const right = Math.max(prev.x1, prev.x2);
+        const top = Math.min(prev.y1, prev.y2);
+        const bottom = Math.max(prev.y1, prev.y2);
 
-    // Calculate marquee bounds
-    const left = Math.min(marquee.x1, marquee.x2);
-    const right = Math.max(marquee.x1, marquee.x2);
-    const top = Math.min(marquee.y1, marquee.y2);
-    const bottom = Math.max(marquee.y1, marquee.y2);
+        if (right - left > 5 || bottom - top > 5) {
+          const intersecting = (slide.elements || [])
+            .filter(el => !el.locked &&
+              !(el.x + el.width < left || el.x > right || el.y + el.height < top || el.y > bottom)
+            )
+            .map(el => el.id);
+          if (intersecting.length > 0) {
+            setSelectedElementIds(intersecting);
+          }
+        }
+        return null;
+      });
+    };
 
-    // Only select if dragged a meaningful distance (>5px)
-    if (right - left > 5 || bottom - top > 5) {
-      const intersecting = (slide.elements || [])
-        .filter(el => !el.locked &&
-          !(el.x + el.width < left || el.x > right || el.y + el.height < top || el.y > bottom)
-        )
-        .map(el => el.id);
-
-      if (intersecting.length > 0) {
-        setSelectedElementIds(intersecting);
-      }
-    }
-    setMarquee(null);
-  }, [marquee, slide.elements, setSelectedElementIds]);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isEditing, scale, slide.elements, setSelectedElementIds]);
 
   // Marquee box style
   const marqueeStyle: React.CSSProperties | null = marquee ? {
@@ -153,9 +162,6 @@ export default function SlideCanvas({
       }}
       onClick={isEditing ? handleCanvasClick : undefined}
       onMouseDown={isEditing ? handleMouseDown : undefined}
-      onMouseMove={isEditing ? handleMouseMove : undefined}
-      onMouseUp={isEditing ? handleMouseUp : undefined}
-      onMouseLeave={isEditing ? handleMouseUp : undefined}
     >
       {isEditing && (
         <AlignmentGuides
