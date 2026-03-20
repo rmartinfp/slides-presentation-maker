@@ -13,6 +13,7 @@ import CinematicPresentation from '@/components/cinematic/CinematicPresentation'
 import { CinematicPreset } from '@/types/cinematic';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
+import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
 import EditorSkeleton from '@/components/editor/EditorSkeleton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -366,6 +367,9 @@ export default function EditorPage() {
               <span className="text-[11px] text-slate-500 font-mono px-2">{activeSlideIndex + 1} / {presentation.slides.length}</span>
             </div>
           </div>
+
+          {/* Right panel — properties */}
+          <PropertiesPanel />
         </div>
       </div>
 
