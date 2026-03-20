@@ -196,12 +196,7 @@ export default function SlideAIPage() {
           let textIdx = 0;
           for (const el of replaceableElements) {
             if (textIdx < aiSlide.texts.length) {
-              let aiText = aiSlide.texts[textIdx].content || '';
-              // Truncate to fit the box
-              const maxChars = calcMaxChars(el);
-              if (aiText.length > maxChars) {
-                aiText = aiText.slice(0, maxChars - 3).replace(/\s+\S*$/, '') + '...';
-              }
+              const aiText = aiSlide.texts[textIdx].content || '';
 
               // Preserve original formatting: extract the inline style wrapper from
               // the first run of the original content and wrap AI text in it.
