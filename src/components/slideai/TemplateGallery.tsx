@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Check, ChevronRight, ArrowLeft, Loader2, Play, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PresentationTheme, Slide } from '@/types/presentation';
-import { TEMPLATE_REGISTRY, templateToTheme, getAllCategories, TemplateDefinition } from '@/lib/template-registry';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { CINEMATIC_PRESETS } from '@/lib/cinematic-presets';
@@ -11,17 +10,13 @@ import { CinematicPreset } from '@/types/cinematic';
 import StepIndicator from './StepIndicator';
 import { useNavigate } from 'react-router-dom';
 
-// Unified template type for both hardcoded and DB templates
+// Unified template type
 export interface UnifiedTemplate {
   id: string;
   name: string;
   category: string;
-  coverImage: string;
-  slideImages: string[];
   theme: PresentationTheme;
-  // DB templates have real slides with elements
   slides?: Slide[];
-  source: 'registry' | 'db';
   colors: { primary: string; secondary: string; accent: string; bg: string; text: string };
 }
 
@@ -34,10 +29,7 @@ function useDbTemplates() {
         .select('*')
         .eq('is_active', true)
         .order('sort_order', { ascending: true });
-      if (error) {
-        console.warn('Failed to load DB templates:', error.message);
-        return [];
-      }
+      if (error) return [];
       return data ?? [];
     },
     staleTime: 5 * 60 * 1000,
@@ -45,30 +37,13 @@ function useDbTemplates() {
 }
 
 function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void }) {
-  const [isHovering, setIsHovering] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  React.useEffect(() => {
-    if (!isHovering || template.slideImages.length === 0) {
-      setCurrentSlide(0);
-      return;
-    }
-    const interval = setInterval(() => {
-      setCurrentSlide(prev => (prev + 1) % (template.slideImages.length + 1));
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isHovering, template.slideImages.length]);
-
-  const displayImage = currentSlide === 0 ? template.coverImage : template.slideImages[currentSlide - 1];
-  const hasImages = template.coverImage !== '';
   const hasSlides = template.slides && template.slides.length > 0;
+  const firstSlide = template.slides?.[0];
 
   return (
     <motion.div
       layout
       whileHover={{ y: -6 }}
-      onHoverStart={() => setIsHovering(true)}
-      onHoverEnd={() => setIsHovering(false)}
       onClick={() => onSelect(template)}
       className={cn(
         'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full cursor-pointer',
@@ -78,32 +53,20 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
-        {hasImages ? (
-          <AnimatePresence mode="wait">
-            <motion.img
-              key={displayImage}
-              src={displayImage}
-              alt={template.name}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="w-full h-full object-cover"
-            />
-          </AnimatePresence>
-        ) : hasSlides ? (
-          // Render mini preview of first slide elements
+        {hasSlides && firstSlide ? (
           <div
             className="w-full h-full relative"
             style={{
-              backgroundColor:
-                template.slides![0]?.background?.type === 'solid'
-                  ? template.slides![0].background.value
-                  : template.colors.bg,
+              backgroundColor: firstSlide.background?.type === 'solid' ? firstSlide.background.value : template.colors.bg,
             }}
           >
-            {template.slides![0]?.elements?.slice(0, 8).map((el) => {
-              const s = 280 / 1920; // thumbnail scale
+            {/* Background image */}
+            {firstSlide.background?.type === 'image' && firstSlide.background.value && (
+              <img src={firstSlide.background.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            )}
+            {/* Elements */}
+            {firstSlide.elements?.slice(0, 10).map((el) => {
+              const s = 280 / 1920;
               return (
                 <div
                   key={el.id}
@@ -117,62 +80,34 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
                     fontFamily: el.style.fontFamily,
                     fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
                     color: el.style.color,
+                    textAlign: el.style.textAlign as React.CSSProperties['textAlign'],
                     opacity: el.opacity,
+                    backgroundColor: el.type === 'shape' && el.style.shapeFill !== 'transparent' ? el.style.shapeFill : undefined,
+                    borderRadius: el.type === 'shape' && el.style.shapeType === 'circle' ? '50%' : undefined,
+                    border: el.type === 'shape' && el.style.shapeStroke && el.style.shapeStroke !== 'transparent'
+                      ? `1px solid ${el.style.shapeStroke}` : undefined,
                   }}
                 >
                   {el.type === 'text' && (
                     <span className="line-clamp-2 leading-tight">
-                      {el.content.replace(/<[^>]+>/g, '')}
+                      {el.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
                     </span>
                   )}
-                  {el.type === 'image' && (
+                  {el.type === 'image' && el.content && (
                     <img src={el.content} alt="" className="w-full h-full object-cover" />
-                  )}
-                  {el.type === 'shape' && (
-                    <div
-                      className="w-full h-full"
-                      style={{
-                        backgroundColor: el.style.shapeFill || el.style.backgroundColor,
-                        borderRadius: el.style.borderRadius,
-                      }}
-                    />
                   )}
                 </div>
               );
             })}
           </div>
         ) : (
-          <div
-            className="w-full h-full flex flex-col items-center justify-center gap-3 p-6"
-            style={{ backgroundColor: template.colors.bg }}
-          >
+          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: template.colors.bg }}>
             <div className="w-3/4 h-4 rounded-full" style={{ backgroundColor: template.colors.primary }} />
-            <div className="w-1/2 h-3 rounded-full opacity-60" style={{ backgroundColor: template.colors.secondary }} />
-            <div className="flex gap-2 mt-2">
-              {[template.colors.primary, template.colors.secondary, template.colors.accent, template.colors.bg].map((c, i) => (
-                <div key={i} className="w-6 h-6 rounded-full ring-1 ring-white/20" style={{ backgroundColor: c }} />
-              ))}
-            </div>
           </div>
         )}
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-        {isHovering && hasImages && template.slideImages.length > 0 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {[template.coverImage, ...template.slideImages].slice(0, 4).map((_, idx) => (
-              <div
-                key={idx}
-                className={cn(
-                  'h-1 rounded-full transition-all',
-                  currentSlide === idx ? 'w-4 bg-white' : 'w-1 bg-white/50'
-                )}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Badge for DB templates with real slides */}
         {hasSlides && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-emerald-500/90 text-white text-[10px] font-medium rounded-full">
             {template.slides!.length} slides
@@ -223,54 +158,30 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
 
   const { data: dbTemplates, isLoading: loadingDb } = useDbTemplates();
 
-  // Merge hardcoded + DB templates into unified list
   const allTemplates = useMemo(() => {
-    const unified: UnifiedTemplate[] = [];
-
-    // DB templates first (they have real slides)
-    if (dbTemplates) {
-      for (const t of dbTemplates) {
-        const colors = t.colors || t.theme?.tokens?.palette || {};
-        unified.push({
-          id: t.id,
-          name: t.name,
-          category: t.category || 'Imported',
-          coverImage: t.thumbnail_url || '',
-          slideImages: [],
-          theme: t.theme as PresentationTheme,
-          slides: t.preview_slides as Slide[],
-          source: 'db',
-          colors: {
-            primary: colors.primary || '#6366f1',
-            secondary: colors.secondary || '#666666',
-            accent: colors.accent || '#f59e0b',
-            bg: colors.bg || '#ffffff',
-            text: colors.text || '#000000',
-          },
-        });
-      }
-    }
-
-    // Hardcoded templates
-    for (const t of TEMPLATE_REGISTRY) {
-      unified.push({
+    if (!dbTemplates) return [];
+    return dbTemplates.map((t: any): UnifiedTemplate => {
+      const colors = t.colors || t.theme?.tokens?.palette || {};
+      return {
         id: t.id,
-        name: t.name,
-        category: t.category,
-        coverImage: t.coverImage,
-        slideImages: t.slideImages,
-        theme: templateToTheme(t),
-        source: 'registry',
-        colors: t.colors,
-      });
-    }
-
-    return unified;
+        name: t.name.replace(/ by Slidesgo$/i, ''), // Clean name
+        category: t.category === 'Imported' ? 'All' : t.category,
+        theme: t.theme as PresentationTheme,
+        slides: t.preview_slides as Slide[],
+        colors: {
+          primary: colors.primary || '#6366f1',
+          secondary: colors.secondary || '#666666',
+          accent: colors.accent || '#f59e0b',
+          bg: colors.bg || '#ffffff',
+          text: colors.text || '#000000',
+        },
+      };
+    });
   }, [dbTemplates]);
 
   const categories = useMemo(() => {
     const cats = new Set(allTemplates.map(t => t.category));
-    return ['All', ...cats];
+    return ['All', ...Array.from(cats).filter(c => c !== 'All')];
   }, [allTemplates]);
 
   const filtered = useMemo(() => {
@@ -283,6 +194,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
 
   const handleSelect = (template: UnifiedTemplate) => {
     setSelectedTemplate(template);
+    setSelectedCinematicPreset(null);
   };
 
   const handleContinue = () => {
@@ -301,23 +213,18 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       exit={{ opacity: 0 }}
       className="min-h-screen relative z-10"
     >
-      {/* Background blobs */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-0 w-64 md:w-96 h-64 md:h-96 bg-indigo-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-0 w-64 md:w-96 h-64 md:h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-pink-600/10 rounded-full blur-[120px]" />
       </div>
 
-      {/* Header with step indicator */}
       <div className="sticky top-0 z-30 bg-[#030305]/80 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-6xl mx-auto px-6 py-4">
           <StepIndicator currentStep={1} />
         </div>
       </div>
 
-      {/* Content */}
       <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Back + Title */}
         <div className="flex items-center gap-4 mb-6">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-white text-sm">
             <ArrowLeft className="w-4 h-4" />
@@ -328,7 +235,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
           </div>
         </div>
 
-        {/* Mode tabs: Classic / Cinematic */}
+        {/* Mode tabs */}
         <div className="flex gap-2 mb-6">
           <button
             onClick={() => { setActiveTab('classic'); setSelectedCinematicPreset(null); }}
@@ -340,7 +247,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             )}
           >
             <Sparkles className="w-4 h-4" />
-            Classic Templates
+            Templates
           </button>
           <button
             onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); }}
@@ -359,7 +266,6 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
 
         {activeTab === 'classic' ? (
           <>
-            {/* Filter Toolbar */}
             <div className="flex items-center gap-3 mb-6 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl flex-wrap">
               <div className="relative flex-shrink-0">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
@@ -371,21 +277,25 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                   className="w-44 h-8 pl-8 pr-3 bg-white/5 border border-white/10 rounded-md text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/40"
                 />
               </div>
-              <div className="w-px h-5 bg-white/10" />
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  className={cn(
-                    'h-8 px-3 flex items-center gap-2 rounded-md text-xs font-medium transition-all border',
-                    activeCategory === cat
-                      ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                      : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
-                  )}
-                >
-                  {cat}
-                </button>
-              ))}
+              {categories.length > 2 && (
+                <>
+                  <div className="w-px h-5 bg-white/10" />
+                  {categories.map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={cn(
+                        'h-8 px-3 rounded-md text-xs font-medium transition-all border',
+                        activeCategory === cat
+                          ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                          : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                      )}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </>
+              )}
             </div>
 
             <p className="text-xs text-slate-500 mb-4">
@@ -393,7 +303,6 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
               {filtered.length} template{filtered.length !== 1 ? 's' : ''}
             </p>
 
-            {/* Classic Template Grid */}
             <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               <AnimatePresence mode="popLayout">
                 {filtered.map(template => (
@@ -407,25 +316,29 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
               </AnimatePresence>
             </motion.div>
 
-            {filtered.length === 0 && (
+            {filtered.length === 0 && !loadingDb && (
               <div className="text-center py-16">
                 <p className="text-slate-400">No templates found</p>
+              </div>
+            )}
+            {loadingDb && filtered.length === 0 && (
+              <div className="text-center py-16">
+                <Loader2 className="w-6 h-6 animate-spin text-purple-400 mx-auto mb-3" />
+                <p className="text-slate-400">Loading templates...</p>
               </div>
             )}
           </>
         ) : (
           <>
-            {/* Cinematic Presets */}
             <p className="text-slate-400 text-sm mb-6">
-              Modern, animated presentations with video backgrounds and cinematic text reveals. Perfect for pitches, keynotes, and storytelling.
+              Modern, animated presentations with cinematic text reveals. Perfect for pitches, keynotes, and storytelling.
             </p>
-
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {CINEMATIC_PRESETS.map(preset => (
                 <motion.div
                   key={preset.id}
                   whileHover={{ y: -6 }}
-                  onClick={() => setSelectedCinematicPreset(preset)}
+                  onClick={() => { setSelectedCinematicPreset(preset); setSelectedTemplate(null); }}
                   className={cn(
                     'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
                     selectedCinematicPreset?.id === preset.id
@@ -433,44 +346,21 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                       : 'hover:ring-1 hover:ring-white/20'
                   )}
                 >
-                  {/* Preview */}
-                  <div
-                    className="aspect-video relative overflow-hidden"
-                    style={{ backgroundColor: preset.backgroundColor }}
-                  >
-                    {/* Simulated slide content */}
+                  <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: preset.backgroundColor }}>
                     <div className="absolute inset-0 flex flex-col justify-end p-6">
                       <div className="w-px h-8 mb-3" style={{ backgroundColor: preset.accentColor }} />
-                      <div
-                        className="text-2xl font-bold leading-tight mb-2"
-                        style={{ color: preset.primaryTextColor, fontFamily: `'${preset.fontHeading}', sans-serif` }}
-                      >
+                      <div className="text-2xl font-bold leading-tight mb-2" style={{ color: preset.primaryTextColor, fontFamily: `'${preset.fontHeading}', sans-serif` }}>
                         {preset.name}
                       </div>
-                      <div className="text-xs" style={{ color: preset.secondaryTextColor }}>
-                        {preset.description}
-                      </div>
+                      <div className="text-xs" style={{ color: preset.secondaryTextColor }}>{preset.description}</div>
                     </div>
-
-                    {/* Accent gradient overlay */}
-                    <div
-                      className="absolute top-0 right-0 w-1/2 h-full opacity-20 blur-3xl"
-                      style={{ background: `radial-gradient(circle at top right, ${preset.accentColor}, transparent)` }}
-                    />
-
-                    {/* Selected check */}
+                    <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle at top right, ${preset.accentColor}, transparent)` }} />
                     {selectedCinematicPreset?.id === preset.id && (
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center"
-                      >
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center">
                         <Check className="w-4 h-4 text-white" />
                       </motion.div>
                     )}
                   </div>
-
-                  {/* Info bar */}
                   <div className="p-3 bg-slate-900/80 backdrop-blur-sm flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-medium text-white">{preset.name}</h3>
@@ -478,7 +368,6 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                     </div>
                     <div className="flex gap-1">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: preset.accentColor }} />
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: preset.primaryTextColor, opacity: 0.6 }} />
                     </div>
                   </div>
                 </motion.div>
@@ -501,30 +390,25 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
               <div className="flex items-center gap-4">
                 {selectedCinematicPreset ? (
                   <>
-                    <div
-                      className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center"
-                      style={{ backgroundColor: selectedCinematicPreset.backgroundColor }}
-                    >
+                    <div className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center" style={{ backgroundColor: selectedCinematicPreset.backgroundColor }}>
                       <Play className="w-5 h-5" style={{ color: selectedCinematicPreset.accentColor }} />
                     </div>
                     <div>
                       <p className="font-medium text-white text-sm">{selectedCinematicPreset.name}</p>
-                      <p className="text-xs text-slate-400">Cinematic presentation with animations</p>
+                      <p className="text-xs text-slate-400">Cinematic presentation</p>
                     </div>
                   </>
                 ) : selectedTemplate ? (
                   <>
-                    {selectedTemplate.coverImage ? (
-                      <img src={selectedTemplate.coverImage} alt={selectedTemplate.name} className="w-16 h-9 rounded-lg ring-2 ring-purple-500 object-cover" />
-                    ) : (
-                      <div className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center" style={{ backgroundColor: selectedTemplate.colors.bg }}>
-                        <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: selectedTemplate.colors.primary }} />
-                      </div>
-                    )}
+                    <div className="w-16 h-9 rounded-lg ring-2 ring-purple-500 overflow-hidden" style={{ backgroundColor: selectedTemplate.colors.bg }}>
+                      {selectedTemplate.slides?.[0]?.background?.type === 'image' && (
+                        <img src={selectedTemplate.slides[0].background.value} alt="" className="w-full h-full object-cover" />
+                      )}
+                    </div>
                     <div>
                       <p className="font-medium text-white text-sm">{selectedTemplate.name}</p>
                       <p className="text-xs text-slate-400">
-                        {selectedTemplate.slides ? `${selectedTemplate.slides.length} slides — Use as template` : 'AI will generate slides'}
+                        {selectedTemplate.slides ? `${selectedTemplate.slides.length} slides` : 'Template'}
                       </p>
                     </div>
                   </>
