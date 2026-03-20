@@ -92,27 +92,33 @@ export default function EditorPage() {
     }
   }, [presentation.slides, presentation.theme]);
 
-  // Initialize
+  // Initialize — load sessionStorage synchronously to avoid gray flash,
+  // only use async loading for Supabase (URL-based) presentations
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
     if (idFromUrl) {
       loadFromSupabase(idFromUrl);
-    } else {
-      const stored = sessionStorage.getItem('presentation');
-      if (stored) {
-        sessionStorage.removeItem('presentation');
-        setPresentation(JSON.parse(stored));
-      } else {
-        const t = THEME_CATALOG[0];
-        setPresentation({
-          id: 'default', title: 'Untitled Presentation',
-          slides: migrateAllSlides(createSampleSlides() as Slide[], t.tokens),
-          theme: t, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-        });
-      }
+    } else if (presentation.slides.length === 0) {
+      // Fallback: if sessionStorage wasn't loaded synchronously below
+      const t = THEME_CATALOG[0];
+      setPresentation({
+        id: 'default', title: 'Untitled Presentation',
+        slides: migrateAllSlides(createSampleSlides() as Slide[], t.tokens),
+        theme: t, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+      });
     }
-  }, [idFromUrl, loadFromSupabase, setPresentation]);
+  }, [idFromUrl, loadFromSupabase, setPresentation, presentation.slides.length]);
+
+  // Load from sessionStorage synchronously on mount (before first paint)
+  useEffect(() => {
+    const stored = sessionStorage.getItem('presentation');
+    if (stored) {
+      sessionStorage.removeItem('presentation');
+      setPresentation(JSON.parse(stored));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Auto-save
   useEffect(() => {

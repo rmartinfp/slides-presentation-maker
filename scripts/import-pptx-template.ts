@@ -695,48 +695,7 @@ async function main() {
     const plainText = slideXml.replace(/<[^>]+>/g, '').toLowerCase();
     const elementCount = (slideXml.match(/<p:sp>/g) || []).length + (slideXml.match(/<p:pic>/g) || []).length;
 
-    // Check if slide belongs to the secondary (non-primary) master = "Final Pages"
-    const slideMasterId = await getSlideMasterId(slideNum);
-    const isSecondaryMaster = primaryMasterId && slideMasterId && slideMasterId !== primaryMasterId;
-
-    // Heuristic final page detection (branding, excessive elements, resource pages)
-    // Note: check "freepik" only in branding context, not in example emails
-    const hasFreepikBranding = (plainText.includes('freepik') && !plainText.includes('@freepik'))
-      || plainText.includes('slidesgo') || plainText.includes('flaticon');
-    const isFinalPageHeuristic = hasFreepikBranding
-      || elementCount > 50
-      || (/\bicons?\b/.test(plainText) && elementCount > 15)
-      || plainText.includes('fonts & colors') || plainText.includes('fonts used')
-      || plainText.includes('contents of this template')
-      || plainText.includes('contents of this presentation');
-
-    const isFinalPage = isSecondaryMaster || isFinalPageHeuristic;
-
-    // Detect real "Thank You" slides: title must be "thank you" or "thanks",
-    // AND must have few elements (real thank you slides have <15 elements)
-    // AND must NOT be an instructions page (which can also contain "thank")
-    const isThanksSlide = elementCount <= 15
-      && (/\bthank\s+you\b/i.test(plainText) || /\bthanks\b/i.test(plainText))
-      && !plainText.includes('instructions for use')
-      && !plainText.includes('instructions (')
-      && !plainText.includes('you can delete');
-
-    // Heuristic for instruction/resource pages that leak through master filter
-    const isInstructionPage = plainText.includes('instructions for use')
-      || plainText.includes('instructions (')
-      || plainText.includes('you can delete this slide')
-      || plainText.includes('freepik premium')
-      || (elementCount > 25 && !isThanksSlide);
-
-    if ((isFinalPage || isInstructionPage) && !isThanksSlide) {
-      console.log(`  Skipping: ${isSecondaryMaster ? 'secondary master' : isInstructionPage ? 'instruction page' : 'final page'} (${elementCount} elements)`);
-      continue;
-    }
-    if (isThanksSlide) {
-      console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
-    }
-
-    // Parse relationships for this slide
+    // Parse relationships for this slide (needed early for layout name extraction)
     const relsFile = `ppt/slides/_rels/slide${slideNum}.xml.rels`;
     const relsMap = new Map<string, string>();
     if (zip.files[relsFile]) {
@@ -746,9 +705,6 @@ async function main() {
         relsMap.set(m[1], m[2]);
       }
     }
-
-    // Parse background
-    let background = parseSlideBackground(slideXml, relsMap, themeColors);
 
     // Extract layout name and placeholder font sizes for inheritance
     let layoutName = 'unknown';
@@ -777,6 +733,55 @@ async function main() {
         }
       }
     }
+
+    // ---- Filtering logic (needs layoutName from above) ----
+
+    // Check if slide belongs to the secondary (non-primary) master = "Final Pages"
+    const slideMasterId = await getSlideMasterId(slideNum);
+    const isSecondaryMaster = primaryMasterId && slideMasterId && slideMasterId !== primaryMasterId;
+
+    // Heuristic final page detection (branding, excessive elements, resource pages)
+    const hasFreepikBranding = (plainText.includes('freepik') && !plainText.includes('@freepik'))
+      || plainText.includes('slidesgo') || plainText.includes('flaticon');
+    const isFinalPageHeuristic = hasFreepikBranding
+      || elementCount > 50
+      || (/\bicons?\b/.test(plainText) && elementCount > 15)
+      || plainText.includes('fonts & colors') || plainText.includes('fonts used')
+      || plainText.includes('contents of this template')
+      || plainText.includes('contents of this presentation');
+
+    const isFinalPage = isSecondaryMaster || isFinalPageHeuristic;
+
+    // Detect real "Thank You" slides
+    const isThanksSlide = elementCount <= 15
+      && (/\bthank\s+you\b/i.test(plainText) || /\bthanks\b/i.test(plainText))
+      && !plainText.includes('instructions for use')
+      && !plainText.includes('instructions (')
+      && !plainText.includes('you can delete');
+
+    // Heuristic for instruction/resource pages that leak through master filter
+    const isInstructionPage = plainText.includes('instructions for use')
+      || plainText.includes('instructions (')
+      || plainText.includes('you can delete this slide')
+      || plainText.includes('freepik premium')
+      || (elementCount > 25 && !isThanksSlide);
+
+    // Skip TITLE_ONLY slides (just a title, no content structure)
+    // Layout names can be "TITLE_ONLY", "Title only 1", "Title only 2", etc.
+    const isTitleOnly = layoutName === 'TITLE_ONLY'
+      || layoutName.startsWith('TITLE_ONLY')
+      || layoutName.toLowerCase().startsWith('title only');
+
+    if (((isFinalPage || isInstructionPage) && !isThanksSlide) || (isTitleOnly && !isThanksSlide)) {
+      console.log(`  Skipping: ${isTitleOnly ? 'title-only layout' : isSecondaryMaster ? 'secondary master' : isInstructionPage ? 'instruction page' : 'final page'} (${elementCount} elements, layout: ${layoutName})`);
+      continue;
+    }
+    if (isThanksSlide) {
+      console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
+    }
+
+    // Parse background
+    let background = parseSlideBackground(slideXml, relsMap, themeColors);
 
     // Parse elements — start with layout decorations (images, shapes that aren't placeholders)
     const elements: ParsedElement[] = [];
@@ -1002,9 +1007,10 @@ async function main() {
     }
 
     // Detect TOC (Table of Contents) slides
-    const isTocSlide = plainText.includes('table of contents') || plainText.includes('contents')
-      && (layoutName === 'TITLE_ONLY' || layoutName.includes('CUSTOM'))
-      && texts.length >= 3; // Multiple text elements = TOC items
+    const textCount = elements.filter(e => e.type === 'text').length;
+    const isTocSlide = (plainText.includes('table of contents') || plainText.includes('contents'))
+      && (layoutName === 'TITLE_ONLY' || layoutName.includes('CUSTOM') || layoutName.toLowerCase().includes('custom'))
+      && textCount >= 3; // Multiple text elements = TOC items
 
     // Detect "Thank You" / closing slides — check actual text elements
     const allTexts = (elements.filter(e => e.type === 'text') as any[])
@@ -1012,9 +1018,6 @@ async function main() {
       .join(' ');
     const isClosingSlide = allTexts.includes('thank you') || allTexts.includes('thanks')
       || /\bthank\s+you\b/i.test(plainText);
-
-    // Skip TITLE_ONLY slides (just a title, no real content structure)
-    const isTitleOnly = layoutName === 'TITLE_ONLY' || layoutName.startsWith('TITLE_ONLY');
 
     // Classify slide type from layout name
     const slideTypeMap: Record<string, string> = {

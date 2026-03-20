@@ -84,7 +84,8 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
     };
 
     switch (element.type) {
-      case 'text':
+      case 'text': {
+        const vAlign = s.verticalAlign;
         return (
           <div key={element.id} style={wrapperStyle}>
             <div
@@ -100,10 +101,14 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
                 padding: `${8 * scaleX}vw`,
                 width: '100%',
                 height: '100%',
+                display: vAlign ? 'flex' : undefined,
+                flexDirection: vAlign ? 'column' : undefined,
+                justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
                 wordBreak: 'break-word',
                 whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap', overflowWrap: 'break-word',
                 opacity: typeof s.opacity === 'number' ? s.opacity : 1,
               }}
+              className={element.content.startsWith('<') ? 'tiptap-preview' : undefined}
               dangerouslySetInnerHTML={
                 element.content.startsWith('<')
                   ? { __html: element.content }
@@ -114,6 +119,7 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
             </div>
           </div>
         );
+      }
 
       case 'shape': {
         const fill = s.shapeFill || s.backgroundColor || '#6366f1';
@@ -133,6 +139,7 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
           if (shapeType === 'pentagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 97,36 79,96 21,96 3,36" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
           if (shapeType === 'hexagon') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="25,2 75,2 98,50 75,98 25,98 2,50" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
           if (shapeType === 'heart') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M50,88 C25,65 2,50 2,30 C2,12 18,2 32,2 C40,2 46,6 50,14 C54,6 60,2 68,2 C82,2 98,12 98,30 C98,50 75,65 50,88Z" fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
+          if (shapeType === 'custom' && s.svgPath) return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><path d={s.svgPath} fill={fill} stroke={stroke} strokeWidth={sw} /></svg>;
           return <div className="w-full h-full" style={{ backgroundColor: fill, borderRadius: s.borderRadius ?? 0 }} />;
         };
 

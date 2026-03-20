@@ -68,8 +68,8 @@ export default function SlideAIPage() {
     const plainText = el.content.replace(/<[^>]+>/g, '').trim();
     const fontSize = el.style?.fontSize || 24;
 
-    // Numbers like "01", "02", "1", "2" etc — keep unchanged
-    if (/^\d{1,3}$/.test(plainText)) return 'number';
+    // Numbers like "01", "02", "1", "2", "{01}", "_02" etc — keep unchanged
+    if (/^\{?\d{1,3}\}?$/.test(plainText) || /^[_\-]?\d{1,3}$/.test(plainText)) return 'number';
 
     // Largest text element = title
     if (isLargest) return 'title';
@@ -107,7 +107,7 @@ export default function SlideAIPage() {
 
         for (const el of textElements) {
           const plainText = el.content.replace(/<[^>]+>/g, '').trim();
-          if (/^\d{1,3}$/.test(plainText)) continue; // skip numbers
+          if (/^\{?\d{1,3}\}?$/.test(plainText) || /^[_\-]?\d{1,3}$/.test(plainText)) continue; // skip numbers
 
           if (!titleDone) {
             textSlots.push({ role: 'title', maxChars: calcMaxChars(el) });
@@ -203,7 +203,22 @@ export default function SlideAIPage() {
               if (aiText.length > maxChars) {
                 aiText = aiText.slice(0, maxChars - 3).replace(/\s+\S*$/, '') + '...';
               }
-              el.content = `<p>${aiText}</p>`;
+
+              // Preserve original formatting: extract the inline style wrapper from
+              // the first run of the original content and wrap AI text in it.
+              // Original might be: <p><span style="color:#FFF;font-size:48px"><strong>Text</strong></span></p>
+              // We want:           <p><span style="color:#FFF;font-size:48px"><strong>AI Text</strong></span></p>
+              const origContent = el.content;
+              const openingTags = origContent.match(/^(<p>)(\s*<span[^>]*>)?(\s*<strong>)?(\s*<em>)?/);
+              const closingTags = origContent.match(/(<\/em>\s*)?(<\/strong>\s*)?(<\/span>\s*)?(<\/p>)\s*$/);
+
+              if (openingTags && closingTags) {
+                const open = (openingTags[1] || '') + (openingTags[2] || '') + (openingTags[3] || '') + (openingTags[4] || '');
+                const close = (closingTags[1] || '') + (closingTags[2] || '') + (closingTags[3] || '') + (closingTags[4] || '');
+                el.content = open + aiText + close;
+              } else {
+                el.content = `<p>${aiText}</p>`;
+              }
               textIdx++;
             }
 
