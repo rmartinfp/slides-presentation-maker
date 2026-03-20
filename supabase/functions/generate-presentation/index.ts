@@ -155,9 +155,9 @@ Your job: generate compelling content that fits EXACTLY into this structure.
 RULES:
 1. Generate EXACTLY the number of slides specified in the brief — no more, no less.
 2. Each slide must have a "texts" array with EXACTLY the number of entries matching the textSlots (expand "count" slots into individual entries).
-3. Each text entry must respect the maxChars limit strictly. Never exceed it.
+3. CRITICAL: Each text entry MUST be SHORTER than or EQUAL TO the maxChars limit. The maxChars represents what physically fits in the text box — exceeding it causes overflow. Aim for 80-100% of maxChars, never more.
 4. Slot roles guide the tone:
-   - "title": concise, impactful heading
+   - "title": concise, impactful heading (often just 2-5 words)
    - "subtitle": supporting tagline or description
    - "body": detailed paragraph or explanation
    - "item": short label or bullet point (for TOC items, list items, etc.)
@@ -166,6 +166,7 @@ RULES:
 6. Make the content flow as a coherent narrative across slides.
 7. Do NOT include any text for "number" role slots — they are handled by the template.
 8. Cover slide = first. Closing/thank-you slide = last. Follow the brief order exactly.
+9. Count your characters carefully. If maxChars is 20, your text must be 20 characters or fewer including spaces.
 
 RESPOND ONLY WITH VALID JSON:
 {

@@ -81,12 +81,11 @@ export default function SlideAIPage() {
     return 'body';
   };
 
-  /** Get max characters for a text box — based on the original text length */
+  /** Get max characters for a text box — based on the original text length.
+   *  Never exceed the original — what already fits in the box is the hard limit. */
   const calcMaxChars = (el: SlideElement): number => {
     const plainText = el.content.replace(/<[^>]+>/g, '').trim();
-    // Use the original text length as the limit (what already fits in the box)
-    // Add a small buffer (10%) but never less than 10 chars
-    return Math.max(10, Math.round(plainText.length * 1.1));
+    return Math.max(10, plainText.length);
   };
 
   /** Build a template brief from the template slides */
