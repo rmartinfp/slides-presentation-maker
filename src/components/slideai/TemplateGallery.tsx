@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Check, ChevronRight, ArrowLeft, Loader2 } from 'lucide-react';
+import { Search, Check, ChevronRight, ArrowLeft, Loader2, Play, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PresentationTheme, Slide } from '@/types/presentation';
 import { TEMPLATE_REGISTRY, templateToTheme, getAllCategories, TemplateDefinition } from '@/lib/template-registry';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
+import { CINEMATIC_PRESETS } from '@/lib/cinematic-presets';
+import { CinematicPreset } from '@/types/cinematic';
 import StepIndicator from './StepIndicator';
 import { useNavigate } from 'react-router-dom';
 
@@ -207,14 +209,17 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
 
 interface Props {
   onSelect: (theme: PresentationTheme, slides?: Slide[]) => void;
+  onSelectCinematic?: (preset: CinematicPreset) => void;
   selectedTheme?: PresentationTheme | null;
 }
 
-export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
+export default function TemplateGallery({ onSelect, onSelectCinematic, selectedTheme }: Props) {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [activeTab, setActiveTab] = useState<'classic' | 'cinematic'>('classic');
   const [selectedTemplate, setSelectedTemplate] = useState<UnifiedTemplate | null>(null);
+  const [selectedCinematicPreset, setSelectedCinematicPreset] = useState<CinematicPreset | null>(null);
 
   const { data: dbTemplates, isLoading: loadingDb } = useDbTemplates();
 
@@ -281,6 +286,10 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
   };
 
   const handleContinue = () => {
+    if (activeTab === 'cinematic' && selectedCinematicPreset) {
+      onSelectCinematic?.(selectedCinematicPreset);
+      return;
+    }
     if (!selectedTemplate) return;
     onSelect(selectedTemplate.theme, selectedTemplate.slides);
   };
@@ -319,65 +328,169 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
           </div>
         </div>
 
-        {/* Filter Toolbar */}
-        <div className="flex items-center gap-3 mb-6 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl flex-wrap">
-          <div className="relative flex-shrink-0">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Search templates..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-44 h-8 pl-8 pr-3 bg-white/5 border border-white/10 rounded-md text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/40"
-            />
-          </div>
-          <div className="w-px h-5 bg-white/10" />
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={cn(
-                'h-8 px-3 flex items-center gap-2 rounded-md text-xs font-medium transition-all border',
-                activeCategory === cat
-                  ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
-                  : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
-              )}
-            >
-              {cat}
-            </button>
-          ))}
+        {/* Mode tabs: Classic / Cinematic */}
+        <div className="flex gap-2 mb-6">
+          <button
+            onClick={() => { setActiveTab('classic'); setSelectedCinematicPreset(null); }}
+            className={cn(
+              'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all border',
+              activeTab === 'classic'
+                ? 'bg-purple-500/15 border-purple-500/30 text-white'
+                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+            )}
+          >
+            <Sparkles className="w-4 h-4" />
+            Classic Templates
+          </button>
+          <button
+            onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); }}
+            className={cn(
+              'flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all border',
+              activeTab === 'cinematic'
+                ? 'bg-gradient-to-r from-purple-500/20 to-pink-500/20 border-purple-500/30 text-white'
+                : 'bg-white/5 border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+            )}
+          >
+            <Play className="w-4 h-4" />
+            Cinematic
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">NEW</span>
+          </button>
         </div>
 
-        {/* Results count */}
-        <p className="text-xs text-slate-500 mb-4">
-          {loadingDb && <Loader2 className="w-3 h-3 inline animate-spin mr-1" />}
-          {filtered.length} template{filtered.length !== 1 ? 's' : ''}
-        </p>
+        {activeTab === 'classic' ? (
+          <>
+            {/* Filter Toolbar */}
+            <div className="flex items-center gap-3 mb-6 p-2 bg-black/40 backdrop-blur-xl border border-white/10 rounded-xl flex-wrap">
+              <div className="relative flex-shrink-0">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                <input
+                  type="text"
+                  placeholder="Search templates..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="w-44 h-8 pl-8 pr-3 bg-white/5 border border-white/10 rounded-md text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-purple-500/40"
+                />
+              </div>
+              <div className="w-px h-5 bg-white/10" />
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={cn(
+                    'h-8 px-3 flex items-center gap-2 rounded-md text-xs font-medium transition-all border',
+                    activeCategory === cat
+                      ? 'bg-purple-500/15 border-purple-500/30 text-purple-300'
+                      : 'bg-transparent border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                  )}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
 
-        {/* Template Grid */}
-        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          <AnimatePresence mode="popLayout">
-            {filtered.map(template => (
-              <ThemeCard
-                key={template.id}
-                template={template}
-                isSelected={selectedTemplate?.id === template.id}
-                onSelect={handleSelect}
-              />
-            ))}
-          </AnimatePresence>
-        </motion.div>
+            <p className="text-xs text-slate-500 mb-4">
+              {loadingDb && <Loader2 className="w-3 h-3 inline animate-spin mr-1" />}
+              {filtered.length} template{filtered.length !== 1 ? 's' : ''}
+            </p>
 
-        {filtered.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-slate-400">No templates found</p>
-          </div>
+            {/* Classic Template Grid */}
+            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              <AnimatePresence mode="popLayout">
+                {filtered.map(template => (
+                  <ThemeCard
+                    key={template.id}
+                    template={template}
+                    isSelected={selectedTemplate?.id === template.id}
+                    onSelect={handleSelect}
+                  />
+                ))}
+              </AnimatePresence>
+            </motion.div>
+
+            {filtered.length === 0 && (
+              <div className="text-center py-16">
+                <p className="text-slate-400">No templates found</p>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {/* Cinematic Presets */}
+            <p className="text-slate-400 text-sm mb-6">
+              Modern, animated presentations with video backgrounds and cinematic text reveals. Perfect for pitches, keynotes, and storytelling.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {CINEMATIC_PRESETS.map(preset => (
+                <motion.div
+                  key={preset.id}
+                  whileHover={{ y: -6 }}
+                  onClick={() => setSelectedCinematicPreset(preset)}
+                  className={cn(
+                    'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
+                    selectedCinematicPreset?.id === preset.id
+                      ? 'ring-2 ring-purple-500 ring-offset-2 ring-offset-[#0a0a0c]'
+                      : 'hover:ring-1 hover:ring-white/20'
+                  )}
+                >
+                  {/* Preview */}
+                  <div
+                    className="aspect-video relative overflow-hidden"
+                    style={{ backgroundColor: preset.backgroundColor }}
+                  >
+                    {/* Simulated slide content */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-6">
+                      <div className="w-px h-8 mb-3" style={{ backgroundColor: preset.accentColor }} />
+                      <div
+                        className="text-2xl font-bold leading-tight mb-2"
+                        style={{ color: preset.primaryTextColor, fontFamily: `'${preset.fontHeading}', sans-serif` }}
+                      >
+                        {preset.name}
+                      </div>
+                      <div className="text-xs" style={{ color: preset.secondaryTextColor }}>
+                        {preset.description}
+                      </div>
+                    </div>
+
+                    {/* Accent gradient overlay */}
+                    <div
+                      className="absolute top-0 right-0 w-1/2 h-full opacity-20 blur-3xl"
+                      style={{ background: `radial-gradient(circle at top right, ${preset.accentColor}, transparent)` }}
+                    />
+
+                    {/* Selected check */}
+                    {selectedCinematicPreset?.id === preset.id && (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute top-3 right-3 w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center"
+                      >
+                        <Check className="w-4 h-4 text-white" />
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Info bar */}
+                  <div className="p-3 bg-slate-900/80 backdrop-blur-sm flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-white">{preset.name}</h3>
+                      <p className="text-[11px] text-slate-500 mt-0.5">{preset.fontHeading} / {preset.fontBody}</p>
+                    </div>
+                    <div className="flex gap-1">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: preset.accentColor }} />
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: preset.primaryTextColor, opacity: 0.6 }} />
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 
       {/* Bottom CTA */}
       <AnimatePresence>
-        {selectedTemplate && (
+        {(selectedTemplate || selectedCinematicPreset) && (
           <motion.div
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
@@ -386,28 +499,36 @@ export default function TemplateGallery({ onSelect, selectedTheme }: Props) {
           >
             <div className="max-w-6xl mx-auto flex items-center justify-between">
               <div className="flex items-center gap-4">
-                {selectedTemplate.coverImage ? (
-                  <img
-                    src={selectedTemplate.coverImage}
-                    alt={selectedTemplate.name}
-                    className="w-16 h-9 rounded-lg ring-2 ring-purple-500 object-cover"
-                  />
-                ) : (
-                  <div
-                    className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center"
-                    style={{ backgroundColor: selectedTemplate.colors.bg }}
-                  >
-                    <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: selectedTemplate.colors.primary }} />
-                  </div>
-                )}
-                <div>
-                  <p className="font-medium text-white text-sm">{selectedTemplate.name}</p>
-                  <p className="text-xs text-slate-400">
-                    {selectedTemplate.slides
-                      ? `${selectedTemplate.slides.length} slides — Use as template`
-                      : 'AI will generate slides'}
-                  </p>
-                </div>
+                {selectedCinematicPreset ? (
+                  <>
+                    <div
+                      className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center"
+                      style={{ backgroundColor: selectedCinematicPreset.backgroundColor }}
+                    >
+                      <Play className="w-5 h-5" style={{ color: selectedCinematicPreset.accentColor }} />
+                    </div>
+                    <div>
+                      <p className="font-medium text-white text-sm">{selectedCinematicPreset.name}</p>
+                      <p className="text-xs text-slate-400">Cinematic presentation with animations</p>
+                    </div>
+                  </>
+                ) : selectedTemplate ? (
+                  <>
+                    {selectedTemplate.coverImage ? (
+                      <img src={selectedTemplate.coverImage} alt={selectedTemplate.name} className="w-16 h-9 rounded-lg ring-2 ring-purple-500 object-cover" />
+                    ) : (
+                      <div className="w-16 h-9 rounded-lg ring-2 ring-purple-500 flex items-center justify-center" style={{ backgroundColor: selectedTemplate.colors.bg }}>
+                        <div className="w-8 h-1.5 rounded-full" style={{ backgroundColor: selectedTemplate.colors.primary }} />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium text-white text-sm">{selectedTemplate.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {selectedTemplate.slides ? `${selectedTemplate.slides.length} slides — Use as template` : 'AI will generate slides'}
+                      </p>
+                    </div>
+                  </>
+                ) : null}
               </div>
               <motion.button
                 whileHover={{ scale: 1.02 }}

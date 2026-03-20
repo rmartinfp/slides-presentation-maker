@@ -10,7 +10,6 @@ import SlideList from '@/components/editor/SlideList';
 import SpeakerNotes from '@/components/editor/SpeakerNotes';
 import PresentationMode from '@/components/editor/PresentationMode';
 import CinematicPresentation from '@/components/cinematic/CinematicPresentation';
-import { CINEMATIC_PRESETS } from '@/lib/cinematic-presets';
 import { CinematicPreset } from '@/types/cinematic';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
@@ -63,6 +62,13 @@ export default function EditorPage() {
   const theme = presentation.theme.tokens;
 
   useKeyboardShortcuts();
+
+  // Auto-launch cinematic mode when content arrives
+  useEffect(() => {
+    if (cinematicPreset && presentation.slides.length > 0 && !isPresentationMode) {
+      setIsPresentationMode(true);
+    }
+  }, [cinematicPreset, presentation.slides.length]);
 
   // Load fonts
   useEffect(() => {
@@ -160,7 +166,14 @@ export default function EditorPage() {
   };
 
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
-  const [cinematicPreset, setCinematicPreset] = React.useState<CinematicPreset | null>(null);
+  const [cinematicPreset, setCinematicPreset] = React.useState<CinematicPreset | null>(() => {
+    const stored = sessionStorage.getItem('cinematicPreset');
+    if (stored) {
+      sessionStorage.removeItem('cinematicPreset');
+      return JSON.parse(stored);
+    }
+    return null;
+  });
 
   if (idFromUrl && presentation.slides.length === 0) return <EditorSkeleton />;
 
@@ -178,14 +191,13 @@ export default function EditorPage() {
       {isPresentationMode && !cinematicPreset && (
         <PresentationMode slides={presentation.slides} theme={presentation.theme} startIndex={activeSlideIndex} onExit={() => setIsPresentationMode(false)} />
       )}
-      {cinematicPreset && (
+      {cinematicPreset && isPresentationMode && (
         <CinematicPresentation
           slides={presentation.slides}
           theme={presentation.theme}
           preset={cinematicPreset}
           startIndex={activeSlideIndex}
-          metadata={{ type: 'Presentation', author: '', date: new Date().toLocaleDateString(), industry: '' }}
-          onExit={() => { setCinematicPreset(null); setIsPresentationMode(false); }}
+          onExit={() => setIsPresentationMode(false)}
         />
       )}
 
@@ -238,29 +250,18 @@ export default function EditorPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white h-8 gap-1.5 ml-1">
-                  <Play className="w-3.5 h-3.5" />Present<ChevronDown className="w-3 h-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem onClick={() => { setCinematicPreset(null); setIsPresentationMode(true); }}>
-                  <Play className="w-4 h-4 mr-2" />Classic
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <div className="px-2 py-1 text-xs text-slate-500 font-medium">Cinematic</div>
-                {CINEMATIC_PRESETS.map(p => (
-                  <DropdownMenuItem key={p.id} onClick={() => { setCinematicPreset(p); setIsPresentationMode(true); }}>
-                    <div className="w-4 h-4 mr-2 rounded-full" style={{ backgroundColor: p.accentColor }} />
-                    <div>
-                      <div className="text-sm">{p.name}</div>
-                      <div className="text-[10px] text-slate-500">{p.description}</div>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              size="sm"
+              className={cn(
+                'text-white h-8 gap-1.5 ml-1',
+                cinematicPreset
+                  ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
+                  : 'bg-indigo-600 hover:bg-indigo-700'
+              )}
+              onClick={() => setIsPresentationMode(true)}
+            >
+              <Play className="w-3.5 h-3.5" />{cinematicPreset ? cinematicPreset.name : 'Present'}
+            </Button>
           </div>
         </div>
 

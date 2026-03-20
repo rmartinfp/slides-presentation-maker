@@ -4,6 +4,7 @@ import TemplateGallery from '@/components/slideai/TemplateGallery';
 import ContentStep from '@/components/slideai/ContentStep';
 import GeneratingView from '@/components/slideai/GeneratingView';
 import { PresentationTheme, Slide, WizardStep } from '@/types/presentation';
+import { CinematicPreset } from '@/types/cinematic';
 import { THEME_CATALOG } from '@/lib/themes';
 import { generatePresentation } from '@/lib/ai-generate';
 import { migrateAllSlides } from '@/lib/slide-migration';
@@ -13,14 +14,44 @@ import { toast } from 'sonner';
 export default function SlideAIPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState<WizardStep>('template');
+  const [cinematicPreset, setCinematicPreset] = useState<CinematicPreset | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<PresentationTheme | null>(null);
   const [templateSlides, setTemplateSlides] = useState<Slide[] | null>(null);
   const [contentText, setContentText] = useState('');
 
   const handleSelectTheme = (theme: PresentationTheme, slides?: Slide[]) => {
     setSelectedTheme(theme);
+    setCinematicPreset(null);
     setTemplateSlides(slides && slides.length > 0 ? slides : null);
-    // Always go to content step — user enters prompt, AI fills in the template
+    setStep('content');
+  };
+
+  const handleSelectCinematic = (preset: CinematicPreset) => {
+    setCinematicPreset(preset);
+    setSelectedTheme({
+      id: preset.id,
+      name: preset.name,
+      category: 'Cinematic',
+      tokens: {
+        palette: {
+          primary: preset.accentColor,
+          secondary: preset.secondaryTextColor,
+          accent: preset.accentColor,
+          bg: preset.backgroundColor,
+          text: preset.primaryTextColor,
+        },
+        typography: {
+          titleFont: preset.fontHeading,
+          bodyFont: preset.fontBody,
+          titleSize: 42,
+          bodySize: 24,
+        },
+        radii: '16px',
+        shadows: 'lg',
+      },
+      previewColors: [preset.accentColor, preset.secondaryTextColor, preset.backgroundColor],
+    });
+    setTemplateSlides(null);
     setStep('content');
   };
 
@@ -109,6 +140,10 @@ export default function SlideAIPage() {
         }));
       }
 
+      // Store cinematic preset if selected
+      if (cinematicPreset) {
+        sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
+      }
       navigate('/editor');
     } catch (error) {
       console.error('Generation failed:', error);
@@ -141,7 +176,7 @@ export default function SlideAIPage() {
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <TemplateGallery onSelect={handleSelectTheme} selectedTheme={selectedTheme} />
+              <TemplateGallery onSelect={handleSelectTheme} onSelectCinematic={handleSelectCinematic} selectedTheme={selectedTheme} />
             </motion.div>
           )}
           {step === 'content' && (
