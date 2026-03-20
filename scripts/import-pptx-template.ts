@@ -642,7 +642,9 @@ async function main() {
     const isFinalPage = plainText.includes('slidesgo') || plainText.includes('freepik') || plainText.includes('flaticon')
       || elementCount > 50
       || /\bicons?\b/.test(plainText) && elementCount > 15
-      || plainText.includes('fonts & colors') || plainText.includes('fonts used');
+      || plainText.includes('fonts & colors') || plainText.includes('fonts used')
+      || plainText.includes('contents of this template')
+      || plainText.includes('contents of this presentation');
     if (isFinalPage) {
       console.log(`  Skipping final page (${elementCount} elements)`);
       continue;

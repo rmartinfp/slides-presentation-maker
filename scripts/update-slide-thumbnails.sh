@@ -66,8 +66,11 @@ for s in d.get('slides',[]):
   for PAGE_ID in $PAGE_IDS; do
     SLIDE_NUM=$((SLIDE_NUM + 1))
 
-    # Limit to 6 slides per presentation (enough for hover preview)
-    if [ $SLIDE_NUM -gt 6 ]; then
+    # Skip slide 2 ("Contents of this template") and limit to 7 raw slides → 6 actual
+    if [ $SLIDE_NUM -eq 2 ]; then
+      continue
+    fi
+    if [ $SLIDE_NUM -gt 7 ]; then
       break
     fi
 
