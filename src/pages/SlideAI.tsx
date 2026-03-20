@@ -296,7 +296,6 @@ export default function SlideAIPage() {
         <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-purple-500/8 rounded-full blur-3xl" />
       </div>
 
-      <LayoutGroup>
         <AnimatePresence mode="wait">
           {step === 'template' && (
             <motion.div
@@ -338,7 +337,6 @@ export default function SlideAIPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </LayoutGroup>
     </div>
   );
 }

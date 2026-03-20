@@ -59,7 +59,7 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
 
   return (
     <motion.div
-      layout
+
       whileHover={{ y: -6 }}
       onHoverStart={() => setIsHovering(true)}
       onHoverEnd={() => { setIsHovering(false); setCurrentSlide(0); }}
@@ -307,18 +307,16 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
               {filtered.length} template{filtered.length !== 1 ? 's' : ''}
             </p>
 
-            <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              <AnimatePresence mode="popLayout">
-                {filtered.map(template => (
-                  <ThemeCard
-                    key={template.id}
-                    template={template}
-                    isSelected={selectedTemplate?.id === template.id}
-                    onSelect={handleSelect}
-                  />
-                ))}
-              </AnimatePresence>
-            </motion.div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filtered.map(template => (
+                <ThemeCard
+                  key={template.id}
+                  template={template}
+                  isSelected={selectedTemplate?.id === template.id}
+                  onSelect={handleSelect}
+                />
+              ))}
+            </div>
 
             {filtered.length === 0 && !loadingDb && (
               <div className="text-center py-16">
