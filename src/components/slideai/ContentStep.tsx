@@ -57,13 +57,13 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
 
       {/* Header */}
       <div className="sticky top-0 z-30 nav-glass">
-        <div className="max-w-4xl mx-auto px-6 py-4">
+        <div className="max-w-5xl mx-auto px-6 py-4">
           <StepIndicator currentStep={2} />
         </div>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-4xl mx-auto px-6 pt-6 pb-20">
+      <div className="relative z-10 max-w-5xl mx-auto px-6 pt-6 pb-20">
         <button onClick={onBack} className="flex items-center gap-2 text-slate-400 hover:text-slate-700 text-sm mb-8 transition-colors">
           <ArrowLeft className="w-4 h-4" /> Back
         </button>
