@@ -229,6 +229,13 @@ function parseTextFromSpTree(
     ? (anchorMatch[1] === 't' ? 'top' : anchorMatch[1] === 'ctr' ? 'center' : anchorMatch[1] === 'b' ? 'bottom' : undefined)
     : undefined;
 
+  // Extract line spacing from bodyPr or first paragraph
+  let lineHeight: number | null = null;
+  const lnSpc = txContent.match(/<a:lnSpc>[\s\S]*?<a:spcPct\s+val="(\d+)"[\s\S]*?<\/a:lnSpc>/);
+  if (lnSpc) {
+    lineHeight = parseInt(lnSpc[1]) / 100000; // e.g. 150000 → 1.5
+  }
+
   // Parse paragraphs
   const paragraphs = txContent.match(/<a:p>([\s\S]*?)<\/a:p>/g) || [];
   let html = '';
@@ -357,6 +364,7 @@ function parseTextFromSpTree(
       color: firstColor || themeColors.dk1,
       textAlign: firstAlign || 'left',
       verticalAlign: verticalAlign,
+      lineHeight: lineHeight || undefined,
     },
   };
 }
