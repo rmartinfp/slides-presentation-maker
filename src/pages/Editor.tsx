@@ -286,33 +286,15 @@ export default function EditorPage() {
                   onClick={() => setActiveSlideIndex(idx)}
                 >
                   <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-white/60 bg-black/40 rounded px-1">{idx + 1}</div>
-                  <div
-                    className="w-full aspect-[16/9] rounded-md overflow-hidden relative"
-                    style={{
-                      backgroundColor: slide.background?.type === 'solid' ? slide.background.value : '#111',
-                      background: slide.background?.type === 'gradient' ? slide.background.value : undefined,
-                    }}
-                  >
-                    {slide.background?.type === 'image' && (
-                      <img src={slide.background.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                    )}
-                    {slide.elements?.slice(0, 6).map((el) => {
-                      const ts = 168 / 1920;
-                      return (
-                        <div key={el.id} className="absolute overflow-hidden" style={{
-                          left: el.x * ts, top: el.y * ts, width: el.width * ts, height: el.height * ts,
-                          fontSize: `${(el.style.fontSize ?? 16) * ts}px`, fontFamily: el.style.fontFamily,
-                          fontWeight: el.style.fontWeight as any, color: el.style.color, textAlign: el.style.textAlign as any,
-                          opacity: el.opacity,
-                          backgroundColor: el.type === 'shape' && el.style.shapeFill !== 'transparent' ? el.style.shapeFill : undefined,
-                          borderRadius: el.type === 'shape' && el.style.shapeType === 'circle' ? '50%' : (el.style.borderRadius ?? 0) * ts,
-                          border: el.type === 'shape' && el.style.shapeStroke !== 'transparent' ? `1px solid ${el.style.shapeStroke}` : undefined,
-                        }}>
-                          {el.type === 'text' && <span className="line-clamp-2 leading-tight">{el.content.replace(/<[^>]+>/g, ' ').trim()}</span>}
-                          {el.type === 'image' && el.content && <img src={el.content} alt="" className="w-full h-full object-cover" />}
-                        </div>
-                      );
-                    })}
+                  <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
+                    <div style={{ width: 1920 * 0.09, height: 1080 * 0.09 }}>
+                      <SlideCanvas
+                        slide={slide}
+                        theme={presentation.theme}
+                        scale={0.09}
+                        isEditing={false}
+                      />
+                    </div>
                   </div>
                 </div>
               ))}
