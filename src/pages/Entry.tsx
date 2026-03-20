@@ -1,52 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Palette, Zap, Clock, Globe, LayoutGrid, SlidersHorizontal, User } from 'lucide-react';
+import { ArrowRight, Sparkles, Palette, Clock, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const templatePreviews = [
-  {
-    title: 'Startup Pitch',
-    category: 'Business',
-    gradient: 'from-indigo-500 to-purple-600',
-    accent: '#4F46E5',
-  },
-  {
-    title: 'Quarterly Report',
-    category: 'Corporate',
-    gradient: 'from-emerald-500 to-teal-600',
-    accent: '#10b981',
-  },
-  {
-    title: 'Product Launch',
-    category: 'Marketing',
-    gradient: 'from-orange-500 to-rose-500',
-    accent: '#f97316',
-  },
-  {
-    title: 'Course Material',
-    category: 'Education',
-    gradient: 'from-sky-500 to-blue-600',
-    accent: '#0ea5e9',
-  },
-];
-
-const optionChips = [
-  { label: 'Minimalist', icon: SlidersHorizontal },
-  { label: '12 Slides', icon: LayoutGrid },
-  { label: 'English', icon: Globe },
+  { title: 'Startup Pitch', category: 'Business', gradient: 'from-indigo-500 to-purple-600' },
+  { title: 'Quarterly Report', category: 'Corporate', gradient: 'from-emerald-500 to-teal-600' },
+  { title: 'Product Launch', category: 'Marketing', gradient: 'from-orange-500 to-rose-500' },
+  { title: 'Course Material', category: 'Education', gradient: 'from-sky-500 to-blue-600' },
 ];
 
 export default function Entry() {
   const navigate = useNavigate();
-  const [prompt, setPrompt] = useState('');
-  const [activeChips, setActiveChips] = useState<string[]>(['Minimalist', '12 Slides', 'English']);
-
-  const toggleChip = (label: string) => {
-    setActiveChips(prev =>
-      prev.includes(label) ? prev.filter(c => c !== label) : [...prev, label]
-    );
-  };
 
   return (
     <div className="min-h-screen mesh-gradient text-slate-900 overflow-hidden font-body">
@@ -94,12 +60,6 @@ export default function Entry() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 glass-effect px-4 py-2 rounded-full text-sm font-medium text-slate-600 mb-8 shadow-sm">
-              <Zap className="w-4 h-4 text-[#4F46E5]" />
-              Powered by AI
-            </div>
-
             {/* Headline */}
             <h1 className="font-headline font-extrabold text-5xl sm:text-6xl md:text-7xl headline-tight text-slate-900 mb-6">
               Create stunning{' '}
@@ -110,55 +70,18 @@ export default function Entry() {
               </span>
             </h1>
 
-            <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-12 leading-relaxed font-body">
-              Describe your topic, pick a style, and watch your presentation come to life in seconds. No design skills needed.
+            <p className="text-lg sm:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed font-body">
+              Pick a template, describe your topic, and get a professional presentation in seconds.
             </p>
-          </motion.div>
-
-          {/* Glass Prompt Area */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.25 }}
-            className="glass-effect rounded-2xl p-5 sm:p-6 shadow-xl shadow-[#4F46E5]/5 max-w-2xl mx-auto"
-          >
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              placeholder="Describe your presentation... e.g. A pitch deck for my AI startup that automates customer support"
-              rows={3}
-              className="w-full bg-white/60 border border-slate-200/60 rounded-xl p-4 text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]/30 resize-none text-sm font-body transition-all"
-            />
-
-            {/* Option Chips */}
-            <div className="flex flex-wrap items-center gap-2 mt-4 mb-4">
-              {optionChips.map(chip => {
-                const isActive = activeChips.includes(chip.label);
-                return (
-                  <button
-                    key={chip.label}
-                    onClick={() => toggleChip(chip.label)}
-                    className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all ${
-                      isActive
-                        ? 'bg-[#4F46E5]/10 text-[#4F46E5] outline outline-1 outline-[#4F46E5]/20'
-                        : 'bg-white/60 text-slate-500 outline outline-1 outline-slate-200/60 hover:bg-white/80 hover:text-slate-700'
-                    }`}
-                  >
-                    <chip.icon className="w-3 h-3" />
-                    {chip.label}
-                  </button>
-                );
-              })}
-            </div>
 
             {/* CTA Button */}
             <Button
               size="lg"
               onClick={() => navigate('/create')}
-              className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE] text-white shadow-xl shadow-[#4F46E5]/25 hover:shadow-2xl hover:shadow-[#4F46E5]/30 transition-all duration-300 text-sm sm:text-base px-8 py-6 rounded-full font-semibold"
+              className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE] text-white shadow-xl shadow-[#4F46E5]/25 hover:shadow-2xl hover:shadow-[#4F46E5]/30 transition-all duration-300 text-base px-10 py-6 rounded-full font-semibold"
             >
               <Sparkles className="w-5 h-5 mr-2" />
-              Generate Presentation
+              Start Creating
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
           </motion.div>
