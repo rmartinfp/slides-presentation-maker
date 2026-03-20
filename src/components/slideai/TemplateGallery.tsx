@@ -17,6 +17,7 @@ export interface UnifiedTemplate {
   category: string;
   theme: PresentationTheme;
   slides?: Slide[];
+  thumbnailUrl?: string;
   colors: { primary: string; secondary: string; accent: string; bg: string; text: string };
 }
 
@@ -38,7 +39,6 @@ function useDbTemplates() {
 
 function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void }) {
   const hasSlides = template.slides && template.slides.length > 0;
-  const firstSlide = template.slides?.[0];
 
   return (
     <motion.div
@@ -53,53 +53,8 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
-        {hasSlides && firstSlide ? (
-          <div
-            className="w-full h-full relative"
-            style={{
-              backgroundColor: firstSlide.background?.type === 'solid' ? firstSlide.background.value : template.colors.bg,
-            }}
-          >
-            {/* Background image */}
-            {firstSlide.background?.type === 'image' && firstSlide.background.value && (
-              <img src={firstSlide.background.value} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            )}
-            {/* Elements */}
-            {firstSlide.elements?.slice(0, 10).map((el) => {
-              const s = 280 / 1920;
-              return (
-                <div
-                  key={el.id}
-                  className="absolute overflow-hidden"
-                  style={{
-                    left: el.x * s,
-                    top: el.y * s,
-                    width: el.width * s,
-                    height: el.height * s,
-                    fontSize: `${(el.style.fontSize ?? 16) * s}px`,
-                    fontFamily: el.style.fontFamily,
-                    fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
-                    color: el.style.color,
-                    textAlign: el.style.textAlign as React.CSSProperties['textAlign'],
-                    opacity: el.opacity,
-                    backgroundColor: el.type === 'shape' && el.style.shapeFill !== 'transparent' ? el.style.shapeFill : undefined,
-                    borderRadius: el.type === 'shape' && el.style.shapeType === 'circle' ? '50%' : undefined,
-                    border: el.type === 'shape' && el.style.shapeStroke && el.style.shapeStroke !== 'transparent'
-                      ? `1px solid ${el.style.shapeStroke}` : undefined,
-                  }}
-                >
-                  {el.type === 'text' && (
-                    <span className="line-clamp-2 leading-tight">
-                      {el.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
-                    </span>
-                  )}
-                  {el.type === 'image' && el.content && (
-                    <img src={el.content} alt="" className="w-full h-full object-cover" />
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        {template.thumbnailUrl ? (
+          <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: template.colors.bg }}>
             <div className="w-3/4 h-4 rounded-full" style={{ backgroundColor: template.colors.primary }} />
@@ -164,10 +119,11 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       const colors = t.colors || t.theme?.tokens?.palette || {};
       return {
         id: t.id,
-        name: t.name.replace(/ by Slidesgo$/i, ''), // Clean name
+        name: t.name.replace(/ by Slidesgo$/i, ''),
         category: t.category === 'Imported' ? 'All' : t.category,
         theme: t.theme as PresentationTheme,
         slides: t.preview_slides as Slide[],
+        thumbnailUrl: t.thumbnail_url,
         colors: {
           primary: colors.primary || '#6366f1',
           secondary: colors.secondary || '#666666',
