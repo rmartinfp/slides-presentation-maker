@@ -8,6 +8,9 @@ import { CinematicPreset } from '@/types/cinematic';
 import { THEME_CATALOG } from '@/lib/themes';
 import { generatePresentation } from '@/lib/ai-generate';
 import { migrateAllSlides } from '@/lib/slide-migration';
+import { getLayoutById } from '@/lib/layout-library';
+import { renderLayout, SlideContent } from '@/lib/layout-renderer';
+import { generateId } from '@/lib/slide-utils';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
@@ -117,7 +120,7 @@ export default function SlideAIPage() {
           updatedAt: new Date().toISOString(),
         }));
       } else {
-        // Hardcoded template: generate slides from scratch
+        // No PPTX template — use layout library to build slides
         const result = await generatePresentation({
           prompt: contentText,
           length: 'informative',
@@ -125,15 +128,56 @@ export default function SlideAIPage() {
           audience: 'general',
         });
 
-        const slides = migrateAllSlides(
-          result.slides as Slide[],
-          theme.tokens,
-        );
+        // Convert AI output to slides using layout renderer
+        const slides: Slide[] = result.slides.map((aiSlide: any) => {
+          const layoutId = aiSlide.layout || 'content-title-body';
+          const layout = getLayoutById(layoutId);
+
+          if (layout) {
+            // Use layout library to position elements
+            const content: SlideContent = {
+              title: aiSlide.title,
+              subtitle: aiSlide.subtitle,
+              body: aiSlide.body,
+              stats: aiSlide.stats,
+              bullets: aiSlide.bullets,
+              quote: aiSlide.quote,
+              quoteAuthor: aiSlide.quoteAuthor,
+              labels: aiSlide.labels,
+              sectionNumber: aiSlide.sectionNumber,
+            };
+
+            const { elements, background } = renderLayout(layout, content, theme.tokens);
+
+            return {
+              id: generateId(),
+              elements,
+              background,
+              notes: aiSlide.notes || '',
+              layout: layout.category,
+            } as Slide;
+          }
+
+          // Fallback: migrate legacy format
+          return {
+            id: generateId(),
+            elements: [],
+            background: { type: 'solid' as const, value: theme.tokens.palette.bg },
+            layout: 'content',
+            title: aiSlide.title || '',
+            body: aiSlide.body || '',
+            bullets: aiSlide.bullets || [],
+            notes: aiSlide.notes || '',
+          } as Slide;
+        });
+
+        // Migrate any fallback slides
+        const migrated = migrateAllSlides(slides, theme.tokens);
 
         sessionStorage.setItem('presentation', JSON.stringify({
           id: Math.random().toString(36).substring(2, 11),
           title: result.title,
-          slides,
+          slides: migrated,
           theme,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

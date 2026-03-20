@@ -8,44 +8,122 @@ const CORS_HEADERS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM_PROMPT = `You are an expert presentation designer and content writer. Your job is to generate professional presentation slides from a user's prompt.
+/**
+ * Layout library summary — embedded here so the LLM knows what layouts exist.
+ * Must be kept in sync with src/lib/layout-library.ts
+ */
+const LAYOUT_CATALOG = `Available layouts (pick the best one for each slide):
+
+COVERS:
+- cover-centered: Title + subtitle centered. Best for: title, opening.
+- cover-left: Title left large + subtitle below. Best for: title, bold opening.
+- cover-bottom: Title at bottom, great with background images.
+
+SECTIONS:
+- section-centered: Section title centered with number. Best for: section dividers.
+- section-left-number: Big number left, title right. Best for: chapters.
+
+CONTENT:
+- content-title-body: Title + paragraph. Best for: explanations, details. (max 400 chars body)
+- content-image-left: Image left + title & text right. Best for: features, case studies.
+- content-image-right: Title & text left + image right.
+- content-full-image-overlay: Full background image + text overlay. Best for: impactful statements.
+
+DATA:
+- stats-three-cards: Three big numbers with labels. Best for: KPIs, metrics. (3 stats)
+- stats-big-number: One huge number with context. Best for: key highlights. (1 stat)
+
+COMPARISON:
+- comparison-two-columns: Side by side. Best for: vs, pros/cons. (2 columns, 300 chars each)
+- comparison-three-columns: Three items side by side. Best for: pricing, options. (3 columns, 200 chars each)
+
+LISTS:
+- list-bullets: Title + 5 bullet points. Best for: features, steps. (5 bullets, 80 chars each)
+- list-two-column-bullets: Bullets in two columns. Best for: checklists. (6 bullets)
+
+QUOTES:
+- quote-centered: Big centered quote with attribution. Best for: testimonials, key messages.
+
+TIMELINE:
+- timeline-horizontal: 4 milestones on a horizontal line. Best for: roadmaps, history.
+
+GRID:
+- grid-four-items: 2x2 grid with titles + descriptions. Best for: team, pillars, values.
+- grid-six-items: 3x2 grid. Best for: many features, services.
+
+CLOSING:
+- closing-thankyou: Thank you + contact. Best for: ending.
+- closing-cta: Strong call to action. Best for: investment ask, next steps.`;
+
+const SYSTEM_PROMPT = `You are an expert presentation designer and storyteller. Generate a presentation outline where EACH SLIDE specifies a layout from the catalog.
+
+${LAYOUT_CATALOG}
 
 RULES:
-- Generate between 5 and 15 slides depending on the "length" parameter
-- Each slide must have a "type": one of "title", "content", "two-column", "statement", "closing"
-- The first slide MUST be type "title" (cover slide)
-- The last slide MUST be type "closing" (thank you slide)
-- Include 1-2 "statement" slides with impactful quotes or key takeaways
-- Body text should be informative, specific, and professional
-- Bullets should be concise (1-2 lines each), 3-5 per content slide
-- Write in the same language the user uses in their prompt
-- Adapt the tone based on the "tone" parameter
+1. First slide MUST use a "cover-" layout
+2. Last slide MUST use a "closing-" layout
+3. Pick the BEST layout for each slide's content — don't just use "content-title-body" for everything
+4. Vary the layouts: use stats, comparisons, lists, quotes, grids to make it visually interesting
+5. Each slide has a "layout" field (layout ID from the catalog) and content fields matching that layout
+6. Respect the character/word limits of each layout
+7. Write in the same language as the user's prompt
+8. Adapt the narrative structure to the topic (don't force a fixed structure)
 
-RESPOND ONLY WITH VALID JSON matching this schema:
+RESPOND ONLY WITH VALID JSON:
 {
   "title": "Presentation title",
   "slides": [
     {
-      "type": "title",
+      "layout": "cover-centered",
       "title": "Main Title",
-      "subtitle": "Subtitle or tagline",
-      "body": "",
-      "bullets": [],
-      "notes": "Speaker notes for this slide"
+      "subtitle": "Tagline",
+      "notes": "Speaker notes"
     },
     {
-      "type": "content",
-      "title": "Slide Title",
-      "subtitle": "",
-      "body": "Optional paragraph text",
-      "bullets": ["Point 1", "Point 2", "Point 3"],
+      "layout": "stats-three-cards",
+      "title": "Key Metrics",
+      "stats": [
+        { "value": "85%", "label": "Customer satisfaction" },
+        { "value": "$4.2B", "label": "Market size" },
+        { "value": "3x", "label": "Growth rate" }
+      ],
+      "notes": "Speaker notes"
+    },
+    {
+      "layout": "content-title-body",
+      "title": "Our Approach",
+      "body": "Paragraph explaining the approach...",
+      "notes": "Speaker notes"
+    },
+    {
+      "layout": "list-bullets",
+      "title": "Key Features",
+      "bullets": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5"],
+      "notes": "Speaker notes"
+    },
+    {
+      "layout": "comparison-two-columns",
+      "title": "Before vs After",
+      "subtitle": ["Before", "After"],
+      "body": ["Description of before state...", "Description of after state..."],
+      "notes": "Speaker notes"
+    },
+    {
+      "layout": "quote-centered",
+      "quote": "Innovation distinguishes between a leader and a follower.",
+      "quoteAuthor": "Steve Jobs",
+      "notes": "Speaker notes"
+    },
+    {
+      "layout": "closing-cta",
+      "title": "Let's Build Together",
+      "body": "Contact us at hello@company.com",
       "notes": "Speaker notes"
     }
   ]
 }`;
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: CORS_HEADERS });
   }
@@ -68,13 +146,14 @@ Deno.serve(async (req) => {
 
     const userMessage = `Create a presentation with ${slideCount} slides.
 
-Prompt: ${prompt}
+Topic: ${prompt}
 Tone: ${tone}
 Audience: ${audience}
 
+IMPORTANT: Pick varied layouts from the catalog. Don't repeat the same layout more than twice. Use stats, lists, comparisons, and quotes where appropriate for the topic. The narrative structure should fit the topic naturally.
+
 Generate the slides JSON now.`;
 
-    // Call Claude API
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
@@ -84,7 +163,7 @@ Generate the slides JSON now.`;
       },
       body: JSON.stringify({
         model: "claude-sonnet-4-20250514",
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: SYSTEM_PROMPT,
         messages: [{ role: "user", content: userMessage }],
       }),
@@ -103,7 +182,7 @@ Generate the slides JSON now.`;
       throw new Error("Empty response from Claude");
     }
 
-    // Extract JSON from response (Claude might wrap it in markdown code blocks)
+    // Extract JSON
     let jsonStr = content;
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) {
@@ -112,7 +191,7 @@ Generate the slides JSON now.`;
 
     const presentation = JSON.parse(jsonStr);
 
-    // Add UUIDs to slides
+    // Add UUIDs
     presentation.slides = presentation.slides.map((slide: Record<string, unknown>) => ({
       ...slide,
       id: crypto.randomUUID().slice(0, 9),
