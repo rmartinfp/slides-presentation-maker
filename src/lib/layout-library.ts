@@ -72,6 +72,7 @@ export type LayoutCategory =
   | 'visual'         // Image-focused
   | 'list'           // Bullet points, features
   | 'closing'        // Thank you, CTA
+  | 'toc'            // Table of contents
   ;
 
 // ============ Layout Definitions ============

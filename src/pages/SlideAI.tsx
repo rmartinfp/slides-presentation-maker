@@ -80,30 +80,90 @@ export default function SlideAIPage() {
         for (let i = 0; i < Math.min(templateSlides.length, aiSlides.length); i++) {
           const templateSlide = JSON.parse(JSON.stringify(templateSlides[i]));
           const aiSlide = aiSlides[i];
+          const slideLayout = (templateSlide as any).layout || 'content';
 
           // Find text elements sorted by font size (largest = title)
           const textElements = (templateSlide.elements || [])
             .filter((el: any) => el.type === 'text')
             .sort((a: any, b: any) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
 
-          // Largest text = title
-          if (textElements.length > 0 && aiSlide.title) {
-            textElements[0].content = `<p>${aiSlide.title}</p>`;
-          }
+          // Detect template placeholder text — generic filler that should be replaced
+          const isPlaceholderText = (html: string): boolean => {
+            const plain = html.replace(/<[^>]+>/g, '').trim().toLowerCase();
+            if (!plain || plain.length < 3) return false;
+            // Common Slidesgo/template placeholder patterns
+            const placeholderPatterns = [
+              /mercury is the closest/i,
+              /venus has a beautiful/i,
+              /jupiter is the biggest/i,
+              /saturn is the ringed/i,
+              /mars is actually a cold/i,
+              /neptune is the farthest/i,
+              /name of the section/i,
+              /write the title here/i,
+              /write your subtitle here/i,
+              /you can describe the topic/i,
+              /despite being red/i,
+              /lorem ipsum/i,
+              /placeholder/i,
+              /your text here/i,
+              /click to edit/i,
+              /insert text/i,
+              /add text/i,
+              /subtitle here/i,
+              /title of (?:your|the) (?:presentation|section)/i,
+            ];
+            return placeholderPatterns.some(p => p.test(plain));
+          };
 
-          // Second largest = body or bullets
-          if (textElements.length > 1) {
-            if (aiSlide.bullets?.length) {
-              textElements[1].content = aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('');
-            } else if (aiSlide.body) {
-              textElements[1].content = `<p>${aiSlide.body}</p>`;
+          // Handle TOC slides differently
+          if (slideLayout === 'toc' && aiSlide.bullets?.length) {
+            // Title = first/largest text element
+            if (textElements.length > 0 && aiSlide.title) {
+              textElements[0].content = `<p>${aiSlide.title}</p>`;
             }
-          }
+            // Fill remaining text elements with TOC items (bullet points)
+            for (let j = 1; j < textElements.length && j - 1 < aiSlide.bullets.length; j++) {
+              textElements[j].content = `<p>${aiSlide.bullets[j - 1]}</p>`;
+            }
+          } else {
+            // Largest text = title
+            if (textElements.length > 0 && aiSlide.title) {
+              textElements[0].content = `<p>${aiSlide.title}</p>`;
+            }
 
-          // Additional text elements get bullets
-          if (aiSlide.bullets) {
-            for (let j = 2; j < textElements.length && j - 2 < aiSlide.bullets.length; j++) {
-              textElements[j].content = `<p>${aiSlide.bullets[j - 2]}</p>`;
+            // Second largest = body or bullets
+            if (textElements.length > 1) {
+              if (aiSlide.bullets?.length) {
+                textElements[1].content = aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('');
+              } else if (aiSlide.body) {
+                textElements[1].content = `<p>${aiSlide.body}</p>`;
+              }
+            }
+
+            // Replace ALL remaining text elements that contain placeholder/template text
+            const usedBullets = new Set<number>();
+            for (let j = 2; j < textElements.length; j++) {
+              const el = textElements[j];
+              if (isPlaceholderText(el.content)) {
+                // Try to fill with a bullet point
+                if (aiSlide.bullets) {
+                  // Find next unused bullet
+                  let bulletIdx = 0;
+                  while (usedBullets.has(bulletIdx) && bulletIdx < aiSlide.bullets.length) bulletIdx++;
+                  if (bulletIdx < aiSlide.bullets.length) {
+                    el.content = `<p>${aiSlide.bullets[bulletIdx]}</p>`;
+                    usedBullets.add(bulletIdx);
+                    continue;
+                  }
+                }
+                // Fall back to body text or subtitle
+                if (aiSlide.body) {
+                  el.content = `<p>${aiSlide.body}</p>`;
+                } else if (aiSlide.subtitle) {
+                  el.content = `<p>${aiSlide.subtitle}</p>`;
+                }
+              }
             }
           }
 

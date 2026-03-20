@@ -89,11 +89,19 @@ async function extractGoogleFontsFromRels(zip: JSZip): Promise<string[]> {
     const content = await file.async('string');
     const matches = content.matchAll(/Target="https:\/\/fonts\.google\.com\/specimen\/([^"]+)"/g);
     for (const m of matches) {
-      const fontName = decodeURIComponent(m[1].replace(/\+/g, ' '));
-      fonts.add(fontName);
+      let fontName = decodeURIComponent(m[1].replace(/\+/g, ' '));
+      // Strip URL query params (e.g. "Instrument Serif?preview.layout=grid")
+      fontName = fontName.split('?')[0].trim();
+      if (fontName) fonts.add(fontName);
     }
   }
   return Array.from(fonts);
+}
+
+// ---- Clean font name utility ----
+function cleanFontName(name: string): string {
+  // Strip URL query params that sometimes leak into font names
+  return name.split('?')[0].trim();
 }
 
 // ---- Slide Parsing ----
@@ -157,7 +165,8 @@ function parseFontSize(xml: string): number | null {
 
 function parseFontFamily(xml: string): string | null {
   const latin = xml.match(/<a:latin\s+typeface="([^"]+)"/);
-  return latin?.[1] || null;
+  if (!latin) return null;
+  return cleanFontName(latin[1]);
 }
 
 function parseAlignment(xml: string): string | null {
@@ -288,13 +297,20 @@ function parseTextFromSpTree(
   }
 
   // Inherit font family from theme based on placeholder type
+  // ALL text elements without an explicit font (or with generic 'Arial') should
+  // inherit from theme fonts: titleFont for title/section placeholders, bodyFont otherwise
   if (!firstFontFamily || firstFontFamily === 'Arial') {
-    if (phType === 'ctrTitle' || phType === 'title') {
+    if (phType === 'ctrTitle' || phType === 'title' || phType === 'sldNum') {
       firstFontFamily = defaultFonts.titleFont;
-    } else {
+    } else if (phType === 'body' || phType === 'subTitle' || phType === 'dt' || phType === 'ftr') {
       firstFontFamily = defaultFonts.bodyFont;
+    } else {
+      // No placeholder type — infer from position/size: large text = title font, rest = body
+      firstFontFamily = (firstFontSize && firstFontSize >= 48) ? defaultFonts.titleFont : defaultFonts.bodyFont;
     }
   }
+  // Clean the font name in case it has query params
+  if (firstFontFamily) firstFontFamily = cleanFontName(firstFontFamily);
 
   // Inherit alignment from placeholder type
   if (!firstAlign && (phType === 'ctrTitle' || phType === 'title')) {
@@ -596,6 +612,10 @@ async function main() {
   const themeColors = extractThemeColors(themeXml);
   const themeFonts = extractThemeFonts(themeXml);
 
+  // Clean theme font names
+  themeFonts.titleFont = cleanFontName(themeFonts.titleFont);
+  themeFonts.bodyFont = cleanFontName(themeFonts.bodyFont);
+
   // Extract real Google Fonts from slide rels (Slidesgo pattern)
   const googleFonts = await extractGoogleFontsFromRels(zip);
   if (googleFonts.length >= 2) {
@@ -621,9 +641,42 @@ async function main() {
 
   console.log(`Found ${slideFiles.length} slides`);
 
-  // Detect "Final Pages" master — check slide layout rels
-  // We'll skip slides whose layout references a "Final Pages" master
-  // For now, parse all and filter by checking if slide content looks like final pages
+  // Detect "Final Pages" master — resolve the slide master used by slide 1
+  // In Slidesgo templates, the first master is content; the second master is "Final Pages"
+  let primaryMasterId: string | null = null;
+
+  // Build a lookup: slideLayout → slideMaster
+  const layoutToMaster = new Map<string, string>();
+  const layoutRelsFiles = Object.keys(zip.files).filter(f => /^ppt\/slideLayouts\/_rels\/slideLayout\d+\.xml\.rels$/.test(f));
+  for (const lrf of layoutRelsFiles) {
+    const lrXml = await zip.file(lrf)!.async('string');
+    const masterMatch = lrXml.match(/Target="\.\.\/slideMasters\/(slideMaster\d+\.xml)"/);
+    if (masterMatch) {
+      const layoutFileName = lrf.replace('ppt/slideLayouts/_rels/', '').replace('.rels', '');
+      layoutToMaster.set(layoutFileName, masterMatch[1]);
+    }
+  }
+
+  // Determine which master slide 1 uses — that's the primary (content) master
+  if (slide1Rels) {
+    const s1RelsXml = await slide1Rels.async('string');
+    const s1LayoutMatch = s1RelsXml.match(/Target="\.\.\/slideLayouts\/(slideLayout\d+\.xml)"/);
+    if (s1LayoutMatch) {
+      primaryMasterId = layoutToMaster.get(s1LayoutMatch[1]) || null;
+    }
+  }
+  console.log(`Primary master: ${primaryMasterId || 'unknown'}`);
+
+  // Helper: resolve slide → slideLayout → slideMaster chain
+  async function getSlideMasterId(slideNum: number): Promise<string | null> {
+    const relsFile = `ppt/slides/_rels/slide${slideNum}.xml.rels`;
+    if (!zip.files[relsFile]) return null;
+    const relsXml = await zip.file(relsFile)!.async('string');
+    const layoutMatch = relsXml.match(/Target="\.\.\/slideLayouts\/(slideLayout\d+\.xml)"/);
+    if (!layoutMatch) return null;
+    return layoutToMaster.get(layoutMatch[1]) || null;
+  }
+
   const parsedSlides: ParsedSlide[] = [];
 
   for (let i = 0; i < slideFiles.length; i++) {
@@ -632,22 +685,32 @@ async function main() {
     console.log(`Parsing slide ${i + 1}/${slideFiles.length} (${slideFile})...`);
 
     const slideXml = await zip.file(slideFile)!.async('string');
-
-    // Detect "Final Pages" slides:
-    // 1. Contains branding text (slidesgo, freepik, flaticon)
-    // 2. Has excessive elements (icon/resource pages have 50+)
-    // 3. Has "Fonts" or "Icons" as title (resource pages)
     const plainText = slideXml.replace(/<[^>]+>/g, '').toLowerCase();
     const elementCount = (slideXml.match(/<p:sp>/g) || []).length + (slideXml.match(/<p:pic>/g) || []).length;
-    const isFinalPage = plainText.includes('slidesgo') || plainText.includes('freepik') || plainText.includes('flaticon')
+
+    // Check if slide belongs to the secondary (non-primary) master = "Final Pages"
+    const slideMasterId = await getSlideMasterId(slideNum);
+    const isSecondaryMaster = primaryMasterId && slideMasterId && slideMasterId !== primaryMasterId;
+
+    // Heuristic final page detection (branding, excessive elements, resource pages)
+    const isFinalPageHeuristic = plainText.includes('slidesgo') || plainText.includes('freepik') || plainText.includes('flaticon')
       || elementCount > 50
-      || /\bicons?\b/.test(plainText) && elementCount > 15
+      || (/\bicons?\b/.test(plainText) && elementCount > 15)
       || plainText.includes('fonts & colors') || plainText.includes('fonts used')
       || plainText.includes('contents of this template')
       || plainText.includes('contents of this presentation');
-    if (isFinalPage) {
-      console.log(`  Skipping final page (${elementCount} elements)`);
+
+    const isFinalPage = isSecondaryMaster || isFinalPageHeuristic;
+
+    // Exception: explicitly KEEP "Thank You" / "Thanks" slides even if flagged
+    const isThanksSlide = /\bthanks?\b/i.test(plainText) || /\bthank\s+you\b/i.test(plainText);
+
+    if (isFinalPage && !isThanksSlide) {
+      console.log(`  Skipping final page (${elementCount} elements, master=${slideMasterId})`);
       continue;
+    }
+    if (isThanksSlide && isFinalPage) {
+      console.log(`  Keeping "Thank You" slide despite final-page match`);
     }
 
     // Parse relationships for this slide
@@ -794,6 +857,14 @@ async function main() {
       }
     }
 
+    // Detect TOC (Table of Contents) slides
+    const isTocSlide = plainText.includes('table of contents') || plainText.includes('contents')
+      && (layoutName === 'TITLE_ONLY' || layoutName.includes('CUSTOM'))
+      && texts.length >= 3; // Multiple text elements = TOC items
+
+    // Detect "Thank You" / closing slides
+    const isClosingSlide = /\bthanks?\b/i.test(plainText) || /\bthank\s+you\b/i.test(plainText);
+
     // Classify slide type from layout name
     const slideTypeMap: Record<string, string> = {
       'TITLE': 'cover',
@@ -803,7 +874,9 @@ async function main() {
       'CAPTION_ONLY': 'image',
       'BLANK': 'blank',
     };
-    const slideType = slideTypeMap[layoutName] ||
+    const slideType = isTocSlide ? 'toc'
+      : isClosingSlide ? 'closing'
+      : slideTypeMap[layoutName] ||
       (layoutName.includes('CUSTOM') && elements.length <= 5 ? 'content' : 'content');
 
     // Reorder zIndex: images first, then shapes, then text on top
