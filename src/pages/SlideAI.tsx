@@ -63,9 +63,11 @@ export default function SlideAIPage() {
     const theme = selectedTheme || THEME_CATALOG[0];
 
     try {
-      // UNIFIED FLOW: Layout Library + Theme for ALL presentations
-      // The AI picks layouts from the library, the renderer applies the theme
-      // Template PPTX only contributes: background images for cover/section slides
+      // HYBRID FLOW:
+      // 1. AI generates content with layout IDs from the library
+      // 2. For each AI slide, try to match a real template slide (by type)
+      //    → If match: use template slide visuals + replace text with AI content
+      //    → If no match: use Layout Library to create the slide with theme colors
       const result = await generatePresentation({
         prompt: contentText,
         length: 'informative',
@@ -73,26 +75,110 @@ export default function SlideAIPage() {
         audience: 'general',
       });
 
-      // Extract background images from template for cover/section slides
-      const templateBackgrounds: Record<string, string> = {};
+      // Build a pool of template slides indexed by type
+      const templatePool: Record<string, any[]> = {};
       if (templateSlides) {
-        for (let i = 0; i < Math.min(templateSlides.length, 5); i++) {
-          const s = templateSlides[i];
-          const type = (s as any).layout || '';
-          if (s.background?.type === 'image' && s.background.value) {
-            if (type === 'cover' || i === 0) templateBackgrounds['cover'] = s.background.value;
-            else if (type === 'section') templateBackgrounds['section'] = s.background.value;
-            else if (type === 'image') templateBackgrounds['image'] = s.background.value;
-            else if (type === 'closing') templateBackgrounds['closing'] = s.background.value;
-          }
+        for (const s of templateSlides) {
+          const type = (s as any).layout || 'content';
+          if (!templatePool[type]) templatePool[type] = [];
+          templatePool[type].push(JSON.parse(JSON.stringify(s)));
         }
       }
+      const usedTemplateSlides = new Set<number>();
 
-      // Convert AI output to slides using Layout Library + Theme
+      // Placeholder detection for template text replacement
+      const isPlaceholderText = (html: string): boolean => {
+        const plain = html.replace(/<[^>]+>/g, '').trim().toLowerCase();
+        if (!plain || plain.length < 3) return false;
+        const patterns = [
+          /mercury|venus|jupiter|saturn|mars|neptune/i,
+          /name of the section/i, /lorem ipsum/i, /placeholder/i,
+          /your text here/i, /click to edit/i, /subtitle here/i,
+          /write.*title.*here/i, /you can describe/i, /despite being red/i,
+        ];
+        return patterns.some(p => p.test(plain));
+      };
+
+      // Map layout categories to template slide types
+      const categoryToType: Record<string, string[]> = {
+        'cover': ['cover'],
+        'section': ['section'],
+        'content': ['content', 'two-column'],
+        'data': ['content'],
+        'comparison': ['two-column', 'content'],
+        'visual': ['image', 'content'],
+        'list': ['content'],
+        'closing': ['closing'],
+        'toc': ['toc', 'content'],
+      };
+
       const slides: Slide[] = result.slides.map((aiSlide: any, index: number) => {
         const layoutId = aiSlide.layout || 'content-title-body';
         const layout = getLayoutById(layoutId);
+        const category = layout?.category || 'content';
 
+        // Try to find a matching template slide
+        const matchTypes = categoryToType[category] || ['content'];
+        let matchedTemplate: any = null;
+
+        for (const type of matchTypes) {
+          const pool = templatePool[type];
+          if (pool && pool.length > 0) {
+            // Pick first unused from pool
+            const idx = pool.findIndex((_: any, i: number) => !usedTemplateSlides.has(i));
+            if (idx !== -1) {
+              matchedTemplate = JSON.parse(JSON.stringify(pool[idx]));
+              usedTemplateSlides.add(idx);
+              break;
+            }
+            // If all used, reuse first
+            matchedTemplate = JSON.parse(JSON.stringify(pool[0]));
+            break;
+          }
+        }
+
+        if (matchedTemplate) {
+          // USE TEMPLATE SLIDE: keep visuals, replace text
+          const textElements = (matchedTemplate.elements || [])
+            .filter((el: any) => el.type === 'text')
+            .sort((a: any, b: any) => (b.style?.fontSize || 0) - (a.style?.fontSize || 0));
+
+          // Replace title (largest text)
+          if (textElements.length > 0 && aiSlide.title) {
+            textElements[0].content = `<p>${aiSlide.title}</p>`;
+          }
+
+          // Replace body/bullets (second largest)
+          if (textElements.length > 1) {
+            if (aiSlide.bullets?.length) {
+              textElements[1].content = aiSlide.bullets.map((b: string) => `<p>${b}</p>`).join('');
+            } else if (aiSlide.body) {
+              textElements[1].content = `<p>${aiSlide.body}</p>`;
+            }
+          }
+
+          // Replace remaining placeholder text
+          for (let j = 2; j < textElements.length; j++) {
+            if (isPlaceholderText(textElements[j].content)) {
+              if (aiSlide.bullets && j - 2 < aiSlide.bullets.length) {
+                textElements[j].content = `<p>${aiSlide.bullets[j - 2]}</p>`;
+              } else if (aiSlide.body) {
+                textElements[j].content = `<p>${typeof aiSlide.body === 'string' ? aiSlide.body : aiSlide.body[0] || ''}</p>`;
+              } else if (aiSlide.subtitle) {
+                const sub = Array.isArray(aiSlide.subtitle) ? aiSlide.subtitle[0] : aiSlide.subtitle;
+                textElements[j].content = `<p>${sub}</p>`;
+              }
+            }
+          }
+
+          return {
+            ...matchedTemplate,
+            id: generateId(),
+            notes: aiSlide.notes || '',
+          } as Slide;
+        }
+
+        // NO TEMPLATE MATCH: use Layout Library + Theme
         const content: SlideContent = {
           title: aiSlide.title,
           subtitle: aiSlide.subtitle,
@@ -107,29 +193,15 @@ export default function SlideAIPage() {
 
         if (layout) {
           const { elements, background } = renderLayout(layout, content, theme.tokens);
-
-          // Apply template background images where appropriate
-          let finalBg = background;
-          if (layout.category === 'cover' && templateBackgrounds['cover']) {
-            finalBg = { type: 'image', value: templateBackgrounds['cover'] };
-          } else if (layout.category === 'section' && templateBackgrounds['section']) {
-            finalBg = { type: 'image', value: templateBackgrounds['section'] };
-          } else if (layout.category === 'visual' && templateBackgrounds['image']) {
-            finalBg = { type: 'image', value: templateBackgrounds['image'] };
-          } else if (layout.category === 'closing' && templateBackgrounds['closing']) {
-            finalBg = { type: 'image', value: templateBackgrounds['closing'] };
-          }
-
           return {
             id: generateId(),
             elements,
-            background: finalBg,
+            background,
             notes: aiSlide.notes || '',
-            layout: layout.category,
+            layout: category,
           } as Slide;
         }
 
-        // Fallback for unknown layouts
         const fallbackLayout = getLayoutById('content-title-body')!;
         const { elements, background } = renderLayout(fallbackLayout, content, theme.tokens);
         return {
