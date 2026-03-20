@@ -155,6 +155,7 @@ export default function CanvasElement({
         }
 
         const isHtml = element.content.startsWith('<');
+        const vAlign = s.verticalAlign;
         const textStyle: React.CSSProperties = {
           fontFamily: s.fontFamily,
           fontSize: s.fontSize,
@@ -170,6 +171,9 @@ export default function CanvasElement({
           padding: 8,
           width: '100%',
           height: '100%',
+          display: vAlign ? 'flex' : undefined,
+          flexDirection: vAlign ? 'column' : undefined,
+          justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
           outline: 'none',
           overflow: 'hidden',
           whiteSpace: isHtml ? undefined : 'pre-wrap', overflowWrap: 'break-word',

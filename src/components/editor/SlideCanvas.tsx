@@ -128,7 +128,8 @@ function StaticElement({ element }: { element: SlideElement }) {
 
   const renderContent = () => {
     switch (element.type) {
-      case 'text':
+      case 'text': {
+        const vAlign = s.verticalAlign;
         return (
           <div
             style={{
@@ -146,6 +147,9 @@ function StaticElement({ element }: { element: SlideElement }) {
               padding: 8,
               width: '100%',
               height: '100%',
+              display: vAlign ? 'flex' : undefined,
+              flexDirection: vAlign ? 'column' : undefined,
+              justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
               whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap', overflowWrap: 'break-word',
               wordBreak: 'break-word',
               overflow: 'hidden',
@@ -159,6 +163,7 @@ function StaticElement({ element }: { element: SlideElement }) {
             {element.content.startsWith('<') ? undefined : element.content}
           </div>
         );
+      }
 
       case 'shape': {
         const shapeType = s.shapeType || 'rectangle';

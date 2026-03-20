@@ -216,6 +216,12 @@ function parseTextFromSpTree(
 
   const txContent = txBody[1];
 
+  // Extract vertical alignment from bodyPr anchor attribute
+  const anchorMatch = txContent.match(/<a:bodyPr[^>]*\banchor="(\w+)"/);
+  const verticalAlign = anchorMatch
+    ? (anchorMatch[1] === 't' ? 'top' : anchorMatch[1] === 'ctr' ? 'center' : anchorMatch[1] === 'b' ? 'bottom' : undefined)
+    : undefined;
+
   // Parse paragraphs
   const paragraphs = txContent.match(/<a:p>([\s\S]*?)<\/a:p>/g) || [];
   let html = '';
@@ -333,6 +339,7 @@ function parseTextFromSpTree(
       fontWeight: firstBold ? 'bold' : 'normal',
       color: firstColor || themeColors.dk1,
       textAlign: firstAlign || 'left',
+      verticalAlign: verticalAlign,
     },
   };
 }

@@ -24,6 +24,7 @@ export interface ElementStyle {
   fontStyle?: string;
   textDecoration?: string;
   textAlign?: 'left' | 'center' | 'right' | 'justify';
+  verticalAlign?: 'top' | 'center' | 'bottom';
   lineHeight?: number;
   letterSpacing?: number;
   color?: string;
