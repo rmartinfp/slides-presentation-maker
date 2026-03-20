@@ -804,14 +804,24 @@ async function main() {
     const slideType = slideTypeMap[layoutName] ||
       (layoutName.includes('CUSTOM') && elements.length <= 5 ? 'content' : 'content');
 
-    console.log(`  → ${layoutName} (${slideType}) ${elements.length} elements`);
+    // Reorder zIndex: images first, then shapes, then text on top
+    let z = 1;
+    const images = elements.filter(e => e.type === 'image');
+    const shapes = elements.filter(e => e.type === 'shape');
+    const texts = elements.filter(e => e.type === 'text');
+    for (const el of [...images, ...shapes, ...texts]) {
+      el.zIndex = z++;
+    }
+    const reordered = [...images, ...shapes, ...texts];
+
+    console.log(`  → ${layoutName} (${slideType}) ${reordered.length} elements (${texts.length} text, ${shapes.length} shapes, ${images.length} images)`);
 
     parsedSlides.push({
       id: genId(),
-      elements,
+      elements: reordered,
       background,
       notes: '',
-      layout: slideType, // Store slide type for AI content generation
+      layout: slideType,
     } as any);
   }
 
