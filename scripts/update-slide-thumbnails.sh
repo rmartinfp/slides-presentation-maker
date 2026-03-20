@@ -66,8 +66,8 @@ for s in d.get('slides',[]):
   for PAGE_ID in $PAGE_IDS; do
     SLIDE_NUM=$((SLIDE_NUM + 1))
 
-    # Skip after slide 14 (final pages)
-    if [ $SLIDE_NUM -gt 14 ]; then
+    # Limit to 6 slides per presentation (enough for hover preview)
+    if [ $SLIDE_NUM -gt 6 ]; then
       break
     fi
 

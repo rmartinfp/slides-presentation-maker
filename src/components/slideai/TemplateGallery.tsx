@@ -111,9 +111,9 @@ function ThemeCard({ template, isSelected, onSelect }: { template: UnifiedTempla
           </div>
         )}
 
-        {imageCount > 0 && !isHovering && (
+        {!isHovering && (template.slides?.length || imageCount) > 0 && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur text-white text-[10px] font-medium rounded-full">
-            {imageCount} slides
+            {template.slides?.length || imageCount} slides
           </div>
         )}
 
