@@ -220,43 +220,43 @@ export default function EditorPage() {
         />
       )}
 
-      <div className="h-screen flex flex-col bg-[#0a0a0f] text-white overflow-hidden">
+      <div className="h-screen flex flex-col mesh-gradient text-slate-900 overflow-hidden">
         {/* Top bar — minimal */}
-        <div className="h-12 flex items-center justify-between px-4 border-b border-white/10 shrink-0">
+        <div className="h-12 flex items-center justify-between px-4 nav-glass border-b border-slate-200/60 shrink-0">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="text-slate-400 hover:text-white h-8 w-8 p-0">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="text-slate-500 hover:text-slate-900 h-8 w-8 p-0">
               <ArrowLeft className="w-4 h-4" />
             </Button>
-            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+            <div className="w-2 h-2 rounded-full bg-[#4F46E5]" />
             {isEditingTitle ? (
               <Input
                 value={presentation.title}
                 onChange={e => setTitle(e.target.value)}
                 onBlur={() => setIsEditingTitle(false)}
                 onKeyDown={e => e.key === 'Enter' && setIsEditingTitle(false)}
-                className="h-7 text-sm font-medium bg-white/10 border-white/20 text-white max-w-xs"
+                className="h-7 text-sm font-medium bg-slate-50 border-slate-200 text-slate-900 max-w-xs"
                 autoFocus
               />
             ) : (
-              <button onClick={() => setIsEditingTitle(true)} className="text-sm font-medium text-white/80 hover:text-white truncate max-w-xs">
+              <button onClick={() => setIsEditingTitle(true)} className="text-sm font-medium text-slate-700 hover:text-slate-900 truncate max-w-xs">
                 {presentation.title || 'Untitled'}
               </button>
             )}
             {saveStatus !== 'idle' && (
-              <span className={cn('text-[10px] px-2 py-0.5 rounded-full', saveStatus === 'saving' ? 'text-amber-400 bg-amber-500/10' : 'text-emerald-400 bg-emerald-500/10')}>
+              <span className={cn('text-[10px] px-2 py-0.5 rounded-full', saveStatus === 'saving' ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50')}>
                 {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white h-8 w-8 p-0" onClick={undo}><Undo2 className="w-4 h-4" /></Button>
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white h-8 w-8 p-0" onClick={redo}><Redo2 className="w-4 h-4" /></Button>
-            <div className="w-px h-5 bg-white/10 mx-1" />
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white h-8 gap-1.5"><Share2 className="w-3.5 h-3.5" /></Button>
+            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 h-8 w-8 p-0" onClick={undo}><Undo2 className="w-4 h-4" /></Button>
+            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 h-8 w-8 p-0" onClick={redo}><Redo2 className="w-4 h-4" /></Button>
+            <div className="w-px h-5 bg-slate-200/60 mx-1" />
+            <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 h-8 gap-1.5"><Share2 className="w-3.5 h-3.5" /></Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white h-8 gap-1.5">
+                <Button variant="ghost" size="sm" className="text-slate-500 hover:text-slate-900 h-8 gap-1.5">
                   <Download className="w-3.5 h-3.5" /><ChevronDown className="w-3 h-3" />
                 </Button>
               </DropdownMenuTrigger>
@@ -277,7 +277,7 @@ export default function EditorPage() {
                     'text-white h-8 gap-1.5 ml-1',
                     cinematicPreset
                       ? 'bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700'
-                      : 'bg-indigo-600 hover:bg-indigo-700'
+                      : 'bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE]'
                   )}
                 >
                   <Play className="w-3.5 h-3.5" />{cinematicPreset ? cinematicPreset.name : 'Present'}<ChevronDown className="w-3 h-3 ml-0.5" />
@@ -298,10 +298,10 @@ export default function EditorPage() {
         {/* Main area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Slide list — dark */}
-          <div className="w-48 bg-[#0f0f15] border-r border-white/10 flex flex-col overflow-hidden">
+          <div className="w-48 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-hidden">
             <div className="p-3 flex items-center justify-between">
               <span className="text-xs text-slate-500">{presentation.slides.length} slides</span>
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-indigo-400 hover:text-indigo-300 gap-1 px-2" onClick={addSlide}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={addSlide}>
                 <Plus className="w-3 h-3" />Add
               </Button>
             </div>
@@ -322,12 +322,12 @@ export default function EditorPage() {
                             {...provided.dragHandleProps}
                             className={cn(
                               'relative rounded-lg cursor-pointer transition-all group',
-                              activeSlideIndex === idx ? 'ring-2 ring-indigo-500' : 'hover:ring-1 hover:ring-white/20',
-                              snapshot.isDragging && 'ring-2 ring-indigo-400 opacity-90 shadow-lg shadow-indigo-500/20'
+                              activeSlideIndex === idx ? 'ring-2 ring-[#4F46E5]' : 'hover:ring-1 hover:ring-slate-300',
+                              snapshot.isDragging && 'ring-2 ring-[#4F46E5] opacity-90 shadow-lg shadow-indigo-500/20'
                             )}
                             onClick={() => setActiveSlideIndex(idx)}
                           >
-                            <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-white/60 bg-black/40 rounded px-1">{idx + 1}</div>
+                            <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-600 bg-white/80 rounded px-1">{idx + 1}</div>
                             <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
                               <div style={{ width: 1920 * 0.09, height: 1080 * 0.09 }}>
                                 <SlideCanvas
@@ -352,15 +352,15 @@ export default function EditorPage() {
           {/* Canvas area */}
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
-              <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-[#111118] overflow-hidden relative">
+              <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-slate-100/50 overflow-hidden relative">
                 {/* Nav arrows */}
                 {activeSlideIndex > 0 && (
-                  <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute left-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all">
+                  <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute left-3 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                 )}
                 {activeSlideIndex < presentation.slides.length - 1 && (
-                  <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute right-3 z-20 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-all">
+                  <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute right-3 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
@@ -376,7 +376,7 @@ export default function EditorPage() {
             </CanvasContextMenu>
 
             {/* Bottom floating toolbar */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-3 py-2 bg-[#1a1a24]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-3 py-2 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl">
               {/* Add elements */}
               <ToolBtn icon={<Type className="w-4 h-4" />} label="Text" onClick={() => addElement({ type: 'text', content: 'New text', x: 400, y: 400, width: 500, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: theme.typography.bodySize, color: theme.palette.text, textAlign: 'left' } })} />
               <DropdownMenu>
@@ -400,14 +400,14 @@ export default function EditorPage() {
               </DropdownMenu>
               <ToolBtn icon={<Image className="w-4 h-4" />} label="Image" onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }} />
 
-              <div className="w-px h-6 bg-white/10 mx-1" />
+              <div className="w-px h-6 bg-slate-200/60 mx-1" />
 
               {/* AI */}
               <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight onClick={() => setShowAIRewrite(true)} />
 
               {selectedElementIds.length > 0 && (
                 <>
-                  <div className="w-px h-6 bg-white/10 mx-1" />
+                  <div className="w-px h-6 bg-slate-200/60 mx-1" />
                   <ToolBtn icon={<Copy className="w-4 h-4" />} label="Duplicate" onClick={() => duplicateElements()} />
                   <ToolBtn icon={<Trash2 className="w-4 h-4" />} label="Delete" onClick={() => deleteElements()} danger />
                   {singleSelected && (
@@ -419,7 +419,7 @@ export default function EditorPage() {
                 </>
               )}
 
-              <div className="w-px h-6 bg-white/10 mx-1" />
+              <div className="w-px h-6 bg-slate-200/60 mx-1" />
               <span className="text-[11px] text-slate-500 font-mono px-2">{activeSlideIndex + 1} / {presentation.slides.length}</span>
             </div>
           </div>
@@ -444,9 +444,9 @@ function ToolBtn({ icon, label, onClick, highlight, danger }: { icon: React.Reac
     <button
       onClick={onClick}
       className={cn(
-        'flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-all text-slate-400 hover:text-white hover:bg-white/10',
-        highlight && 'text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10',
-        danger && 'text-red-400 hover:text-red-300 hover:bg-red-500/10',
+        'flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-all text-slate-500 hover:text-slate-900 hover:bg-slate-100',
+        highlight && 'text-[#4F46E5] hover:text-[#4338CA] hover:bg-indigo-50',
+        danger && 'text-red-500 hover:text-red-600 hover:bg-red-50',
       )}
       title={label}
     >

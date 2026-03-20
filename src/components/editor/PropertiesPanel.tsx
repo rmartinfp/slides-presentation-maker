@@ -25,8 +25,8 @@ export default function PropertiesPanel() {
   if (!el) {
     // Slide properties when nothing selected
     return (
-      <div className="w-64 bg-[#0f0f15] border-l border-white/10 p-4 overflow-y-auto">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">Slide</h3>
+      <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Slide</h3>
 
         <div className="space-y-4">
           <div>
@@ -40,7 +40,7 @@ export default function PropertiesPanel() {
                   onClick={() => setSlideBackground({ type: 'solid', value: c })}
                   className={cn(
                     'w-full aspect-square rounded border transition-transform hover:scale-110',
-                    slide?.background?.value === c ? 'border-indigo-500 scale-110' : 'border-white/10'
+                    slide?.background?.value === c ? 'border-indigo-500 scale-110' : 'border-slate-200'
                   )}
                   style={{ backgroundColor: c }}
                 />
@@ -48,7 +48,7 @@ export default function PropertiesPanel() {
             </div>
           </div>
 
-          <div className="pt-2 border-t border-white/10">
+          <div className="pt-2 border-t border-slate-200/60">
             <p className="text-[11px] text-slate-500">
               {slide?.elements?.length || 0} elements on this slide
             </p>
@@ -64,16 +64,16 @@ export default function PropertiesPanel() {
   };
 
   return (
-    <div className="w-64 bg-[#0f0f15] border-l border-white/10 p-4 overflow-y-auto">
+    <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           {el.type === 'text' ? 'Text' : el.type === 'image' ? 'Image' : 'Shape'}
         </h3>
         <div className="flex gap-1">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-500 hover:text-white" onClick={() => duplicateElements()}>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-500 hover:text-slate-900" onClick={() => duplicateElements()}>
             <Copy className="w-3 h-3" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-400 hover:text-red-300" onClick={() => deleteElements()}>
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-red-500 hover:text-red-600" onClick={() => deleteElements()}>
             <Trash2 className="w-3 h-3" />
           </Button>
         </div>
@@ -105,7 +105,7 @@ export default function PropertiesPanel() {
               min={0} max={360} step={1}
               className="flex-1"
             />
-            <span className="text-[11px] text-slate-400 w-10 text-right tabular-nums">{el.rotation}°</span>
+            <span className="text-[11px] text-slate-500 w-10 text-right tabular-nums">{el.rotation}°</span>
           </div>
         </Section>
 
@@ -118,7 +118,7 @@ export default function PropertiesPanel() {
               min={0} max={100} step={1}
               className="flex-1"
             />
-            <span className="text-[11px] text-slate-400 w-10 text-right tabular-nums">{Math.round(el.opacity * 100)}%</span>
+            <span className="text-[11px] text-slate-500 w-10 text-right tabular-nums">{Math.round(el.opacity * 100)}%</span>
           </div>
         </Section>
 
@@ -128,18 +128,18 @@ export default function PropertiesPanel() {
             <div className="space-y-2">
               <div>
                 <label className="text-[10px] text-slate-500 mb-1 block">Font</label>
-                <p className="text-xs text-white/80 truncate">{el.style.fontFamily || 'Default'}</p>
+                <p className="text-xs text-slate-700 truncate">{el.style.fontFamily || 'Default'}</p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] text-slate-500 mb-1 block">Size</label>
-                  <p className="text-xs text-white/80">{el.style.fontSize}px</p>
+                  <p className="text-xs text-slate-700">{el.style.fontSize}px</p>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-500 mb-1 block">Color</label>
                   <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded border border-white/20" style={{ backgroundColor: el.style.color || '#fff' }} />
-                    <p className="text-[10px] text-white/60">{el.style.color}</p>
+                    <div className="w-4 h-4 rounded border border-slate-200" style={{ backgroundColor: el.style.color || '#fff' }} />
+                    <p className="text-[10px] text-slate-500">{el.style.color}</p>
                   </div>
                 </div>
               </div>
@@ -162,8 +162,8 @@ export default function PropertiesPanel() {
                       onClick={() => updateStyle({ shapeFill: c })}
                       className={cn(
                         'w-full aspect-square rounded border transition-transform hover:scale-110',
-                        el.style.shapeFill === c ? 'border-indigo-500 scale-110' : 'border-white/10',
-                        c === 'transparent' && 'bg-[repeating-conic-gradient(#333_0%_25%,#555_0%_50%)] bg-[length:8px_8px]'
+                        el.style.shapeFill === c ? 'border-indigo-500 scale-110' : 'border-slate-200',
+                        c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]'
                       )}
                       style={c !== 'transparent' ? { backgroundColor: c } : undefined}
                     />
@@ -179,8 +179,8 @@ export default function PropertiesPanel() {
                       onClick={() => updateStyle({ shapeStroke: c, shapeStrokeWidth: c === 'transparent' ? 0 : 2 })}
                       className={cn(
                         'w-full aspect-square rounded border transition-transform hover:scale-110',
-                        el.style.shapeStroke === c ? 'border-indigo-500 scale-110' : 'border-white/10',
-                        c === 'transparent' && 'bg-[repeating-conic-gradient(#333_0%_25%,#555_0%_50%)] bg-[length:8px_8px]'
+                        el.style.shapeStroke === c ? 'border-indigo-500 scale-110' : 'border-slate-200',
+                        c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]'
                       )}
                       style={c !== 'transparent' ? { backgroundColor: c } : undefined}
                     />
@@ -204,7 +204,7 @@ export default function PropertiesPanel() {
                       onClick={() => updateStyle({ objectFit: fit })}
                       className={cn(
                         'flex-1 py-1 rounded text-[10px] font-medium transition-colors',
-                        el.style.objectFit === fit ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                        el.style.objectFit === fit ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
                       )}
                     >
                       {fit}
@@ -241,7 +241,7 @@ export default function PropertiesPanel() {
                   onClick={() => updateStyle({ filter: preset.value })}
                   className={cn(
                     'py-1 rounded text-[10px] font-medium transition-colors',
-                    (el.style.filter || '') === preset.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                    (el.style.filter || '') === preset.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
                   )}
                 >
                   {preset.label}
@@ -266,7 +266,7 @@ export default function PropertiesPanel() {
                   onClick={() => updateStyle({ boxShadow: preset.value })}
                   className={cn(
                     'py-1 rounded text-[10px] font-medium transition-colors',
-                    (el.style.boxShadow || '') === preset.value ? 'bg-indigo-600 text-white' : 'bg-white/5 text-slate-400 hover:text-white'
+                    (el.style.boxShadow || '') === preset.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
                   )}
                 >
                   {preset.label}
@@ -277,14 +277,14 @@ export default function PropertiesPanel() {
         )}
 
         {/* Layer controls */}
-        <div className="flex gap-1 pt-3 border-t border-white/10">
-          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-400 hover:text-white gap-1" onClick={() => bringToFront(el.id)}>
+        <div className="flex gap-1 pt-3 border-t border-slate-200/60">
+          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-500 hover:text-slate-900 gap-1" onClick={() => bringToFront(el.id)}>
             <ArrowUpToLine className="w-3 h-3" /> Front
           </Button>
-          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-400 hover:text-white gap-1" onClick={() => sendToBack(el.id)}>
+          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-500 hover:text-slate-900 gap-1" onClick={() => sendToBack(el.id)}>
             <ArrowDownToLine className="w-3 h-3" /> Back
           </Button>
-          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-400 hover:text-white gap-1"
+          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-500 hover:text-slate-900 gap-1"
             onClick={() => lockElement(el.id, !el.locked)}>
             {el.locked ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
             {el.locked ? 'Locked' : 'Lock'}
@@ -300,7 +300,7 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
     <div>
       <div className="flex items-center gap-1.5 mb-2">
         <span className="text-slate-500">{icon}</span>
-        <span className="text-[11px] font-medium text-slate-400">{title}</span>
+        <span className="text-[11px] font-medium text-slate-500">{title}</span>
       </div>
       {children}
     </div>
@@ -315,7 +315,7 @@ function PropInput({ label, value, onChange }: { label: string; value: number; o
         type="number"
         value={value}
         onChange={e => onChange(parseInt(e.target.value) || 0)}
-        className="w-full h-7 px-2 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-indigo-500 tabular-nums"
+        className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-900 focus:outline-none focus:border-[#4F46E5] tabular-nums"
       />
     </div>
   );

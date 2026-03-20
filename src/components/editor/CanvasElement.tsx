@@ -325,7 +325,7 @@ export default function CanvasElement({
       onDoubleClick={handleDoubleClick}
       className={cn(
         'canvas-element group',
-        isSelected && 'ring-2 ring-blue-500 ring-offset-0',
+        isSelected && 'ring-2 ring-[#4F46E5] ring-offset-0',
         element.locked && 'opacity-90',
       )}
       data-element-id={element.id}
