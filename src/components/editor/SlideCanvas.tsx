@@ -146,7 +146,7 @@ function StaticElement({ element }: { element: SlideElement }) {
               padding: 8,
               width: '100%',
               height: '100%',
-              whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap',
+              whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap', overflowWrap: 'break-word',
               wordBreak: 'break-word',
               overflow: 'hidden',
               opacity: typeof s.opacity === 'number' ? s.opacity : 1,

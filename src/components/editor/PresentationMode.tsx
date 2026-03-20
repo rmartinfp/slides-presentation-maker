@@ -101,7 +101,7 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
                 width: '100%',
                 height: '100%',
                 wordBreak: 'break-word',
-                whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap',
+                whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap', overflowWrap: 'break-word',
                 opacity: typeof s.opacity === 'number' ? s.opacity : 1,
               }}
               dangerouslySetInnerHTML={

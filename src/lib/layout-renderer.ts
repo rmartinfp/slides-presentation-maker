@@ -193,7 +193,6 @@ function makeTextElement(
     rotation: 0, opacity: style.opacity ?? 1, locked: false, visible: true, zIndex,
     style: {
       ...style,
-      opacity: undefined, // Applied at element level, not style level
     },
   };
 }

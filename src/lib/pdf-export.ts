@@ -89,12 +89,14 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
           elDiv.style.textAlign = (s.textAlign as string) || 'left';
           elDiv.style.lineHeight = String(s.lineHeight || 1.4);
           elDiv.style.padding = '8px';
-          elDiv.style.whiteSpace = 'pre-wrap';
           elDiv.style.wordBreak = 'break-word';
+          elDiv.style.overflowWrap = 'break-word';
 
           if (el.content.startsWith('<')) {
+            elDiv.style.whiteSpace = 'normal';
             elDiv.innerHTML = el.content;
           } else {
+            elDiv.style.whiteSpace = 'pre-wrap';
             elDiv.textContent = el.content;
           }
         } else if (el.type === 'image') {

@@ -96,7 +96,7 @@ export default function FormattingToolbar({ editor, scale }: Props) {
           <Minus className="w-3 h-3" />
         </button>
         <button
-          onMouseDown={(e) => { e.preventDefault(); setShowFontSize(!showFontSize); setShowColorPicker(false); setShowFontPicker(false); }}
+          onMouseDown={(e) => { e.preventDefault(); setShowFontSize(!showFontSize); setShowColorPicker(false); }}
           className="h-8 px-2 text-xs font-bold text-slate-800 hover:bg-slate-100 border-x border-slate-200 min-w-[40px] text-center tabular-nums"
         >
           {currentSize}
@@ -147,7 +147,7 @@ export default function FormattingToolbar({ editor, scale }: Props) {
       {/* Color */}
       <div className="relative">
         <button
-          onMouseDown={(e) => { e.preventDefault(); setShowColorPicker(!showColorPicker); setShowFontPicker(false); setShowFontSize(false); }}
+          onMouseDown={(e) => { e.preventDefault(); setShowColorPicker(!showColorPicker); setShowFontSize(false); }}
           className="w-8 h-8 flex flex-col items-center justify-center rounded-md hover:bg-slate-100"
           title="Text Color"
         >

@@ -172,7 +172,7 @@ export default function CanvasElement({
           height: '100%',
           outline: 'none',
           overflow: 'hidden',
-          whiteSpace: isHtml ? undefined : 'pre-wrap',
+          whiteSpace: isHtml ? undefined : 'pre-wrap', overflowWrap: 'break-word',
           wordBreak: 'break-word',
           opacity: typeof s.opacity === 'number' ? s.opacity : 1,
           pointerEvents: isEditing ? 'auto' : 'none', // Let interact.js handle drag; only enable for editing
