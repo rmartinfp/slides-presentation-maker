@@ -15,7 +15,7 @@ interface Props {
 
 export default function StepIndicator({ currentStep }: Props) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center justify-center gap-1">
       {steps.map((step, idx) => {
         const isComplete = currentStep > step.id;
         const isCurrent = currentStep === step.id;

@@ -186,7 +186,7 @@ export const useEditorStore = create<EditorState>()((set, get) => {
       const theme = p.theme;
       const migrated = migrateAllSlides(p.slides, theme.tokens);
       skipTracking = true;
-      set({ presentation: { ...p, slides: migrated } });
+      set({ presentation: { ...p, slides: migrated }, activeSlideIndex: 0, selectedElementIds: [] });
       skipTracking = false;
     },
 
@@ -210,6 +210,8 @@ export const useEditorStore = create<EditorState>()((set, get) => {
             createdAt: data.created_at,
             updatedAt: data.updated_at,
           },
+          activeSlideIndex: 0,
+          selectedElementIds: [],
         });
         skipTracking = false;
       }

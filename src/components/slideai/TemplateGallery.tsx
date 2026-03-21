@@ -343,14 +343,14 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       className="min-h-screen mesh-gradient relative z-10 font-body"
     >
       <div className="sticky top-0 z-30 nav-glass border-b border-slate-200/60">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center">
-          <button onClick={() => navigate('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 text-sm transition-colors mr-auto">
-            <ArrowLeft className="w-4 h-4" /> Back
+        <div className="max-w-6xl mx-auto px-6 py-3 flex items-center">
+          <button onClick={() => navigate('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 text-xs transition-colors w-14">
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
           </button>
-          <div className="absolute left-1/2 -translate-x-1/2">
+          <div className="flex-1">
             <StepIndicator currentStep={1} />
           </div>
-          <div className="ml-auto w-14" /> {/* Spacer to balance */}
+          <div className="w-14" />
         </div>
       </div>
 
