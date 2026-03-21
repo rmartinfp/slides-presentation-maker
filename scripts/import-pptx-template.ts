@@ -606,8 +606,12 @@ function parseShapeFromSpTree(
     }
   }
 
-  // Skip if no fill AND no outline (truly invisible)
-  const noFill = spXml.includes('<a:noFill/>') || (!fill && !solidFill && !gradientFill);
+  // Check if the shape body has noFill (not the outline's noFill)
+  // Remove <a:ln>...</a:ln> section before checking for <a:noFill/>
+  const spXmlNoLn = spXml.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln>/g, '');
+  const bodyNoFill = spXmlNoLn.includes('<a:noFill/>');
+  const noFill = bodyNoFill || (!fill && !solidFill && !gradientFill);
+  // Skip only if truly invisible: no body fill AND no outline
   if (noFill && !hasOutline) return null;
 
   // Convert custom geometry to SVG path
