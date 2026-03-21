@@ -294,7 +294,7 @@ function parseTextFromSpTree(
       // Apply formatting
       const styles: string[] = [];
       if (color) styles.push(`color:${color}`);
-      if (fontFamily) styles.push(`font-family:${fontFamily}`);
+      if (fontFamily) styles.push(`font-family:${fontFamily}, sans-serif`);
       if (fontSize) styles.push(`font-size:${Math.round(fontSize * 2.666)}px`);
 
       if (runBold) text = `<strong>${text}</strong>`;
@@ -404,7 +404,7 @@ function parseTextFromSpTree(
       color: firstColor || themeColors.dk1,
       textAlign: firstAlign || 'left',
       verticalAlign: verticalAlign,
-      lineHeight: lineHeight || undefined,
+      lineHeight: lineHeight || 1.4,
     },
   };
 }
@@ -1220,7 +1220,12 @@ async function main() {
       || layoutName.startsWith('TITLE_ONLY')
       || layoutName.toLowerCase().startsWith('title only');
 
-    if (((isFinalPage || isInstructionPage) && !isThanksSlide) || (isTitleOnly && !isThanksSlide)) {
+    // Pre-detect TOC slides BEFORE filtering so they don't get discarded
+    const preTextCount = (slideXml.match(/<a:t>/g) || []).length;
+    const isTocPreDetect = (plainText.includes('table of contents') || plainText.includes('contents'))
+      && preTextCount >= 3;
+
+    if (((isFinalPage || isInstructionPage) && !isThanksSlide) || (isTitleOnly && !isThanksSlide && !isTocPreDetect)) {
       console.log(`  Skipping: ${isTitleOnly ? 'title-only layout' : isSecondaryMaster ? 'secondary master' : isInstructionPage ? 'instruction page' : 'final page'} (${elementCount} elements, layout: ${layoutName})`);
       continue;
     }

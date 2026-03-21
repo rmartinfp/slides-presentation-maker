@@ -140,8 +140,9 @@ export default function CanvasElement({
   };
 
   // Auto-shrink for text elements (hook must be at top level, not inside switch)
+  // Uses CSS transform: scale() so it works with inline font-size styles too
   const baseFontPx = (element.style.fontSize ?? 12) * 2.666;
-  const { containerRef: shrinkRef, fontSize: shrunkFontSize } = useAutoShrink(baseFontPx, element.content);
+  const { containerRef: shrinkRef, scale: shrinkScale } = useAutoShrink(baseFontPx, element.content);
 
   // Render element content based on type
   const renderContent = () => {
@@ -161,21 +162,25 @@ export default function CanvasElement({
 
         const isHtml = element.content.startsWith('<');
         const vAlign = s.verticalAlign;
+        // Ensure sans-serif fallback so missing Google Fonts don't render as serif
+        const fontFamily = s.fontFamily
+          ? (s.fontFamily.includes('sans-serif') ? s.fontFamily : `${s.fontFamily}, sans-serif`)
+          : 'sans-serif';
         const textStyle: React.CSSProperties = {
-          fontFamily: s.fontFamily,
-          fontSize: shrunkFontSize,
+          fontFamily,
+          fontSize: baseFontPx,
           fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
           fontStyle: s.fontStyle,
           textDecoration: s.textDecoration,
           textAlign: s.textAlign as React.CSSProperties['textAlign'],
-          lineHeight: s.lineHeight,
+          lineHeight: s.lineHeight || 1.4,
           letterSpacing: s.letterSpacing,
           color: s.color,
           backgroundColor: s.backgroundColor,
           borderRadius: s.borderRadius,
           padding: 8,
-          width: '100%',
-          height: '100%',
+          width: shrinkScale < 1 ? `${100 / shrinkScale}%` : '100%',
+          height: shrinkScale < 1 ? `${100 / shrinkScale}%` : '100%',
           display: vAlign ? 'flex' : undefined,
           flexDirection: vAlign ? 'column' : undefined,
           justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
@@ -184,7 +189,10 @@ export default function CanvasElement({
           whiteSpace: isHtml ? undefined : 'pre-wrap', overflowWrap: 'break-word',
           wordBreak: 'break-word',
           opacity: typeof s.opacity === 'number' ? s.opacity : 1,
-          pointerEvents: isEditing ? 'auto' : 'none', // Let interact.js handle drag; only enable for editing
+          pointerEvents: isEditing ? 'auto' : 'none',
+          // Use CSS transform to shrink — works with inline font-size styles
+          transform: shrinkScale < 1 ? `scale(${shrinkScale})` : undefined,
+          transformOrigin: shrinkScale < 1 ? 'top left' : undefined,
         };
 
         return isHtml ? (

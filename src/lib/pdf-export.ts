@@ -81,8 +81,8 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
 
         if (el.type === 'text') {
           const s = el.style;
-          elDiv.style.fontFamily = s.fontFamily || 'sans-serif';
-          elDiv.style.fontSize = `${s.fontSize || 24}px`;
+          elDiv.style.fontFamily = s.fontFamily ? `${s.fontFamily}, sans-serif` : 'sans-serif';
+          elDiv.style.fontSize = `${(s.fontSize || 24) * 2.666}px`;
           elDiv.style.fontWeight = s.fontWeight || 'normal';
           elDiv.style.fontStyle = s.fontStyle || 'normal';
           elDiv.style.color = s.color || '#000';

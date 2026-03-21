@@ -13,6 +13,7 @@ import { renderLayout, SlideContent } from '@/lib/layout-renderer';
 import { generateId } from '@/lib/slide-utils';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { loadFontsFromSlides, loadFontsFromTheme } from '@/lib/font-loader';
 
 export default function SlideAIPage() {
   const navigate = useNavigate();
@@ -26,6 +27,9 @@ export default function SlideAIPage() {
     setSelectedTheme(theme);
     setCinematicPreset(null);
     setTemplateSlides(slides && slides.length > 0 ? slides : null);
+    // Start loading fonts immediately when template is selected
+    loadFontsFromTheme(theme.tokens);
+    if (slides) loadFontsFromSlides(slides);
     setStep('content');
   };
 
@@ -238,6 +242,9 @@ export default function SlideAIPage() {
         if (cinematicPreset) {
           sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
         }
+        // Preload fonts before navigating so they render immediately
+        loadFontsFromSlides(slides);
+        loadFontsFromTheme(theme.tokens);
         navigate('/editor');
         return;
       }
@@ -302,6 +309,9 @@ export default function SlideAIPage() {
       if (cinematicPreset) {
         sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
       }
+      // Preload fonts before navigating
+      loadFontsFromSlides(slides);
+      loadFontsFromTheme(theme.tokens);
       navigate('/editor');
     } catch (error) {
       console.error('Generation failed:', error);

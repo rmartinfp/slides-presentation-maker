@@ -107,7 +107,7 @@ export default function PropertiesPanel() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[10px] text-slate-500 mb-1 block">Size</label>
-                  <p className="text-xs text-slate-700">{el.style.fontSize}px</p>
+                  <p className="text-xs text-slate-700">{el.style.fontSize}pt</p>
                 </div>
                 <div>
                   <label className="text-[10px] text-slate-500 mb-1 block">Color</label>

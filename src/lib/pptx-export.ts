@@ -60,7 +60,8 @@ function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
   switch (element.type) {
     case 'text': {
       const st = element.style;
-      const fontSize = st.fontSize ? Math.round(st.fontSize * 0.55) : 14;
+      // fontSize is stored in points — pptxgenjs expects points directly
+      const fontSize = st.fontSize || 14;
 
       // Strip HTML tags for PPTX (pptxgenjs doesn't support HTML)
       const plainText = element.content
@@ -79,14 +80,14 @@ function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
         w,
         h,
         fontSize,
-        fontFace: st.fontFamily || 'Arial',
+        fontFace: st.fontFamily?.split(',')[0]?.trim() || 'Arial',
         color: (st.color || '#000000').replace('#', ''),
         bold: st.fontWeight === 'bold' || st.fontWeight === '700',
         italic: st.fontStyle === 'italic',
         underline: st.textDecoration === 'underline' ? { style: 'sng' } : undefined,
         align: st.textAlign || 'left',
         valign: 'top',
-        lineSpacingMultiple: st.lineHeight ? st.lineHeight * 0.85 : 1.2,
+        lineSpacingMultiple: st.lineHeight || 1.2,
         rotate: element.rotation || undefined,
       });
       break;

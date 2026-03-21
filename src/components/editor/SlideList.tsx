@@ -138,7 +138,7 @@ export default function SlideList({ slides, activeIndex, theme, onSelectSlide, o
                         height: el.height * thumbScale,
                         opacity: el.opacity,
                         fontSize: `${(el.style.fontSize ?? 16) * thumbScale}px`,
-                        fontFamily: el.style.fontFamily,
+                        fontFamily: el.style.fontFamily ? `${el.style.fontFamily}, sans-serif` : 'sans-serif',
                         fontWeight: el.style.fontWeight as React.CSSProperties['fontWeight'],
                         color: el.style.color,
                         textAlign: el.style.textAlign as React.CSSProperties['textAlign'],

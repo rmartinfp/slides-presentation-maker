@@ -213,16 +213,19 @@ function StaticElement({ element }: { element: SlideElement }) {
     switch (element.type) {
       case 'text': {
         const vAlign = s.verticalAlign;
+        const fontFamily = s.fontFamily
+          ? (s.fontFamily.includes('sans-serif') ? s.fontFamily : `${s.fontFamily}, sans-serif`)
+          : 'sans-serif';
         return (
           <div
             style={{
-              fontFamily: s.fontFamily,
+              fontFamily,
               fontSize: (s.fontSize ?? 12) * 2.666,
               fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
               fontStyle: s.fontStyle,
               textDecoration: s.textDecoration,
               textAlign: s.textAlign as React.CSSProperties['textAlign'],
-              lineHeight: s.lineHeight,
+              lineHeight: s.lineHeight || 1.4,
               letterSpacing: s.letterSpacing,
               color: s.color,
               backgroundColor: s.backgroundColor,

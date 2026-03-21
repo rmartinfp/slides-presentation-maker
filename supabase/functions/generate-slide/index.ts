@@ -58,7 +58,7 @@ Each element has: { type, content, x, y, width, height, style }
 
 Theme colors: primary=${palette.primary}, secondary=${palette.secondary}, accent=${palette.accent}, bg=${palette.bg}, text=${palette.text}
 Fonts: title=${typography.titleFont}, body=${typography.bodyFont}
-Title size: ${typography.titleSize}px, Body size: ${typography.bodySize}px
+Title size: ${typography.titleSize}pt, Body size: ${typography.bodySize}pt
 
 Rules:
 - Title at top (y: 60-100), large font

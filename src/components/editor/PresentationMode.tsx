@@ -90,13 +90,13 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
           <div key={element.id} style={wrapperStyle}>
             <div
               style={{
-                fontFamily: s.fontFamily,
+                fontFamily: s.fontFamily ? (s.fontFamily.includes('sans-serif') ? s.fontFamily : `${s.fontFamily}, sans-serif`) : 'sans-serif',
                 fontSize: `${(s.fontSize ?? 24) * 2.666 * scaleX}vw`,
                 fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
                 fontStyle: s.fontStyle,
                 textDecoration: s.textDecoration,
                 textAlign: s.textAlign as React.CSSProperties['textAlign'],
-                lineHeight: s.lineHeight,
+                lineHeight: s.lineHeight || 1.4,
                 color: s.color,
                 padding: `${8 * scaleX}vw`,
                 width: '100%',
