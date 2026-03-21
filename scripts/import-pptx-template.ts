@@ -216,6 +216,7 @@ function parseTextFromSpTree(
   // Check if it's a placeholder — get type and idx for layout inheritance
   const phMatch = spXml.match(/<p:ph([^/]*)\/?>/);
   const phType = phMatch ? (phMatch[1].match(/type="(\w+)"/) || [])[1] : null;
+  const phIdx = phMatch ? (phMatch[1].match(/idx="(\d+)"/) || [])[1] : null;
 
   // Check if it has text
   const txBody = spXml.match(/<p:txBody>([\s\S]*?)<\/p:txBody>/);
@@ -325,8 +326,15 @@ function parseTextFromSpTree(
   }
 
   // Inherit font size from layout/master placeholder if not set
-  // Map equivalent placeholder types: ctrTitle ↔ title, subTitle ↔ body
-  const phLookupKeys = phType ? [phType, ...(phType === 'ctrTitle' ? ['title'] : phType === 'title' ? ['ctrTitle'] : [])] : [];
+  // Build lookup keys: idx first (most specific), then type, then type equivalents
+  const phLookupKeys: string[] = [];
+  if (phIdx) phLookupKeys.push(`idx:${phIdx}`);
+  if (phType) {
+    phLookupKeys.push(`type:${phType}`);
+    if (phType === 'ctrTitle') phLookupKeys.push('type:title');
+    else if (phType === 'title') phLookupKeys.push('type:ctrTitle');
+  }
+
   if (!firstFontSize && phLookupKeys.length && layoutPlaceholderSizes) {
     for (const key of phLookupKeys) {
       const layoutSize = layoutPlaceholderSizes.get(key);
@@ -341,9 +349,8 @@ function parseTextFromSpTree(
     }
   }
 
-  // Inherit font family: 1) from layout/master placeholder, 2) from theme
+  // Inherit font family: 1) from layout/master placeholder (by idx then type), 2) from theme
   if (!firstFontFamily || firstFontFamily === 'Arial') {
-    // Try layout/master placeholder font first
     if (phLookupKeys.length && layoutPlaceholderFonts) {
       for (const key of phLookupKeys) {
         const layoutFont = layoutPlaceholderFonts.get(key);
@@ -1018,6 +1025,7 @@ async function main() {
     }
 
     // Extract layout name and placeholder styles for inheritance
+    // Key is "idx:{number}" for idx-based lookup, or "type:{name}" for type-based fallback
     let layoutName = 'unknown';
     const layoutPlaceholderSizes = new Map<string, number>();
     const layoutPlaceholderFonts = new Map<string, string>();
@@ -1036,25 +1044,35 @@ async function main() {
         const nameMatch = layoutXml.match(/<p:cSld\s+name="([^"]*)"/);
         if (nameMatch) layoutName = nameMatch[1];
         // Find placeholders with defRPr sz, font, bold
-        // Search ALL defRPr occurrences (not just the first — sz may be in lstStyle levels)
+        // Store by BOTH idx (specific) and type (fallback) keys
         const phMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const pm of phMatches) {
-          const phTypeMatch = pm[1].match(/<p:ph[^>]*type="(\w+)"/);
-          if (phTypeMatch) {
-            const phType = phTypeMatch[1];
-            const allDefRPr = [...pm[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
-            for (const defRPr of allDefRPr) {
-              const attrs = defRPr[1] + (defRPr[2] || '');
-              if (!layoutPlaceholderSizes.has(phType)) {
+          const phTag = pm[1].match(/<p:ph([^/]*)\/?>/);
+          if (!phTag) continue;
+          const phType = phTag[1].match(/type="(\w+)"/)?.[1];
+          const phIdx = phTag[1].match(/idx="(\d+)"/)?.[1];
+          if (!phType && !phIdx) continue;
+
+          // Keys: idx-based (primary) + type-based (fallback)
+          const keys: string[] = [];
+          if (phIdx) keys.push(`idx:${phIdx}`);
+          if (phType) keys.push(`type:${phType}`);
+
+          // Search ALL defRPr occurrences in lstStyle levels
+          const allDefRPr = [...pm[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
+          for (const defRPr of allDefRPr) {
+            const attrs = defRPr[1] + (defRPr[2] || '');
+            for (const key of keys) {
+              if (!layoutPlaceholderSizes.has(key)) {
                 const szMatch = attrs.match(/\bsz="(\d+)"/);
-                if (szMatch) layoutPlaceholderSizes.set(phType, parseInt(szMatch[1]));
+                if (szMatch) layoutPlaceholderSizes.set(key, parseInt(szMatch[1]));
               }
-              if (!layoutPlaceholderBold.has(phType)) {
-                if (/\bb="1"/.test(attrs)) layoutPlaceholderBold.set(phType, true);
+              if (!layoutPlaceholderBold.has(key)) {
+                if (/\bb="1"/.test(attrs)) layoutPlaceholderBold.set(key, true);
               }
-              if (!layoutPlaceholderFonts.has(phType)) {
+              if (!layoutPlaceholderFonts.has(key)) {
                 const fontMatch = attrs.match(/<a:latin\s+typeface="([^"]+)"/);
-                if (fontMatch) layoutPlaceholderFonts.set(phType, cleanFontName(fontMatch[1]));
+                if (fontMatch) layoutPlaceholderFonts.set(key, cleanFontName(fontMatch[1]));
               }
             }
           }
