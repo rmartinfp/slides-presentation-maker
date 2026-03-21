@@ -196,6 +196,7 @@ function parseTextFromSpTree(
   layoutPlaceholderSizes?: Map<string, number>,
   layoutPlaceholderFonts?: Map<string, string>,
   layoutPlaceholderBold?: Map<string, boolean>,
+  masterDefaults?: { titleBold: boolean; titleSz: number | null; bodySz: number | null },
 ): ParsedElement | null {
   // Extract position (support negative offsets)
   const off = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
@@ -341,12 +342,22 @@ function parseTextFromSpTree(
       if (layoutSize) { firstFontSize = Math.round(layoutSize / 100); break; }
     }
   }
+  // Fall back to master txStyles sz (covers txStyles.bodyStyle/titleStyle)
+  if (!firstFontSize && masterDefaults) {
+    const isTitle = phType === 'ctrTitle' || phType === 'title';
+    const masterSz = isTitle ? masterDefaults.titleSz : masterDefaults.bodySz;
+    if (masterSz) firstFontSize = Math.round(masterSz / 100);
+  }
 
   // Inherit bold from layout/master placeholder if not set
   if (!firstBold && phLookupKeys.length && layoutPlaceholderBold) {
     for (const key of phLookupKeys) {
       if (layoutPlaceholderBold.get(key)) { firstBold = true; break; }
     }
+  }
+  // Fall back to master title bold
+  if (!firstBold && masterDefaults && (phType === 'ctrTitle' || phType === 'title')) {
+    if (masterDefaults.titleBold) firstBold = true;
   }
 
   // Inherit font family: 1) from layout/master placeholder (by idx then type), 2) from theme
@@ -967,30 +978,84 @@ async function main() {
   }
   console.log(`Primary master: ${primaryMasterId || 'unknown'}`);
 
-  // Override theme fonts with slide master fonts (higher priority than theme)
-  // Slidesgo templates often define the real fonts in the master, not the theme
+  // Extract fonts, sizes, and bold from the slide master (highest authority after layout)
+  // This covers: 1) master placeholder defRPr, 2) txStyles (titleStyle/bodyStyle)
+  // Master fonts are used for ALL elements that don't have explicit overrides
+  let masterTitleBold = false;
+  let masterBodyBold = false;
+  let masterTitleSz: number | null = null;
+  let masterBodySz: number | null = null;
   if (primaryMasterId) {
     const primaryMasterFile = zip.files[`ppt/slideMasters/${primaryMasterId}`];
     if (primaryMasterFile) {
       const masterXml = await primaryMasterFile.async('string');
+
+      // 1) Read title placeholder from master
       const titlePh = [...masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)]
         .find(m => m[1].includes('type="title"') || m[1].includes('type="ctrTitle"'));
       if (titlePh) {
-        const masterTitleFont = titlePh[1].match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-        if (masterTitleFont && masterTitleFont !== 'Arial') {
-          themeFonts.titleFont = cleanFontName(masterTitleFont);
-          console.log(`  Master override titleFont: ${themeFonts.titleFont}`);
+        const allDefRPr = [...titlePh[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
+        for (const d of allDefRPr) {
+          const attrs = d[1] + (d[2] || '');
+          const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+          if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') {
+            themeFonts.titleFont = cleanFontName(font);
+          }
+          if (!masterTitleSz) {
+            const sz = attrs.match(/\bsz="(\d+)"/)?.[1];
+            if (sz) masterTitleSz = parseInt(sz);
+          }
+          if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
         }
       }
+
+      // 2) Read body placeholder from master
       const bodyPh = [...masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)]
         .find(m => m[1].includes('type="body"'));
       if (bodyPh) {
-        const masterBodyFont = bodyPh[1].match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-        if (masterBodyFont && masterBodyFont !== 'Arial') {
-          themeFonts.bodyFont = cleanFontName(masterBodyFont);
-          console.log(`  Master override bodyFont: ${themeFonts.bodyFont}`);
+        const allDefRPr = [...bodyPh[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
+        for (const d of allDefRPr) {
+          const attrs = d[1] + (d[2] || '');
+          const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+          if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') {
+            themeFonts.bodyFont = cleanFontName(font);
+          }
+          if (!masterBodySz) {
+            const sz = attrs.match(/\bsz="(\d+)"/)?.[1];
+            if (sz) masterBodySz = parseInt(sz);
+          }
+          if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
         }
       }
+
+      // 3) Read txStyles (titleStyle/bodyStyle) — final fallback for sz/font
+      const titleStyle = masterXml.match(/<p:titleStyle>([\s\S]*?)<\/p:titleStyle>/);
+      if (titleStyle) {
+        const defRPrs = [...titleStyle[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
+        for (const d of defRPrs) {
+          const attrs = d[1] + (d[2] || '');
+          const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+          if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') themeFonts.titleFont = cleanFontName(font);
+          if (!masterTitleSz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterTitleSz = parseInt(sz); }
+          if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+        }
+      }
+      const bodyStyle = masterXml.match(/<p:bodyStyle>([\s\S]*?)<\/p:bodyStyle>/);
+      if (bodyStyle) {
+        const defRPrs = [...bodyStyle[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
+        for (const d of defRPrs) {
+          const attrs = d[1] + (d[2] || '');
+          const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+          if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') themeFonts.bodyFont = cleanFontName(font);
+          if (!masterBodySz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterBodySz = parseInt(sz); }
+          if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
+        }
+      }
+
+      console.log(`  Master fonts: ${themeFonts.titleFont} / ${themeFonts.bodyFont}`);
+      if (masterTitleBold) console.log(`  Master title bold: true`);
+      if (masterTitleSz) console.log(`  Master title sz: ${masterTitleSz}`);
+      if (masterBodySz) console.log(`  Master body sz: ${masterBodySz}`);
     }
   }
 
@@ -1247,9 +1312,46 @@ async function main() {
 
           const shapeEl = parseShapeFromSpTree(m[1], themeColors);
           if (shapeEl) {
-            shapeEl.locked = true; // Layout elements are not editable
+            shapeEl.locked = true;
             shapeEl.zIndex = zIndex++;
             elements.push(shapeEl);
+          }
+        }
+
+        // Extract groups from layout (decorative elements like toggles, dot patterns)
+        const layoutGrpContents = extractBalancedTags(layoutXml, 'p:grpSp');
+        for (const grpXml of layoutGrpContents) {
+          const grpOff = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const grpExt = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          const chOff = grpXml.match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const chExt = grpXml.match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (!grpOff || !grpExt) continue;
+          const gx = parseInt(grpOff[1]), gy = parseInt(grpOff[2]);
+          const gw = parseInt(grpExt[1]), gh = parseInt(grpExt[2]);
+          const cox = chOff ? parseInt(chOff[1]) : gx, coy = chOff ? parseInt(chOff[2]) : gy;
+          const cow = chExt ? parseInt(chExt[1]) : gw, coh = chExt ? parseInt(chExt[2]) : gh;
+          const scaleGX = cow > 0 ? gw / cow : 1, scaleGY = coh > 0 ? gh / coh : 1;
+          const toSlideX = (cx: number) => gx + (cx - cox) * scaleGX;
+          const toSlideY = (cy: number) => gy + (cy - coy) * scaleGY;
+          const toSlideW = (cw: number) => cw * scaleGX;
+          const toSlideH = (ch: number) => ch * scaleGY;
+
+          const grpSpMatches = grpXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+          for (const sm of grpSpMatches) {
+            const shapeEl = parseShapeFromSpTree(sm[1], themeColors);
+            if (shapeEl) {
+              const childOff = sm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+              const childExt = sm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+              if (childOff && childExt) {
+                shapeEl.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
+                shapeEl.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
+                shapeEl.width = emuToPxX(toSlideW(parseInt(childExt[1])));
+                shapeEl.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+              }
+              shapeEl.locked = true;
+              shapeEl.zIndex = zIndex++;
+              elements.push(shapeEl);
+            }
           }
         }
       }
@@ -1263,8 +1365,11 @@ async function main() {
     for (const m of spMatches) {
       const spXml = m[1];
 
+      // Skip image/media placeholders (they render as empty boxes with dashed borders)
+      if (/<p:ph[^>]*type="pic"/.test(spXml) || /<p:ph[^>]*type="media"/.test(spXml)) continue;
+
       // Try as text first
-      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold);
+      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
       if (textEl) {
         textEl.zIndex = zIndex++;
         elements.push(textEl);
@@ -1387,7 +1492,7 @@ async function main() {
         }
 
         // Try as text
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold);
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
         if (textEl) {
           const childOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const childExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
