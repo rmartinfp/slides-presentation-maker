@@ -139,6 +139,10 @@ export default function CanvasElement({
     filter: element.style.filter || undefined,
   };
 
+  // Auto-shrink for text elements (hook must be at top level, not inside switch)
+  const baseFontPx = (element.style.fontSize ?? 12) * 2.666;
+  const { containerRef: shrinkRef, fontSize: shrunkFontSize } = useAutoShrink(baseFontPx, element.content);
+
   // Render element content based on type
   const renderContent = () => {
     const s = element.style;
@@ -157,8 +161,6 @@ export default function CanvasElement({
 
         const isHtml = element.content.startsWith('<');
         const vAlign = s.verticalAlign;
-        const baseFontPx = (s.fontSize ?? 12) * 2.666;
-        const { containerRef: shrinkRef, fontSize: shrunkFontSize } = useAutoShrink(baseFontPx, element.content);
         const textStyle: React.CSSProperties = {
           fontFamily: s.fontFamily,
           fontSize: shrunkFontSize,
