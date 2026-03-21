@@ -576,17 +576,24 @@ function parseShapeFromSpTree(
   let stroke: string | null = null;
   let strokeWidth = 0;
   let strokeDash: string | null = null;
+  let hasOutline = false;
   if (ln) {
-    const lnFill = ln[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
-    stroke = lnFill ? parseColorFromShapeXml(lnFill[1], themeColors) : null;
-    const w = ln[0].match(/\bw="(\d+)"/);
-    strokeWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
-    strokeDash = parseDashStyle(ln[1]);
+    // Check if line has noFill (explicitly invisible outline)
+    const lnNoFill = ln[1].includes('<a:noFill/>');
+    if (!lnNoFill) {
+      hasOutline = true;
+      // Try solidFill first, then schemeClr, then fallback to theme dk1
+      stroke = parseColorFromShapeXml(ln[1], themeColors);
+      if (!stroke) stroke = themeColors.dk1; // default line color
+      const w = ln[0].match(/\bw="(\d+)"/);
+      strokeWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
+      strokeDash = parseDashStyle(ln[1]);
+    }
   }
 
-  // Skip if no fill AND no stroke (invisible)
+  // Skip if no fill AND no outline (truly invisible)
   const noFill = spXml.includes('<a:noFill/>') || (!fill && !solidFill && !gradientFill);
-  if (noFill && !stroke) return null;
+  if (noFill && !hasOutline) return null;
 
   // Convert custom geometry to SVG path
   let svgPath: string | null = null;
