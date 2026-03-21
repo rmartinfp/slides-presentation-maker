@@ -216,18 +216,15 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
       </div>
     </motion.div>
 
-    {/* Hover popover — large slide preview */}
+    {/* Hover popover — fixed center of viewport */}
     <AnimatePresence>
       {isHovering && hasSlideImages && (
+        <div className="fixed z-50 pointer-events-none inset-0 flex items-center justify-center">
         <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 8 }}
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.92 }}
           transition={{ duration: 0.2, delay: 0.25, ease: 'easeOut' }}
-          className={cn(
-            'absolute top-0 z-50 pointer-events-none',
-            popoverSide === 'right' ? 'left-[calc(100%+16px)]' : 'right-[calc(100%+16px)]'
-          )}
           style={{ width: 640 }}
         >
           <div className="rounded-2xl overflow-hidden shadow-[0_20px_60px_-12px_rgba(0,0,0,0.4)] border border-white/10 bg-slate-900">
@@ -262,6 +259,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
             </div>
           </div>
         </motion.div>
+        </div>
       )}
     </AnimatePresence>
     </div>
