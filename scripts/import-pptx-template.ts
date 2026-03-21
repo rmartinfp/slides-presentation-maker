@@ -1197,13 +1197,18 @@ async function main() {
           }
         }
 
-        // Extract non-placeholder shapes from layout (decorative lines, shapes)
+        // Extract non-placeholder shapes from layout (decorative lines, shapes, border frames)
         const layoutSpMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const m of layoutSpMatches) {
           // Skip placeholders
           if (m[1].includes('<p:ph')) continue;
-          // Skip text boxes (they're placeholders even without the tag sometimes)
-          if (m[1].includes('<p:txBody>') && m[1].includes('<a:t>')) continue;
+          // Skip text boxes that have real text content (not empty/residual text)
+          if (m[1].includes('<p:txBody>') && m[1].includes('<a:t>')) {
+            const textContent = (m[1].match(/<a:t>([\s\S]*?)<\/a:t>/g) || [])
+              .map(t => t.replace(/<\/?a:t>/g, '').replace(/[""''"\s]/g, ''))
+              .join('');
+            if (textContent.length > 0) continue; // has real text — skip (it's a text placeholder)
+          }
 
           const shapeEl = parseShapeFromSpTree(m[1], themeColors);
           if (shapeEl) {
