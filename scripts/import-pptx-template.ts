@@ -797,13 +797,128 @@ function extractBalancedTags(xml: string, tagName: string): string[] {
   return results;
 }
 
-// ---- Image upload ----
+// ---- Image upload & EMF/WMF conversion ----
 const imageCache = new Map<string, string>();
 
+function isEmfWmf(contentType: string): boolean {
+  return contentType.includes('emf') || contentType.includes('wmf')
+    || contentType.includes('x-emf') || contentType.includes('x-wmf');
+}
+
+// Auto-detect available conversion tools (checked once, cached)
+let _conversionTool: string | null | undefined;
+function getConversionTool(): string | null {
+  if (_conversionTool !== undefined) return _conversionTool;
+  const { execSync } = require('child_process');
+  const tools = ['magick', 'convert', 'inkscape', 'libreoffice', 'sips'];
+  for (const tool of tools) {
+    try {
+      execSync(`which ${tool}`, { stdio: 'ignore' });
+      _conversionTool = tool;
+      console.log(`  EMF converter found: ${tool}`);
+      return _conversionTool;
+    } catch { /* not found */ }
+  }
+  _conversionTool = null;
+  console.warn(`  No EMF converter found (tried: ${tools.join(', ')})`);
+  return null;
+}
+
+/**
+ * Try to convert EMF/WMF to PNG using available system tool.
+ * Returns PNG buffer or null if conversion fails.
+ */
+async function convertEmfToPng(emfData: Buffer): Promise<Buffer | null> {
+  const tool = getConversionTool();
+  if (!tool) return null;
+
+  const { execSync } = require('child_process');
+  const tmpDir = require('os').tmpdir();
+  const tmpEmf = `${tmpDir}/slideai_${genId()}.emf`;
+  const tmpPng = `${tmpDir}/slideai_${genId()}.png`;
+
+  try {
+    fs.writeFileSync(tmpEmf, emfData);
+
+    let cmd: string;
+    switch (tool) {
+      case 'magick':
+        cmd = `magick "${tmpEmf}" -density 192 "${tmpPng}"`;
+        break;
+      case 'convert':
+        cmd = `convert "${tmpEmf}" -density 192 "${tmpPng}"`;
+        break;
+      case 'inkscape':
+        cmd = `inkscape "${tmpEmf}" --export-type=png --export-filename="${tmpPng}" --export-dpi=192`;
+        break;
+      case 'libreoffice':
+        cmd = `libreoffice --headless --convert-to png "${tmpEmf}" --outdir "${tmpDir}"`;
+        break;
+      case 'sips':
+        // macOS sips doesn't support EMF directly, try anyway
+        cmd = `sips -s format png "${tmpEmf}" --out "${tmpPng}"`;
+        break;
+      default:
+        return null;
+    }
+
+    execSync(cmd, { stdio: 'ignore', timeout: 15000 });
+
+    // LibreOffice creates output with original name but .png extension
+    let pngPath = tmpPng;
+    if (tool === 'libreoffice') {
+      const libreOutputName = tmpEmf.replace(/\.emf$/i, '.png');
+      if (fs.existsSync(libreOutputName)) pngPath = libreOutputName;
+    }
+
+    if (fs.existsSync(pngPath)) {
+      const pngData = fs.readFileSync(pngPath);
+      // Cleanup
+      try { fs.unlinkSync(tmpEmf); } catch {}
+      try { fs.unlinkSync(pngPath); } catch {}
+      console.log(`  Converted EMF → PNG (${(pngData.length / 1024).toFixed(0)}KB) via ${tool}`);
+      return pngData;
+    }
+    return null;
+  } catch (err: any) {
+    console.warn(`  EMF conversion failed (${tool}): ${err.message || err}`);
+    try { fs.unlinkSync(tmpEmf); } catch {}
+    try { fs.unlinkSync(tmpPng); } catch {}
+    return null;
+  }
+}
+
+/**
+ * Find a browser-compatible alternative for an EMF/WMF image in the ZIP.
+ * OOXML often stores both EMF + PNG/JPG for the same image.
+ * Returns { data: Buffer, contentType: string } or null.
+ */
+async function findAlternativeImage(zip: JSZip, emfPath: string): Promise<{ data: Buffer; contentType: string } | null> {
+  const baseName = emfPath.replace(/\.\w+$/, '');
+  // Try browser-compatible formats (prefer PNG for quality)
+  for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp']) {
+    const altPath = baseName + ext;
+    const altFile = zip.files[altPath];
+    if (altFile) {
+      const data = await altFile.async('nodebuffer');
+      const mimeType = ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+        : ext === '.svg' ? 'image/svg+xml'
+        : `image/${ext.slice(1)}`;
+      console.log(`  Found alternative: ${altPath} (${(data.length / 1024).toFixed(0)}KB)`);
+      return { data, contentType: mimeType };
+    }
+  }
+  return null;
+}
+
 async function uploadImage(data: Buffer, contentType: string): Promise<string> {
-  // Skip EMF/WMF — browsers cannot render these vector formats
-  if (contentType.includes('emf') || contentType.includes('wmf') || contentType.includes('x-emf') || contentType.includes('x-wmf')) {
-    console.warn(`  Skipping unsupported vector format: ${contentType}`);
+  // EMF/WMF: try to convert — NEVER upload raw EMF (browsers can't render it)
+  if (isEmfWmf(contentType)) {
+    const pngData = await convertEmfToPng(data);
+    if (pngData) {
+      return uploadImage(pngData, 'image/png');
+    }
+    console.warn(`  Could not convert EMF/WMF — no browser-compatible alternative`);
     return '';
   }
 
@@ -833,6 +948,92 @@ async function uploadImage(data: Buffer, contentType: string): Promise<string> {
 
   console.warn(`  Upload failed: ${lastError}`);
   return '';
+}
+
+/**
+ * Resolve an image reference from the PPTX ZIP and upload it.
+ * Handles EMF/WMF by:
+ * 1. Looking for browser-compatible alternatives (PNG/JPG/SVG) with the same base name
+ * 2. Converting EMF using available system tools
+ * Returns the public URL or empty string.
+ */
+async function resolveAndUploadImage(
+  zip: JSZip,
+  imageRef: string,
+  baseDir: string, // e.g., 'ppt/slides/' or 'ppt/slideLayouts/'
+): Promise<string> {
+  // Normalize path
+  let normalizedPath: string;
+  if (imageRef.startsWith('../')) {
+    normalizedPath = baseDir.replace(/[^/]+\/$/, '') + imageRef.replace('../', '');
+    // Fix double slashes or bad paths
+    normalizedPath = normalizedPath.replace(/\/+/g, '/');
+    // Resolve: 'ppt/slides/../media/image1.png' → 'ppt/media/image1.png'
+    const parts = normalizedPath.split('/');
+    const resolved: string[] = [];
+    for (const p of parts) {
+      if (p === '..') resolved.pop();
+      else resolved.push(p);
+    }
+    normalizedPath = resolved.join('/');
+  } else if (imageRef.startsWith('/')) {
+    normalizedPath = imageRef.slice(1);
+  } else {
+    normalizedPath = `${baseDir}${imageRef}`;
+  }
+
+  // Check cache first
+  const cached = imageCache.get(normalizedPath);
+  if (cached) return cached;
+
+  // Find the actual file in the ZIP
+  let imgFile = zip.files[normalizedPath];
+  let resolvedPath = normalizedPath;
+
+  if (!imgFile) {
+    const baseName = normalizedPath.replace(/\.\w+$/, '');
+    for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
+      const tryPath = baseName + ext;
+      if (zip.files[tryPath]) {
+        imgFile = zip.files[tryPath];
+        resolvedPath = tryPath;
+        break;
+      }
+    }
+  }
+
+  if (!imgFile) {
+    console.warn(`  Image not found: ${normalizedPath}`);
+    return '';
+  }
+
+  // Detect format
+  const ext = resolvedPath.match(/\.(\w+)$/)?.[1]?.toLowerCase() || 'png';
+  const isVector = ext === 'emf' || ext === 'wmf';
+
+  if (isVector) {
+    // Strategy 1: Look for a browser-compatible alternative with the same base name
+    const alt = await findAlternativeImage(zip, resolvedPath);
+    if (alt) {
+      const url = await uploadImage(alt.data, alt.contentType);
+      if (url) { imageCache.set(normalizedPath, url); return url; }
+    }
+
+    // Strategy 2: Convert EMF using available system tools
+    const emfData = await imgFile.async('nodebuffer');
+    const url = await uploadImage(emfData, `image/${ext}`);
+    if (url) { imageCache.set(normalizedPath, url); return url; }
+    return '';
+  }
+
+  // Standard image — upload directly
+  const imgData = await imgFile.async('nodebuffer');
+  const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+    : ext === 'svg' ? 'image/svg+xml'
+    : `image/${ext}`;
+  const url = await uploadImage(imgData, mimeType);
+  if (url) imageCache.set(normalizedPath, url);
+  return url;
 }
 
 // ---- Main ----
@@ -1278,36 +1479,17 @@ async function main() {
           const result = parseImageFromSpTree(m[1], layoutRelsMap, themeColors);
           if (result && result.imageRef) {
             result.element.zIndex = zIndex++;
-            let normalizedPath: string;
-            if (result.imageRef.startsWith('../')) {
-              normalizedPath = 'ppt/' + result.imageRef.replace('../', '');
-            } else {
-              normalizedPath = `ppt/slideLayouts/${result.imageRef}`;
-            }
-            let imgFile = zip.files[normalizedPath];
-            if (!imgFile) {
-              const baseName = normalizedPath.replace(/\.\w+$/, '');
-              for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
-                imgFile = zip.files[baseName + ext];
-                if (imgFile) break;
-              }
-            }
-            if (imgFile) {
-              const imgData = await imgFile.async('nodebuffer');
-              const ext = normalizedPath.match(/\.(\w+)$/)?.[1] || 'png';
-              const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
-              const url = await uploadImage(imgData, mimeType);
-              result.element.content = url;
+            const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slideLayouts/');
+            result.element.content = url;
 
-              // If full-bleed image, make it the background
-              if (result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
-                background = { type: 'image', value: url };
-                console.log(`  Layout bg image uploaded`);
-              } else if (url) {
-                result.element.locked = true; // Layout elements are not editable
-                elements.push(result.element);
-                console.log(`  Layout decoration image uploaded`);
-              }
+            // If full-bleed image, make it the background
+            if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
+              background = { type: 'image', value: url };
+              console.log(`  Layout bg image uploaded`);
+            } else if (url) {
+              result.element.locked = true; // Layout elements are not editable
+              elements.push(result.element);
+              console.log(`  Layout decoration image uploaded`);
             }
           }
         }
@@ -1406,45 +1588,15 @@ async function main() {
       if (result) {
         result.element.zIndex = zIndex++;
 
-        // Upload image from PPTX
+        // Upload image from PPTX (with EMF/WMF fallback handling)
         if (result.imageRef) {
-          // Resolve relative path: ../media/image1.jpg → ppt/media/image1.jpg
-          let normalizedPath: string;
-          if (result.imageRef.startsWith('../')) {
-            normalizedPath = 'ppt/' + result.imageRef.replace('../', '');
-          } else if (result.imageRef.startsWith('/')) {
-            normalizedPath = result.imageRef.slice(1);
-          } else {
-            normalizedPath = `ppt/slides/${result.imageRef}`;
-          }
+          const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
+          result.element.content = url;
 
-          // Try exact path first, then try other extensions
-          let imgFile = zip.files[normalizedPath];
-          if (!imgFile) {
-            const baseName = normalizedPath.replace(/\.\w+$/, '');
-            for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
-              imgFile = zip.files[baseName + ext];
-              if (imgFile) break;
-            }
-          }
-          if (imgFile) {
-            // Detect actual file extension from the resolved path
-            const resolvedName = Object.keys(zip.files).find(k => zip.files[k] === imgFile) || normalizedPath;
-            const ext = resolvedName.match(/\.(\w+)$/)?.[1]?.toLowerCase() || 'png';
-            const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
-              : ext === 'svg' ? 'image/svg+xml'
-              : `image/${ext}`;
-            const imgData = await imgFile.async('nodebuffer');
-            const url = await uploadImage(imgData, mimeType);
-            result.element.content = url;
-
-            // If this is a full-bleed image, make it the background
-            if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
-              background = { type: 'image', value: url };
-              continue; // Don't add as element
-            }
-          } else {
-            console.warn(`  Image not found: ${normalizedPath}`);
+          // If this is a full-bleed image, make it the background
+          if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
+            background = { type: 'image', value: url };
+            continue; // Don't add as element
           }
         }
 
@@ -1542,27 +1694,8 @@ async function main() {
           result.element.zIndex = zIndex++;
 
           if (result.imageRef) {
-            let normalizedPath: string;
-            if (result.imageRef.startsWith('../')) {
-              normalizedPath = 'ppt/' + result.imageRef.replace('../', '');
-            } else {
-              normalizedPath = `ppt/slides/${result.imageRef}`;
-            }
-            let imgFile = zip.files[normalizedPath];
-            if (!imgFile) {
-              const baseName = normalizedPath.replace(/\.\w+$/, '');
-              for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
-                imgFile = zip.files[baseName + ext];
-                if (imgFile) break;
-              }
-            }
-            if (imgFile) {
-              const imgData = await imgFile.async('nodebuffer');
-              const ext = normalizedPath.match(/\.(\w+)$/)?.[1] || 'png';
-              const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
-              const url = await uploadImage(imgData, mimeType);
-              result.element.content = url;
-            }
+            const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
+            result.element.content = url;
           }
 
           if (result.element.content) {
@@ -1654,26 +1787,9 @@ async function main() {
 
     // Also handle background images from rels
     if (background.type === 'image' && !background.value.startsWith('http')) {
-      let normalizedBgPath: string;
-      if (background.value.startsWith('../')) {
-        normalizedBgPath = 'ppt/' + background.value.replace('../', '');
-      } else if (background.value.startsWith('/')) {
-        normalizedBgPath = background.value.slice(1);
-      } else {
-        normalizedBgPath = `ppt/slides/${background.value}`;
-      }
-      let bgFile = zip.files[normalizedBgPath];
-      if (!bgFile) {
-        const baseName = normalizedBgPath.replace(/\.\w+$/, '');
-        for (const ext of ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp']) {
-          bgFile = zip.files[baseName + ext];
-          if (bgFile) break;
-        }
-      }
-      if (bgFile) {
-        const bgData = await bgFile.async('nodebuffer');
-        const ext = normalizedBgPath.match(/\.(\w+)$/)?.[1] || 'png';
-        background.value = await uploadImage(bgData, `image/${ext}`);
+      const bgUrl = await resolveAndUploadImage(zip, background.value, 'ppt/slides/');
+      if (bgUrl) {
+        background.value = bgUrl;
       }
     }
 
