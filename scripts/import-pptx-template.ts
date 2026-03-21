@@ -1222,6 +1222,7 @@ async function main() {
                 background = { type: 'image', value: url };
                 console.log(`  Layout bg image uploaded`);
               } else if (url) {
+                result.element.locked = true; // Layout elements are not editable
                 elements.push(result.element);
                 console.log(`  Layout decoration image uploaded`);
               }
@@ -1244,6 +1245,7 @@ async function main() {
 
           const shapeEl = parseShapeFromSpTree(m[1], themeColors);
           if (shapeEl) {
+            shapeEl.locked = true; // Layout elements are not editable
             shapeEl.zIndex = zIndex++;
             elements.push(shapeEl);
           }

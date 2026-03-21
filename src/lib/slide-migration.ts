@@ -278,8 +278,38 @@ export function migrateSlideToElements(
 }
 
 /**
+ * Detect and convert old px-based font sizes to pt-based.
+ * Old format: fontSize was stored as px (e.g. 120 for a 45pt title).
+ * New format: fontSize stored as pt (e.g. 45).
+ * Heuristic: if any text element has fontSize > 80, it's likely old px format.
+ */
+function migrateFontSizes(slide: Slide): Slide {
+  if (!slide.elements?.length) return slide;
+
+  const hasOldSizes = slide.elements.some(
+    el => el.type === 'text' && el.style?.fontSize && (el.style.fontSize as number) > 80
+  );
+  if (!hasOldSizes) return slide;
+
+  return {
+    ...slide,
+    elements: slide.elements.map(el => {
+      if (el.type !== 'text' || !el.style?.fontSize) return el;
+      const oldPx = el.style.fontSize as number;
+      if (oldPx > 80) {
+        return {
+          ...el,
+          style: { ...el.style, fontSize: Math.round(oldPx / 2.666) },
+        };
+      }
+      return el;
+    }),
+  };
+}
+
+/**
  * Migrate an entire array of slides (e.g. loaded from DB).
  */
 export function migrateAllSlides(slides: Slide[], themeTokens: ThemeTokens): Slide[] {
-  return slides.map(s => migrateSlideToElements(s, themeTokens));
+  return slides.map(s => migrateFontSizes(migrateSlideToElements(s, themeTokens)));
 }
