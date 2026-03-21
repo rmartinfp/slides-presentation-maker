@@ -577,41 +577,39 @@ function parseShapeFromSpTree(
     triangle: 'triangle', rightArrow: 'arrow-right',
   };
 
-  // Get fill — solid or gradient
-  const solidFill = spXml.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+  // Strip <a:ln> from XML to avoid confusing body fill with outline fill
+  const spXmlNoLn = spXml.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln>/g, '');
+
+  // Get BODY fill (solid or gradient) — excluding what's in the outline
+  const solidFill = spXmlNoLn.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
   const fill = solidFill ? parseColorFromShapeXml(solidFill[1], themeColors) : null;
   let gradientFill: string | null = null;
   if (!solidFill) {
-    const gradFill = spXml.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
+    const gradFill = spXmlNoLn.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
     if (gradFill) gradientFill = parseGradientFill(gradFill[1], themeColors);
   }
+  const bodyNoFill = spXmlNoLn.includes('<a:noFill/>');
 
-  // Get outline
+  // Get OUTLINE properties (from original XML with <a:ln>)
   const ln = spXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
   let stroke: string | null = null;
   let strokeWidth = 0;
   let strokeDash: string | null = null;
   let hasOutline = false;
   if (ln) {
-    // Check if line has noFill (explicitly invisible outline)
     const lnNoFill = ln[1].includes('<a:noFill/>');
     if (!lnNoFill) {
       hasOutline = true;
-      // Try solidFill first, then schemeClr, then fallback to theme dk1
       stroke = parseColorFromShapeXml(ln[1], themeColors);
-      if (!stroke) stroke = themeColors.dk1; // default line color
+      if (!stroke) stroke = themeColors.dk1;
       const w = ln[0].match(/\bw="(\d+)"/);
       strokeWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
       strokeDash = parseDashStyle(ln[1]);
     }
   }
 
-  // Check if the shape body has noFill (not the outline's noFill)
-  // Remove <a:ln>...</a:ln> section before checking for <a:noFill/>
-  const spXmlNoLn = spXml.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln>/g, '');
-  const bodyNoFill = spXmlNoLn.includes('<a:noFill/>');
-  const noFill = bodyNoFill || (!fill && !solidFill && !gradientFill);
   // Skip only if truly invisible: no body fill AND no outline
+  const noFill = bodyNoFill || (!fill && !solidFill && !gradientFill);
   if (noFill && !hasOutline) return null;
 
   // Convert custom geometry to SVG path
