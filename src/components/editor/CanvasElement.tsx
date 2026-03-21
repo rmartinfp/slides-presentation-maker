@@ -4,6 +4,7 @@ import { SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import { cn } from '@/lib/utils';
 import RichTextEditor from './RichTextEditor';
+import { useAutoShrink } from '@/hooks/useAutoShrink';
 
 interface Props {
   element: SlideElement;
@@ -156,9 +157,11 @@ export default function CanvasElement({
 
         const isHtml = element.content.startsWith('<');
         const vAlign = s.verticalAlign;
+        const baseFontPx = (s.fontSize ?? 12) * 2.666;
+        const { containerRef: shrinkRef, fontSize: shrunkFontSize } = useAutoShrink(baseFontPx, element.content);
         const textStyle: React.CSSProperties = {
           fontFamily: s.fontFamily,
-          fontSize: (s.fontSize ?? 24) * 2.666,
+          fontSize: shrunkFontSize,
           fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
           fontStyle: s.fontStyle,
           textDecoration: s.textDecoration,
@@ -184,12 +187,13 @@ export default function CanvasElement({
 
         return isHtml ? (
           <div
+            ref={shrinkRef}
             style={textStyle}
             className="focus:outline-none tiptap-preview"
             dangerouslySetInnerHTML={{ __html: element.content }}
           />
         ) : (
-          <div style={textStyle} className="focus:outline-none">
+          <div ref={shrinkRef} style={textStyle} className="focus:outline-none">
             {element.content}
           </div>
         );

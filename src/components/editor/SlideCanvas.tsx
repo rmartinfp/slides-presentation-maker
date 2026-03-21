@@ -3,6 +3,7 @@ import { Slide, PresentationTheme, SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import CanvasElement from './CanvasElement';
 import AlignmentGuides from './AlignmentGuides';
+import { useAutoShrink } from '@/hooks/useAutoShrink';
 
 interface Props {
   slide: Slide;
@@ -216,7 +217,7 @@ function StaticElement({ element }: { element: SlideElement }) {
           <div
             style={{
               fontFamily: s.fontFamily,
-              fontSize: (s.fontSize ?? 24) * 2.666,
+              fontSize: (s.fontSize ?? 12) * 2.666,
               fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
               fontStyle: s.fontStyle,
               textDecoration: s.textDecoration,
