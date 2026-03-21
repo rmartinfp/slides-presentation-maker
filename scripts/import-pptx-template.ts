@@ -160,11 +160,11 @@ function parseColorFromShapeXml(xml: string, themeColors: ThemeColors): string |
 }
 
 function parseFontSize(xml: string): number | null {
-  // <a:rPr ... sz="1800" ...> → hundredths of a point → px at 1920 canvas
-  // PPTX standard = 960px wide (96 DPI × 10"). Our canvas = 1920px = 2× scale.
-  // So: (sz/100) × 1.333 (pt→px) × 2 (scale) = sz/100 × 2.666
+  // <a:rPr ... sz="1800" ...> → hundredths of a point
+  // Store as points (same as Google Slides / PowerPoint UI)
+  // Canvas rendering scales these proportionally to the canvas size
   const sz = xml.match(/\bsz="(\d+)"/);
-  if (sz) return Math.round(parseInt(sz[1]) / 100 * 2.666);
+  if (sz) return Math.round(parseInt(sz[1]) / 100);
   return null;
 }
 
@@ -293,7 +293,7 @@ function parseTextFromSpTree(
       const styles: string[] = [];
       if (color) styles.push(`color:${color}`);
       if (fontFamily) styles.push(`font-family:${fontFamily}`);
-      if (fontSize) styles.push(`font-size:${fontSize}px`);
+      if (fontSize) styles.push(`font-size:${Math.round(fontSize * 2.666)}px`);
 
       if (runBold) text = `<strong>${text}</strong>`;
       if (runItalic) text = `<em>${text}</em>`;
@@ -325,22 +325,30 @@ function parseTextFromSpTree(
   }
 
   // Inherit font size from layout/master placeholder if not set
-  if (!firstFontSize && phType && layoutPlaceholderSizes) {
-    const layoutSize = layoutPlaceholderSizes.get(phType);
-    if (layoutSize) firstFontSize = Math.round(layoutSize / 100 * 2.666);
+  // Map equivalent placeholder types: ctrTitle ↔ title, subTitle ↔ body
+  const phLookupKeys = phType ? [phType, ...(phType === 'ctrTitle' ? ['title'] : phType === 'title' ? ['ctrTitle'] : [])] : [];
+  if (!firstFontSize && phLookupKeys.length && layoutPlaceholderSizes) {
+    for (const key of phLookupKeys) {
+      const layoutSize = layoutPlaceholderSizes.get(key);
+      if (layoutSize) { firstFontSize = Math.round(layoutSize / 100); break; }
+    }
   }
 
   // Inherit bold from layout/master placeholder if not set
-  if (!firstBold && phType && layoutPlaceholderBold) {
-    if (layoutPlaceholderBold.get(phType)) firstBold = true;
+  if (!firstBold && phLookupKeys.length && layoutPlaceholderBold) {
+    for (const key of phLookupKeys) {
+      if (layoutPlaceholderBold.get(key)) { firstBold = true; break; }
+    }
   }
 
   // Inherit font family: 1) from layout/master placeholder, 2) from theme
   if (!firstFontFamily || firstFontFamily === 'Arial') {
     // Try layout/master placeholder font first
-    if (phType && layoutPlaceholderFonts) {
-      const layoutFont = layoutPlaceholderFonts.get(phType);
-      if (layoutFont && layoutFont !== 'Arial') firstFontFamily = layoutFont;
+    if (phLookupKeys.length && layoutPlaceholderFonts) {
+      for (const key of phLookupKeys) {
+        const layoutFont = layoutPlaceholderFonts.get(key);
+        if (layoutFont && layoutFont !== 'Arial') { firstFontFamily = layoutFont; break; }
+      }
     }
     // Fall back to theme fonts
     if (!firstFontFamily || firstFontFamily === 'Arial') {
@@ -373,7 +381,7 @@ function parseTextFromSpTree(
     zIndex: 0,
     style: {
       fontFamily: firstFontFamily || defaultFonts.bodyFont,
-      fontSize: firstFontSize || 24,
+      fontSize: firstFontSize || 12,
       fontWeight: firstBold ? 'bold' : 'normal',
       color: firstColor || themeColors.dk1,
       textAlign: firstAlign || 'left',
@@ -1028,20 +1036,26 @@ async function main() {
         const nameMatch = layoutXml.match(/<p:cSld\s+name="([^"]*)"/);
         if (nameMatch) layoutName = nameMatch[1];
         // Find placeholders with defRPr sz, font, bold
+        // Search ALL defRPr occurrences (not just the first — sz may be in lstStyle levels)
         const phMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const pm of phMatches) {
           const phTypeMatch = pm[1].match(/<p:ph[^>]*type="(\w+)"/);
           if (phTypeMatch) {
             const phType = phTypeMatch[1];
-            const defRPr = pm[1].match(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
-            if (defRPr) {
+            const allDefRPr = [...pm[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
+            for (const defRPr of allDefRPr) {
               const attrs = defRPr[1] + (defRPr[2] || '');
-              const szMatch = attrs.match(/\bsz="(\d+)"/);
-              if (szMatch) layoutPlaceholderSizes.set(phType, parseInt(szMatch[1]));
-              const bMatch = attrs.match(/\bb="1"/);
-              if (bMatch) layoutPlaceholderBold.set(phType, true);
-              const fontMatch = attrs.match(/<a:latin\s+typeface="([^"]+)"/);
-              if (fontMatch) layoutPlaceholderFonts.set(phType, cleanFontName(fontMatch[1]));
+              if (!layoutPlaceholderSizes.has(phType)) {
+                const szMatch = attrs.match(/\bsz="(\d+)"/);
+                if (szMatch) layoutPlaceholderSizes.set(phType, parseInt(szMatch[1]));
+              }
+              if (!layoutPlaceholderBold.has(phType)) {
+                if (/\bb="1"/.test(attrs)) layoutPlaceholderBold.set(phType, true);
+              }
+              if (!layoutPlaceholderFonts.has(phType)) {
+                const fontMatch = attrs.match(/<a:latin\s+typeface="([^"]+)"/);
+                if (fontMatch) layoutPlaceholderFonts.set(phType, cleanFontName(fontMatch[1]));
+              }
             }
           }
         }

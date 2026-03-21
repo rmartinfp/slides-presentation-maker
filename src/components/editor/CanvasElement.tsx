@@ -158,7 +158,7 @@ export default function CanvasElement({
         const vAlign = s.verticalAlign;
         const textStyle: React.CSSProperties = {
           fontFamily: s.fontFamily,
-          fontSize: s.fontSize,
+          fontSize: (s.fontSize ?? 24) * 2.666,
           fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
           fontStyle: s.fontStyle,
           textDecoration: s.textDecoration,

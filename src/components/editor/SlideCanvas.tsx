@@ -216,7 +216,7 @@ function StaticElement({ element }: { element: SlideElement }) {
           <div
             style={{
               fontFamily: s.fontFamily,
-              fontSize: s.fontSize,
+              fontSize: (s.fontSize ?? 24) * 2.666,
               fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
               fontStyle: s.fontStyle,
               textDecoration: s.textDecoration,

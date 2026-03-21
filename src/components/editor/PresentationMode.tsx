@@ -91,7 +91,7 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
             <div
               style={{
                 fontFamily: s.fontFamily,
-                fontSize: `${(s.fontSize ?? 24) * scaleX}vw`,
+                fontSize: `${(s.fontSize ?? 24) * 2.666 * scaleX}vw`,
                 fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
                 fontStyle: s.fontStyle,
                 textDecoration: s.textDecoration,
