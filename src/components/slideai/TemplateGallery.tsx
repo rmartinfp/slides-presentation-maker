@@ -343,16 +343,18 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       className="min-h-screen mesh-gradient relative z-10 font-body"
     >
       <div className="sticky top-0 z-30 nav-glass border-b border-slate-200/60">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <StepIndicator currentStep={1} />
+        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center">
+          <button onClick={() => navigate('/')} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-700 text-sm transition-colors mr-auto">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <div className="absolute left-1/2 -translate-x-1/2">
+            <StepIndicator currentStep={1} />
+          </div>
+          <div className="ml-auto w-14" /> {/* Spacer to balance */}
         </div>
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-8">
-        <button onClick={() => navigate('/')} className="flex items-center gap-2 text-slate-400 hover:text-slate-700 text-sm mb-8 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
-
         <div className="text-center mb-10">
           <h1 className="text-4xl md:text-5xl font-headline font-extrabold headline-tight text-slate-900">
             Pick your template
