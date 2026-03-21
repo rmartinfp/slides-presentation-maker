@@ -801,8 +801,18 @@ function extractBalancedTags(xml: string, tagName: string): string[] {
 const imageCache = new Map<string, string>();
 
 async function uploadImage(data: Buffer, contentType: string): Promise<string> {
+  // Skip EMF/WMF — browsers cannot render these vector formats
+  if (contentType.includes('emf') || contentType.includes('wmf') || contentType.includes('x-emf') || contentType.includes('x-wmf')) {
+    console.warn(`  Skipping unsupported vector format: ${contentType}`);
+    return '';
+  }
+
   const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
-    : contentType.includes('png') ? 'png' : 'png';
+    : contentType.includes('png') ? 'png'
+    : contentType.includes('svg') ? 'svg'
+    : contentType.includes('gif') ? 'gif'
+    : contentType.includes('webp') ? 'webp'
+    : 'png';
   const fileName = `imported/${genId()}.${ext}`;
 
   // Retry upload once on failure
@@ -1277,7 +1287,7 @@ async function main() {
             let imgFile = zip.files[normalizedPath];
             if (!imgFile) {
               const baseName = normalizedPath.replace(/\.\w+$/, '');
-              for (const ext of ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.emf', '.wmf']) {
+              for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
                 imgFile = zip.files[baseName + ext];
                 if (imgFile) break;
               }
@@ -1412,20 +1422,24 @@ async function main() {
           let imgFile = zip.files[normalizedPath];
           if (!imgFile) {
             const baseName = normalizedPath.replace(/\.\w+$/, '');
-            for (const ext of ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.emf', '.wmf']) {
+            for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
               imgFile = zip.files[baseName + ext];
               if (imgFile) break;
             }
           }
           if (imgFile) {
+            // Detect actual file extension from the resolved path
+            const resolvedName = Object.keys(zip.files).find(k => zip.files[k] === imgFile) || normalizedPath;
+            const ext = resolvedName.match(/\.(\w+)$/)?.[1]?.toLowerCase() || 'png';
+            const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg'
+              : ext === 'svg' ? 'image/svg+xml'
+              : `image/${ext}`;
             const imgData = await imgFile.async('nodebuffer');
-            const ext = normalizedPath.match(/\.(\w+)$/)?.[1] || 'png';
-            const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : `image/${ext}`;
             const url = await uploadImage(imgData, mimeType);
             result.element.content = url;
 
             // If this is a full-bleed image, make it the background
-            if (result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
+            if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
               background = { type: 'image', value: url };
               continue; // Don't add as element
             }
@@ -1537,7 +1551,7 @@ async function main() {
             let imgFile = zip.files[normalizedPath];
             if (!imgFile) {
               const baseName = normalizedPath.replace(/\.\w+$/, '');
-              for (const ext of ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.emf', '.wmf']) {
+              for (const ext of ['.png', '.jpg', '.jpeg', '.svg', '.gif', '.webp', '.emf', '.wmf']) {
                 imgFile = zip.files[baseName + ext];
                 if (imgFile) break;
               }

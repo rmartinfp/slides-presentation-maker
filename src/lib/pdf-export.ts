@@ -107,8 +107,52 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
           elDiv.appendChild(img);
         } else if (el.type === 'shape') {
           const fill = el.style.shapeFill || el.style.backgroundColor || '#6366f1';
-          elDiv.style.backgroundColor = fill;
-          elDiv.style.borderRadius = `${el.style.borderRadius || 0}px`;
+          const shapeType = el.style.shapeType || 'rectangle';
+          const stroke = el.style.shapeStroke || 'transparent';
+          const strokeWidth = el.style.shapeStrokeWidth || 0;
+
+          if (shapeType === 'custom' && el.style.svgPath) {
+            // Render custom SVG shapes properly
+            const svgNs = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNs, 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            svg.setAttribute('viewBox', el.style.svgViewBox || '0 0 100 100');
+            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            const path = document.createElementNS(svgNs, 'path');
+            path.setAttribute('d', el.style.svgPath as string);
+            path.setAttribute('fill', fill);
+            path.setAttribute('fill-rule', 'evenodd');
+            if (stroke !== 'transparent') {
+              path.setAttribute('stroke', stroke);
+              path.setAttribute('stroke-width', String(strokeWidth));
+            }
+            svg.appendChild(path);
+            elDiv.appendChild(svg);
+          } else if (shapeType === 'circle') {
+            elDiv.style.borderRadius = '50%';
+            elDiv.style.backgroundColor = fill;
+          } else if (shapeType === 'line') {
+            const svgNs = 'http://www.w3.org/2000/svg';
+            const svg = document.createElementNS(svgNs, 'svg');
+            svg.setAttribute('width', '100%');
+            svg.setAttribute('height', '100%');
+            const line = document.createElementNS(svgNs, 'line');
+            line.setAttribute('x1', '0');
+            line.setAttribute('y1', '50%');
+            line.setAttribute('x2', '100%');
+            line.setAttribute('y2', '50%');
+            line.setAttribute('stroke', fill !== 'transparent' ? fill : stroke);
+            line.setAttribute('stroke-width', String(Math.max(strokeWidth, 2)));
+            svg.appendChild(line);
+            elDiv.appendChild(svg);
+          } else {
+            elDiv.style.backgroundColor = fill;
+            elDiv.style.borderRadius = `${el.style.borderRadius || 0}px`;
+            if (stroke !== 'transparent') {
+              elDiv.style.border = `${strokeWidth}px solid ${stroke}`;
+            }
+          }
         }
 
         slideDiv.appendChild(elDiv);

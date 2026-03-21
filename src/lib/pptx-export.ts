@@ -51,6 +51,24 @@ function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void
   }
 }
 
+/**
+ * Convert an SVG shape to a base64 PNG for embedding in PPTX.
+ * pptxgenjs doesn't support custom SVG paths, so we rasterize them.
+ */
+function svgToBase64(svgPath: string, viewBox: string, fill: string, stroke: string, strokeWidth: number, w: number, h: number): string | null {
+  try {
+    // Use 2x resolution for crisp export
+    const pixelW = Math.round(w * 192); // inches × 192 dpi
+    const pixelH = Math.round(h * 192);
+    const svgXml = `<svg xmlns="http://www.w3.org/2000/svg" width="${pixelW}" height="${pixelH}" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">
+      <path d="${svgPath}" fill="${fill}" fill-rule="evenodd" stroke="${stroke}" stroke-width="${strokeWidth}"/>
+    </svg>`;
+    return `data:image/svg+xml;base64,${btoa(svgXml)}`;
+  } catch {
+    return null;
+  }
+}
+
 function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
   const x = element.x * PX_TO_INCH;
   const y = element.y * PX_TO_INCH_Y;
@@ -95,8 +113,29 @@ function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
 
     case 'shape': {
       const st = element.style;
-      const fill = (st.shapeFill || st.backgroundColor || '#6366f1').replace('#', '');
+      const fill = (st.shapeFill || st.backgroundColor || '#6366f1');
+      const fillHex = fill.replace('#', '');
       const shapeType = st.shapeType || 'rectangle';
+      const stroke = st.shapeStroke || 'transparent';
+      const strokeWidth = st.shapeStrokeWidth || 0;
+
+      // Custom SVG path — convert to image since pptxgenjs doesn't support custom geometry
+      if (shapeType === 'custom' && st.svgPath) {
+        const svgData = svgToBase64(
+          st.svgPath as string,
+          (st.svgViewBox as string) || '0 0 100 100',
+          fill,
+          stroke !== 'transparent' ? stroke : 'none',
+          strokeWidth,
+          w, h,
+        );
+        if (svgData) {
+          try {
+            s.addImage({ data: svgData, x, y, w, h, rotate: element.rotation || undefined });
+          } catch { /* skip on error */ }
+        }
+        break;
+      }
 
       // Map our shapes to pptxgenjs shapes
       let pptxShape: string = 'rect';
@@ -105,14 +144,29 @@ function addElement(s: PptxGenJS.Slide, element: SlideElement): void {
       else if (shapeType === 'arrow-right') pptxShape = 'rightArrow';
       else if (shapeType === 'line') pptxShape = 'line';
 
-      s.addShape(pptxShape as PptxGenJS.ShapeType, {
-        x,
-        y,
-        w,
-        h,
-        fill: { type: 'solid', color: fill },
+      const shapeOpts: Record<string, any> = {
+        x, y, w, h,
+        fill: fill === 'transparent' ? undefined : { type: 'solid', color: fillHex },
         rotate: element.rotation || undefined,
-      });
+      };
+
+      // Add stroke/border if present
+      if (stroke !== 'transparent' && strokeWidth > 0) {
+        shapeOpts.line = { color: stroke.replace('#', ''), width: strokeWidth };
+        if (st.shapeStrokeDash) {
+          shapeOpts.line.dashType = st.shapeStrokeDash === '8 4' ? 'dash'
+            : st.shapeStrokeDash === '2 4' ? 'dot'
+            : st.shapeStrokeDash === '16 6' ? 'lgDash'
+            : 'dash';
+        }
+      }
+
+      // Border radius for rounded rect
+      if (shapeType === 'rectangle' && st.borderRadius) {
+        shapeOpts.rectRadius = Math.min(st.borderRadius as number * PX_TO_INCH, 0.5);
+      }
+
+      s.addShape(pptxShape as PptxGenJS.ShapeType, shapeOpts);
       break;
     }
 
