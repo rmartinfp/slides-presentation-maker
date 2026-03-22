@@ -125,8 +125,8 @@ export default function CanvasElement({
     position: 'absolute',
     left: element.x,
     top: element.y,
-    width: element.width,
-    height: element.height,
+    width: Math.max(1, element.width),
+    height: Math.max(1, element.height),
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
     zIndex: element.zIndex,
@@ -395,7 +395,7 @@ export default function CanvasElement({
       onDoubleClick={handleDoubleClick}
       className={cn(
         'canvas-element group',
-        isSelected && 'ring-2 ring-[#4F46E5] ring-offset-0',
+        isSelected && Math.min(element.width, element.height) >= 15 && 'ring-2 ring-[#4F46E5] ring-offset-0',
         element.locked && 'opacity-90',
       )}
       data-element-id={element.id}
@@ -403,7 +403,8 @@ export default function CanvasElement({
       {renderContent()}
 
       {/* Resize handles — visual only, interact.js handles the actual resize */}
-      {isSelected && !element.locked && !isEditing && (
+      {/* Hide handles on tiny elements (< 15px) — handles are 10px each, would dwarf the element */}
+      {isSelected && !element.locked && !isEditing && Math.min(element.width, element.height) >= 15 && (
         <>
           {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {
             const posStyles: Record<string, React.CSSProperties> = {

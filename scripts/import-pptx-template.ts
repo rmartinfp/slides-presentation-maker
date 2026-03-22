@@ -1769,6 +1769,9 @@ async function main() {
             shapeEl.width = safeWidth(parseInt(cExt[1]), transform);
             shapeEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
+          // Lock small decorative shapes from groups (dots, toggles, icons)
+          // These are design elements, not user-editable content
+          if (Math.min(shapeEl.width, shapeEl.height) < 20) shapeEl.locked = true;
           shapeEl.zIndex = zIndex++;
           elements.push(shapeEl);
           continue;
