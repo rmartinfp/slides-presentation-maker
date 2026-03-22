@@ -468,7 +468,7 @@ function parseImageFromSpTree(
     const lnFill = ln[1].match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
     borderColor = lnFill ? (parseColorFromShapeXml(lnFill[1], themeColors) || undefined) : undefined;
     const w = ln[0].match(/\bw="(\d+)"/);
-    borderWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
+    borderWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700 * 2.666)) : 1;
   }
 
   return {
@@ -629,7 +629,7 @@ function parseShapeFromSpTree(
       stroke = parseColorFromShapeXml(ln[1], themeColors);
       if (!stroke) stroke = themeColors.dk1;
       const w = ln[0].match(/\bw="(\d+)"/);
-      strokeWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700)) : 1;
+      strokeWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700 * 2.666)) : 1;
       strokeDash = parseDashStyle(ln[1]);
     }
   }
