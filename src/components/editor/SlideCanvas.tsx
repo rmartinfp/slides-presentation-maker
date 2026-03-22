@@ -261,7 +261,12 @@ function StaticElement({ element }: { element: SlideElement }) {
         const effectiveStroke = (stroke === fill || stroke === 'transparent' || Math.min(element.width, element.height) < 15) ? 'none' : stroke;
         const sp = { stroke: effectiveStroke, strokeWidth: effectiveStroke !== 'none' ? strokeWidth : 0, strokeDasharray: da || undefined };
 
-        if (shapeType === 'circle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
+        if (shapeType === 'circle') {
+          if (Math.min(element.width, element.height) < 20) {
+            return <div className="w-full h-full" style={{ borderRadius: '50%', backgroundColor: fill !== 'transparent' ? fill : undefined, border: effectiveStroke !== 'none' ? `${strokeWidth}px solid ${effectiveStroke}` : undefined }} />;
+          }
+          return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
+        }
         if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} {...sp} /></svg>;
         if (shapeType === 'line') return <svg width="100%" height="100%" preserveAspectRatio="none"><line x1="0" y1="50%" x2="100%" y2="50%" stroke={fillColor} strokeWidth={Math.max(strokeWidth, 2)} strokeDasharray={da || undefined} /></svg>;
         if (shapeType === 'arrow-right') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} {...sp} /></svg>;

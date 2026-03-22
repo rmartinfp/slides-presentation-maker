@@ -243,6 +243,17 @@ export default function CanvasElement({
         })() : null;
 
         if (shapeType === 'circle') {
+          // Small circles: use CSS border-radius for pixel-perfect rendering
+          // SVG viewBox="0 0 100 100" can't render accurately at < 20px
+          if (Math.min(element.width, element.height) < 20) {
+            return (
+              <div className="w-full h-full pointer-events-none" style={{
+                borderRadius: '50%',
+                backgroundColor: fill !== 'transparent' ? fill : undefined,
+                border: effectiveStroke !== 'none' ? `${strokeWidth}px solid ${effectiveStroke}` : undefined,
+              }} />
+            );
+          }
           return (
             <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
               {gradDef}
