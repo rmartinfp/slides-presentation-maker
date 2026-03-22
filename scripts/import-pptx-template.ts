@@ -1667,51 +1667,85 @@ async function main() {
       }
     }
 
-    // Find all sp (shapes) and pic (pictures) in the slide itself
-    // Strip group shapes first to avoid double-parsing elements inside groups
+    // Parse ALL slide elements in their XML document order (preserves PPTX z-layering).
+    // The spTree children appear as <p:sp>, <p:pic>, <p:grpSp>, <p:cxnSp> interleaved.
+    // We process them in order so z-index matches the original draw order (first = bottom, last = top).
+
+    // Match all top-level elements in order using their start positions
     const slideXmlNoGroups = stripBalancedTags(slideXml, 'p:grpSp');
-    // Text shapes: <p:sp>...</p:sp>
-    const spMatches = slideXmlNoGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
-    for (const m of spMatches) {
-      const spXml = m[1];
 
-      // Skip image/media placeholders (they render as empty boxes with dashed borders)
-      if (/<p:ph[^>]*type="pic"/.test(spXml) || /<p:ph[^>]*type="media"/.test(spXml)) continue;
+    // Collect all top-level element positions to sort by XML order
+    interface XmlElement { pos: number; type: 'sp' | 'pic' | 'grpSp' | 'cxnSp'; content: string }
+    const xmlElements: XmlElement[] = [];
 
-      // Try as text first
-      const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
-      if (textEl) {
-        textEl.zIndex = zIndex++;
-        elements.push(textEl);
-        continue;
-      }
-
-      // Try as shape
-      const shapeEl = parseShapeFromSpTree(spXml, themeColors);
-      if (shapeEl) {
-        shapeEl.zIndex = zIndex++;
-        elements.push(shapeEl);
-      }
+    // Standalone shapes and texts (from XML without groups)
+    for (const m of slideXmlNoGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)) {
+      xmlElements.push({ pos: slideXml.indexOf(m[0]), type: 'sp', content: m[1] });
+    }
+    // Standalone pics
+    for (const m of slideXmlNoGroups.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g)) {
+      xmlElements.push({ pos: slideXml.indexOf(m[0]), type: 'pic', content: m[1] });
+    }
+    // Top-level groups (use balanced extraction)
+    const grpContents = extractBalancedTags(slideXml, 'p:grpSp');
+    for (const grpXml of grpContents) {
+      xmlElements.push({ pos: slideXml.indexOf(grpXml.substring(0, 50)), type: 'grpSp', content: grpXml });
+    }
+    // Standalone connectors
+    for (const m of slideXmlNoGroups.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g)) {
+      xmlElements.push({ pos: slideXml.indexOf(m[0]), type: 'cxnSp', content: m[1] });
     }
 
-    // Pictures: <p:pic>...</p:pic> (groups handled separately above)
-    const picMatches = slideXmlNoGroups.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
-    for (const m of picMatches) {
-      const result = parseImageFromSpTree(m[1], relsMap, themeColors);
-      if (result) {
-        result.element.zIndex = zIndex++;
+    // Sort by XML position (draw order: first = bottom, last = top)
+    xmlElements.sort((a, b) => a.pos - b.pos);
 
-        // Upload image from PPTX (with EMF/WMF fallback handling)
-        if (result.imageRef) {
-          const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
-          result.element.content = url;
+    // Process each element in order
+    for (const xmlEl of xmlElements) {
+      if (xmlEl.type === 'sp') {
+        const spXml = xmlEl.content;
+        // Skip image/media placeholders
+        if (/<p:ph[^>]*type="pic"/.test(spXml) || /<p:ph[^>]*type="media"/.test(spXml)) continue;
 
-          // Slide-level images are ALWAYS kept as elements (editable by user).
-          // Only layout/master images or <p:bg> become backgrounds.
+        // Try as text first
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
+        if (textEl) { textEl.zIndex = zIndex++; elements.push(textEl); continue; }
+
+        // Try as shape
+        const shapeEl = parseShapeFromSpTree(spXml, themeColors);
+        if (shapeEl) { shapeEl.zIndex = zIndex++; elements.push(shapeEl); }
+
+      } else if (xmlEl.type === 'pic') {
+        const result = parseImageFromSpTree(xmlEl.content, relsMap, themeColors);
+        if (result) {
+          result.element.zIndex = zIndex++;
+          if (result.imageRef) {
+            result.element.content = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
+          }
+          if (result.element.content) elements.push(result.element);
         }
 
-        if (result.element.content) {
-          elements.push(result.element);
+      } else if (xmlEl.type === 'grpSp') {
+        await extractSlideGroupShapes(xmlEl.content);
+
+      } else if (xmlEl.type === 'cxnSp') {
+        const cxnXml = xmlEl.content;
+        const off = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+        const ext = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+        if (off && ext) {
+          const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
+          const scheme = cxnXml.match(/<a:schemeClr\s+val="(\w+)"/);
+          let lineColor = themeColors.dk1;
+          if (srgb) lineColor = `#${srgb[1]}`;
+          else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
+          const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
+          const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700 * 2.666)) : 1;
+          elements.push({
+            id: genId(), type: 'shape', content: '',
+            x: emuToPxX(Math.max(0, parseInt(off[1]))), y: emuToPxY(Math.max(0, parseInt(off[2]))),
+            width: emuToPxX(parseInt(ext[1])), height: Math.max(emuToPxY(parseInt(ext[2])), 2),
+            rotation: 0, opacity: 1, locked: false, visible: true, zIndex: zIndex++,
+            style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined },
+          });
         }
       }
     }
@@ -1842,56 +1876,7 @@ async function main() {
       }
     }
 
-    const grpContents = extractBalancedTags(slideXml, 'p:grpSp');
-    for (const grpXml of grpContents) {
-      await extractSlideGroupShapes(grpXml);
-    }
-
-    // Connectors (lines): <p:cxnSp>...</p:cxnSp> (groups handled separately above)
-    const cxnMatches = slideXmlNoGroups.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g);
-    for (const m of cxnMatches) {
-      const cxnXml = m[1];
-      const off = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-      const ext = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-      if (!off || !ext) continue;
-
-      const x = emuToPxX(Math.max(0, parseInt(off[1])));
-      const y = emuToPxY(Math.max(0, parseInt(off[2])));
-      const width = emuToPxX(parseInt(ext[1]));
-      const height = Math.max(emuToPxY(parseInt(ext[2])), 2);
-
-      // Get line color
-      const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
-      const scheme = cxnXml.match(/<a:schemeClr\s+val="(\w+)"/);
-      let lineColor = themeColors.dk1;
-      if (srgb) lineColor = `#${srgb[1]}`;
-      else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
-
-      // Get line width and dash pattern
-      const lnMatch = cxnXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
-      const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
-      const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
-      const lineDash = lnMatch ? parseDashStyle(lnMatch[1]) : null;
-
-      elements.push({
-        id: genId(),
-        type: 'shape',
-        content: '',
-        x, y, width, height,
-        rotation: 0,
-        opacity: 1,
-        locked: false,
-        visible: true,
-        zIndex: zIndex++,
-        style: {
-          shapeType: 'line',
-          shapeFill: lineColor,
-          shapeStroke: lineColor,
-          shapeStrokeWidth: strokeWidth,
-          shapeStrokeDash: lineDash || undefined,
-        },
-      });
-    }
+    // (Groups and connectors are now handled inside the XML-order loop above)
 
     // Also handle background images from rels
     if (background.type === 'image' && !background.value.startsWith('http')) {
@@ -1928,17 +1913,17 @@ async function main() {
       : slideTypeMap[layoutName] ||
       (layoutName.includes('CUSTOM') && elements.length <= 5 ? 'content' : 'content');
 
-    // Reorder zIndex: images first, then shapes, then text on top
+    // Keep extraction order for z-index — it follows the PPTX XML draw order.
+    // Layout elements come first (background decorations), then slide elements
+    // in their original XML order (bottom to top).
+    const reordered = elements;
     let z = 1;
-    const images = elements.filter(e => e.type === 'image');
-    const shapes = elements.filter(e => e.type === 'shape');
-    const texts = elements.filter(e => e.type === 'text');
-    for (const el of [...images, ...shapes, ...texts]) {
-      el.zIndex = z++;
-    }
-    const reordered = [...images, ...shapes, ...texts];
+    for (const el of reordered) el.zIndex = z++;
 
-    console.log(`  → ${layoutName} (${slideType}) ${reordered.length} elements (${texts.length} text, ${shapes.length} shapes, ${images.length} images)`);
+    const nTexts = reordered.filter(e => e.type === 'text').length;
+    const nShapes = reordered.filter(e => e.type === 'shape').length;
+    const nImages = reordered.filter(e => e.type === 'image').length;
+    console.log(`  → ${layoutName} (${slideType}) ${reordered.length} elements (${nTexts} text, ${nShapes} shapes, ${nImages} images)`);
 
     parsedSlides.push({
       id: genId(),
