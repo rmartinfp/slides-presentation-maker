@@ -1497,14 +1497,17 @@ async function main() {
       || plainText.includes('contents of this template')
       || plainText.includes('contents of this presentation');
 
-    const isFinalPage = isSecondaryMaster || isFinalPageHeuristic;
-
-    // Detect real "Thank You" slides
-    const isThanksSlide = elementCount <= 15
-      && (/\bthank\s+you\b/i.test(plainText) || /\bthanks\b/i.test(plainText))
+    // Detect real "Thank You" / closing slides BEFORE final page check.
+    // Thanks slides often have Slidesgo/Freepik credits which trigger branding filter.
+    // Must detect Thanks FIRST to protect it from being filtered.
+    const isThanksSlide = elementCount <= 30
+      && (/thank\s*you/i.test(plainText) || /\bthanks\b/i.test(plainText))
       && !plainText.includes('instructions for use')
       && !plainText.includes('instructions (')
       && !plainText.includes('you can delete');
+
+    // Final page detection — but NEVER filter a Thanks slide
+    const isFinalPage = !isThanksSlide && (isSecondaryMaster || isFinalPageHeuristic);
 
     // Heuristic for instruction/resource pages that leak through master filter
     const isInstructionPage = plainText.includes('instructions for use')
