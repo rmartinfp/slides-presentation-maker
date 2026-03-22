@@ -1581,40 +1581,78 @@ async function main() {
         }
 
         // Extract groups from layout (decorative elements like toggles, dot patterns)
-        const layoutGrpContents = extractBalancedTags(layoutXml, 'p:grpSp');
-        for (const grpXml of layoutGrpContents) {
-          const grpOff = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-          const grpExt = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-          const chOff = grpXml.match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-          const chExt = grpXml.match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
-          if (!grpOff || !grpExt) continue;
-          const gx = parseInt(grpOff[1]), gy = parseInt(grpOff[2]);
-          const gw = parseInt(grpExt[1]), gh = parseInt(grpExt[2]);
-          const cox = chOff ? parseInt(chOff[1]) : gx, coy = chOff ? parseInt(chOff[2]) : gy;
-          const cow = chExt ? parseInt(chExt[1]) : gw, coh = chExt ? parseInt(chExt[2]) : gh;
-          const scaleGX = cow > 0 ? gw / cow : 1, scaleGY = coh > 0 ? gh / coh : 1;
-          const toSlideX = (cx: number) => gx + (cx - cox) * scaleGX;
-          const toSlideY = (cy: number) => gy + (cy - coy) * scaleGY;
-          const toSlideW = (cw: number) => cw * scaleGX;
-          const toSlideH = (ch: number) => ch * scaleGY;
+        // RECURSIVE: handles nested groups (group inside group) with cumulative transforms
+        type Transform = { toX: (cx: number) => number; toY: (cy: number) => number; toW: (cw: number) => number; toH: (ch: number) => number };
 
-          const grpSpMatches = grpXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+        function extractGroupShapes(
+          grpXml: string,
+          parentTransform?: Transform,
+        ): void {
+          // Parse this group's transform
+          const grpSpPr = grpXml.match(/<p:grpSpPr>([\s\S]*?)<\/p:grpSpPr>/);
+          if (!grpSpPr) return;
+          const grpOff = grpSpPr[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const grpExt = grpSpPr[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          const chOff = grpSpPr[1].match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const chExt = grpSpPr[1].match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (!grpOff || !grpExt) return;
+
+          let gx = parseInt(grpOff[1]), gy = parseInt(grpOff[2]);
+          let gw = parseInt(grpExt[1]), gh = parseInt(grpExt[2]);
+          // Apply parent transform to this group's position/size
+          if (parentTransform) {
+            const newGx = parentTransform.toX(gx);
+            const newGy = parentTransform.toY(gy);
+            gw = parentTransform.toW(gw);
+            gh = parentTransform.toH(gh);
+            gx = newGx;
+            gy = newGy;
+          }
+          const cox = chOff ? parseInt(chOff[1]) : parseInt(grpOff[1]);
+          const coy = chOff ? parseInt(chOff[2]) : parseInt(grpOff[2]);
+          const cow = chExt ? parseInt(chExt[1]) : parseInt(grpExt[1]);
+          const coh = chExt ? parseInt(chExt[2]) : parseInt(grpExt[2]);
+          const scaleGX = cow > 0 ? gw / cow : 1;
+          const scaleGY = coh > 0 ? gh / coh : 1;
+
+          const transform: Transform = {
+            toX: (cx: number) => gx + (cx - cox) * scaleGX,
+            toY: (cy: number) => gy + (cy - coy) * scaleGY,
+            toW: (cw: number) => cw * scaleGX,
+            toH: (ch: number) => ch * scaleGY,
+          };
+
+          // Process direct child shapes (strip nested groups to avoid double-processing)
+          const grpXmlNoSubGroups = stripBalancedTags(grpXml, 'p:grpSp');
+          const grpSpMatches = grpXmlNoSubGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
           for (const sm of grpSpMatches) {
             const shapeEl = parseShapeFromSpTree(sm[1], themeColors);
             if (shapeEl) {
               const childOff = sm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
               const childExt = sm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
               if (childOff && childExt) {
-                shapeEl.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
-                shapeEl.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
-                shapeEl.width = emuToPxX(toSlideW(parseInt(childExt[1])));
-                shapeEl.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+                shapeEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(childOff[1]))));
+                shapeEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(childOff[2]))));
+                shapeEl.width = Math.max(1, emuToPxX(transform.toW(parseInt(childExt[1]))));
+                shapeEl.height = Math.max(1, emuToPxY(transform.toH(parseInt(childExt[2]))));
               }
               shapeEl.locked = true;
               shapeEl.zIndex = zIndex++;
               elements.push(shapeEl);
             }
           }
+
+          // Recursively process nested groups
+          const nestedGroups = extractBalancedTags(grpXml, 'p:grpSp');
+          for (const nestedGrp of nestedGroups) {
+            extractGroupShapes(nestedGrp, transform);
+          }
+        }
+
+        // Start recursive extraction from top-level layout groups
+        const layoutGrpContents = extractBalancedTags(layoutXml, 'p:grpSp');
+        for (const grpXml of layoutGrpContents) {
+          extractGroupShapes(grpXml);
         }
       }
     }
@@ -1669,136 +1707,131 @@ async function main() {
     }
 
     // Group shapes: <p:grpSp>...</p:grpSp>
-    // Groups contain nested shapes, images, and connectors with their own coordinate system.
-    // We extract the group's overall position and flatten the children using the group transform.
-    // Use balanced tag extraction to handle nested groups correctly.
-    const grpContents = extractBalancedTags(slideXml, 'p:grpSp');
-    for (const grpXml of grpContents) {
+    // RECURSIVE: handles nested groups with cumulative coordinate transforms.
+    async function extractSlideGroupShapes(
+      grpXml: string,
+      parentTransform?: Transform,
+    ): Promise<void> {
+      const grpSpPr = grpXml.match(/<p:grpSpPr>([\s\S]*?)<\/p:grpSpPr>/);
+      if (!grpSpPr) return;
+      const grpOff = grpSpPr[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+      const grpExt = grpSpPr[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+      const chOffM = grpSpPr[1].match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+      const chExtM = grpSpPr[1].match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
+      if (!grpOff || !grpExt) return;
 
-      // Group transform: <a:xfrm> with <a:off> (position on slide) and <a:ext> (size on slide)
-      // and <a:chOff> (child origin) and <a:chExt> (child coordinate space)
-      const grpOff = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-      const grpExt = grpXml.match(/<p:grpSpPr>[\s\S]*?<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-      const chOff = grpXml.match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-      const chExt = grpXml.match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
-
-      if (!grpOff || !grpExt) continue;
-
-      const gx = parseInt(grpOff[1]);
-      const gy = parseInt(grpOff[2]);
-      const gw = parseInt(grpExt[1]);
-      const gh = parseInt(grpExt[2]);
-      const cox = chOff ? parseInt(chOff[1]) : gx;
-      const coy = chOff ? parseInt(chOff[2]) : gy;
-      const cow = chExt ? parseInt(chExt[1]) : gw;
-      const coh = chExt ? parseInt(chExt[2]) : gh;
-
-      // Scale factors from child coords to slide coords
+      let gx = parseInt(grpOff[1]), gy = parseInt(grpOff[2]);
+      let gw = parseInt(grpExt[1]), gh = parseInt(grpExt[2]);
+      if (parentTransform) {
+        const newGx = parentTransform.toX(gx);
+        const newGy = parentTransform.toY(gy);
+        gw = parentTransform.toW(gw);
+        gh = parentTransform.toH(gh);
+        gx = newGx; gy = newGy;
+      }
+      const cox = chOffM ? parseInt(chOffM[1]) : parseInt(grpOff[1]);
+      const coy = chOffM ? parseInt(chOffM[2]) : parseInt(grpOff[2]);
+      const cow = chExtM ? parseInt(chExtM[1]) : parseInt(grpExt[1]);
+      const coh = chExtM ? parseInt(chExtM[2]) : parseInt(grpExt[2]);
       const scaleGX = cow > 0 ? gw / cow : 1;
       const scaleGY = coh > 0 ? gh / coh : 1;
 
-      // Helper: transform child EMU coordinates to slide EMU coordinates
-      const toSlideX = (cx: number) => gx + (cx - cox) * scaleGX;
-      const toSlideY = (cy: number) => gy + (cy - coy) * scaleGY;
-      const toSlideW = (cw: number) => cw * scaleGX;
-      const toSlideH = (ch: number) => ch * scaleGY;
+      const transform: Transform = {
+        toX: (cx: number) => gx + (cx - cox) * scaleGX,
+        toY: (cy: number) => gy + (cy - coy) * scaleGY,
+        toW: (cw: number) => cw * scaleGX,
+        toH: (ch: number) => ch * scaleGY,
+      };
 
-      // Extract shapes inside group
-      const grpSpMatches = grpXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
-      for (const sm of grpSpMatches) {
+      // Direct child shapes only (strip nested groups)
+      const noSubGroups = stripBalancedTags(grpXml, 'p:grpSp');
+
+      // Shapes
+      for (const sm of noSubGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)) {
         const spXml = sm[1];
-        // Try as shape (most group children are decorative shapes)
         const shapeEl = parseShapeFromSpTree(spXml, themeColors);
         if (shapeEl) {
-          // Re-calculate position using group transform
-          const childOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-          const childExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-          if (childOff && childExt) {
-            shapeEl.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
-            shapeEl.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
-            shapeEl.width = emuToPxX(toSlideW(parseInt(childExt[1])));
-            shapeEl.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+          const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (cOff && cExt) {
+            shapeEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
+            shapeEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+            shapeEl.width = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
+            shapeEl.height = Math.max(1, emuToPxY(transform.toH(parseInt(cExt[2]))));
           }
           shapeEl.zIndex = zIndex++;
           elements.push(shapeEl);
           continue;
         }
-
-        // Try as text
         const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
         if (textEl) {
-          const childOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-          const childExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-          if (childOff && childExt) {
-            textEl.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
-            textEl.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
-            textEl.width = emuToPxX(toSlideW(parseInt(childExt[1])));
-            textEl.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+          const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (cOff && cExt) {
+            textEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
+            textEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+            textEl.width = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
+            textEl.height = Math.max(1, emuToPxY(transform.toH(parseInt(cExt[2]))));
           }
           textEl.zIndex = zIndex++;
           elements.push(textEl);
         }
       }
 
-      // Extract images inside group
-      const grpPicMatches = grpXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
-      for (const pm of grpPicMatches) {
+      // Images
+      for (const pm of noSubGroups.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g)) {
         const result = parseImageFromSpTree(pm[1], relsMap, themeColors);
         if (result) {
-          const childOff = pm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-          const childExt = pm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-          if (childOff && childExt) {
-            result.element.x = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
-            result.element.y = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
-            result.element.width = emuToPxX(toSlideW(parseInt(childExt[1])));
-            result.element.height = emuToPxY(toSlideH(parseInt(childExt[2])));
+          const cOff = pm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+          const cExt = pm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+          if (cOff && cExt) {
+            result.element.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
+            result.element.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+            result.element.width = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
+            result.element.height = Math.max(1, emuToPxY(transform.toH(parseInt(cExt[2]))));
           }
           result.element.zIndex = zIndex++;
-
           if (result.imageRef) {
-            const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
-            result.element.content = url;
+            result.element.content = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
           }
-
-          if (result.element.content) {
-            elements.push(result.element);
-          }
+          if (result.element.content) elements.push(result.element);
         }
       }
 
-      // Extract connectors inside group
-      const grpCxnMatches = grpXml.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g);
-      for (const cm of grpCxnMatches) {
+      // Connectors
+      for (const cm of noSubGroups.matchAll(/<p:cxnSp>([\s\S]*?)<\/p:cxnSp>/g)) {
         const cxnXml = cm[1];
-        const childOff = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
-        const childExt = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
-        if (!childOff || !childExt) continue;
-
-        const cx = emuToPxX(Math.max(0, toSlideX(parseInt(childOff[1]))));
-        const cy = emuToPxY(Math.max(0, toSlideY(parseInt(childOff[2]))));
-        const cw = emuToPxX(toSlideW(parseInt(childExt[1])));
-        const ch = Math.max(emuToPxY(toSlideH(parseInt(childExt[2]))), 2);
-
+        const cOff = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+        const cExt = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+        if (!cOff || !cExt) continue;
+        const cx = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
+        const cy = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+        const cw = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
+        const ch = Math.max(2, emuToPxY(transform.toH(parseInt(cExt[2]))));
         const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
         const scheme = cxnXml.match(/<a:schemeClr\s+val="(\w+)"/);
         let lineColor = themeColors.dk1;
         if (srgb) lineColor = `#${srgb[1]}`;
         else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
-
         const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
         const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
-        const lineDash = parseDashStyle(cxnXml);
-
         elements.push({
-          id: genId(),
-          type: 'shape',
-          content: '',
+          id: genId(), type: 'shape', content: '',
           x: cx, y: cy, width: cw, height: ch,
-          rotation: 0, opacity: 1, locked: false, visible: true,
-          zIndex: zIndex++,
-          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: lineDash || undefined },
+          rotation: 0, opacity: 1, locked: false, visible: true, zIndex: zIndex++,
+          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined },
         });
       }
+
+      // Recurse into nested groups
+      for (const nestedGrp of extractBalancedTags(grpXml, 'p:grpSp')) {
+        await extractSlideGroupShapes(nestedGrp, transform);
+      }
+    }
+
+    const grpContents = extractBalancedTags(slideXml, 'p:grpSp');
+    for (const grpXml of grpContents) {
+      await extractSlideGroupShapes(grpXml);
     }
 
     // Connectors (lines): <p:cxnSp>...</p:cxnSp> (groups handled separately above)
