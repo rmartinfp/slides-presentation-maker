@@ -12,7 +12,9 @@ interface Props {
   scale: number;
 }
 
-const FONT_SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 48, 56, 64, 72, 80, 96, 112, 128, 160, 200];
+// Font sizes in POINTS (same as Google Slides / PowerPoint)
+const FONT_SIZES_PT = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
+const PT_TO_PX = 2.666; // 1920px canvas / (10in × 72pt/in)
 
 export default function FormattingToolbar({ editor, scale }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -34,30 +36,38 @@ export default function FormattingToolbar({ editor, scale }: Props) {
 
   const currentColor = editor.getAttributes('textStyle').color || '#000000';
 
-  // Get current font size
-  const getCurrentFontSize = (): string => {
+  // Get current font size in POINTS (convert from px if needed)
+  const getCurrentFontSizePt = (): string => {
     const fs = editor.getAttributes('textStyle').fontSize;
-    if (fs) return String(fs).replace('px', '');
+    if (fs) {
+      const px = parseInt(String(fs).replace('px', ''));
+      return Math.round(px / PT_TO_PX).toString();
+    }
     try {
       const { from } = editor.state.selection;
       const dom = editor.view.domAtPos(from);
       const el = dom.node instanceof HTMLElement ? dom.node : dom.node.parentElement;
-      if (el) return parseInt(window.getComputedStyle(el).fontSize).toString();
+      if (el) {
+        const px = parseInt(window.getComputedStyle(el).fontSize);
+        return Math.round(px / PT_TO_PX).toString();
+      }
     } catch {}
     return '—';
   };
 
-  const currentSize = getCurrentFontSize();
-  const currentSizeNum = parseInt(currentSize) || 24;
+  const currentSizePt = getCurrentFontSizePt();
+  const currentSizePtNum = parseInt(currentSizePt) || 24;
 
-  const setFontSize = (size: number) => {
-    (editor.chain().focus() as any).setFontSize(`${size}px`).run();
+  // Set font size: input is in pt, stored as px (pt × 2.666)
+  const setFontSize = (pt: number) => {
+    const px = Math.round(pt * PT_TO_PX);
+    (editor.chain().focus() as any).setFontSize(`${px}px`).run();
   };
 
   const adjustSize = (delta: number) => {
-    const idx = FONT_SIZES.findIndex(s => s >= currentSizeNum);
-    const newIdx = Math.max(0, Math.min(FONT_SIZES.length - 1, idx + delta));
-    setFontSize(FONT_SIZES[newIdx]);
+    const idx = FONT_SIZES_PT.findIndex(s => s >= currentSizePtNum);
+    const newIdx = Math.max(0, Math.min(FONT_SIZES_PT.length - 1, idx + delta));
+    setFontSize(FONT_SIZES_PT[newIdx]);
   };
 
   const Btn = ({ active, onClick, children, title }: { active?: boolean; onClick: () => void; children: React.ReactNode; title?: string }) => (
@@ -99,7 +109,7 @@ export default function FormattingToolbar({ editor, scale }: Props) {
           onMouseDown={(e) => { e.preventDefault(); setShowFontSize(!showFontSize); setShowColorPicker(false); }}
           className="h-8 px-2 text-xs font-bold text-slate-800 hover:bg-slate-100 border-x border-slate-200 min-w-[40px] text-center tabular-nums"
         >
-          {currentSize}
+          {currentSizePt}
         </button>
         <button
           onMouseDown={(e) => { e.preventDefault(); adjustSize(1); }}
@@ -109,7 +119,7 @@ export default function FormattingToolbar({ editor, scale }: Props) {
         </button>
         {showFontSize && (
           <div className="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-2xl border border-slate-200 py-1 w-20 max-h-60 overflow-y-auto z-[300]" data-formatting-dropdown>
-            {FONT_SIZES.map(size => (
+            {FONT_SIZES_PT.map(size => (
               <button
                 key={size}
                 onMouseDown={(e) => {
@@ -119,10 +129,10 @@ export default function FormattingToolbar({ editor, scale }: Props) {
                 }}
                 className={cn(
                   'w-full text-left px-3 py-1.5 text-xs font-medium hover:bg-slate-100 transition-colors',
-                  currentSizeNum === size ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700',
+                  currentSizePtNum === size ? 'bg-indigo-50 text-indigo-700' : 'text-slate-700',
                 )}
               >
-                {size}px
+                {size}
               </button>
             ))}
           </div>
