@@ -1326,17 +1326,13 @@ async function main() {
   // Group transform types and helpers (used by both layout and slide group extraction)
   type Transform = { toX: (cx: number) => number; toY: (cy: number) => number; toW: (cw: number) => number; toH: (ch: number) => number };
 
-  // When a nested group transform shrinks shapes below 5px, use the untransformed
-  // child size instead. Google Slides doesn't shrink tiny decorative elements.
+  // Apply group transform to dimensions. Use the transformed value directly —
+  // even for very small shapes. The group transform IS the intended size.
   function safeWidth(childW: number, transform: Transform): number {
-    const transformed = emuToPxX(transform.toW(childW));
-    if (transformed >= 5) return Math.max(1, transformed);
-    return Math.max(1, emuToPxX(childW));
+    return Math.max(1, emuToPxX(transform.toW(childW)));
   }
   function safeHeight(childH: number, transform: Transform): number {
-    const transformed = emuToPxY(transform.toH(childH));
-    if (transformed >= 5) return Math.max(1, transformed);
-    return Math.max(1, emuToPxY(childH));
+    return Math.max(1, emuToPxY(transform.toH(childH)));
   }
 
   const parsedSlides: ParsedSlide[] = [];
