@@ -336,13 +336,28 @@ function parseTextFromSpTree(
     else if (phType === 'title') phLookupKeys.push('type:ctrTitle');
   }
 
-  if (!firstFontSize && phLookupKeys.length && layoutPlaceholderSizes) {
-    for (const key of phLookupKeys) {
-      const layoutSize = layoutPlaceholderSizes.get(key);
-      if (layoutSize) { firstFontSize = Math.round(layoutSize / 100); break; }
+  // Font size inheritance: idx-specific first, then master defaults.
+  // CRITICAL: Do NOT fall back to type-based lookup for size — different idx values
+  // of the same type (e.g., subTitle idx=1 vs idx=5) have different sizes.
+  // Type-based lookup would return idx=1's size for idx=5, which is wrong.
+  if (!firstFontSize && layoutPlaceholderSizes) {
+    // 1) Try idx-specific first (most precise)
+    if (phIdx) {
+      const layoutSize = layoutPlaceholderSizes.get(`idx:${phIdx}`);
+      if (layoutSize) firstFontSize = Math.round(layoutSize / 100);
+    }
+    // 2) Only use type-based if NO idx was specified at all
+    if (!firstFontSize && !phIdx && phType) {
+      const typeKeys = [`type:${phType}`];
+      if (phType === 'ctrTitle') typeKeys.push('type:title');
+      else if (phType === 'title') typeKeys.push('type:ctrTitle');
+      for (const key of typeKeys) {
+        const layoutSize = layoutPlaceholderSizes.get(key);
+        if (layoutSize) { firstFontSize = Math.round(layoutSize / 100); break; }
+      }
     }
   }
-  // Fall back to master txStyles sz (covers txStyles.bodyStyle/titleStyle)
+  // 3) Fall back to master txStyles sz
   if (!firstFontSize && masterDefaults) {
     const isTitle = phType === 'ctrTitle' || phType === 'title';
     const masterSz = isTitle ? masterDefaults.titleSz : masterDefaults.bodySz;
@@ -1213,12 +1228,17 @@ async function main() {
     if (primaryMasterFile) {
       const masterXml = await primaryMasterFile.async('string');
 
-      // 1) Read title placeholder from master
+      // 1) Read title placeholder from master — only lvl1pPr
       const titlePh = [...masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)]
         .find(m => m[1].includes('type="title"') || m[1].includes('type="ctrTitle"'));
       if (titlePh) {
-        const allDefRPr = [...titlePh[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
-        for (const d of allDefRPr) {
+        // Extract lvl1pPr defRPr specifically (primary paragraph level)
+        const lstStyle = titlePh[1].match(/<a:lstStyle>([\s\S]*?)<\/a:lstStyle>/);
+        const lvl1 = lstStyle ? lstStyle[1].match(/<a:lvl1pPr[^>]*>([\s\S]*?)<\/a:lvl1pPr>/) : null;
+        const defRPrSources = lvl1
+          ? [...lvl1[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)]
+          : [...titlePh[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)].slice(0, 1);
+        for (const d of defRPrSources) {
           const attrs = d[1] + (d[2] || '');
           const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
           if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') {
@@ -1232,12 +1252,16 @@ async function main() {
         }
       }
 
-      // 2) Read body placeholder from master
+      // 2) Read body placeholder from master — only lvl1pPr
       const bodyPh = [...masterXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g)]
         .find(m => m[1].includes('type="body"'));
       if (bodyPh) {
-        const allDefRPr = [...bodyPh[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
-        for (const d of allDefRPr) {
+        const lstStyle = bodyPh[1].match(/<a:lstStyle>([\s\S]*?)<\/a:lstStyle>/);
+        const lvl1 = lstStyle ? lstStyle[1].match(/<a:lvl1pPr[^>]*>([\s\S]*?)<\/a:lvl1pPr>/) : null;
+        const defRPrSources = lvl1
+          ? [...lvl1[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)]
+          : [...bodyPh[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)].slice(0, 1);
+        for (const d of defRPrSources) {
           const attrs = d[1] + (d[2] || '');
           const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
           if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') {
@@ -1533,7 +1557,10 @@ async function main() {
         }
 
         // Extract non-placeholder shapes from layout (decorative lines, shapes, border frames)
-        const layoutSpMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
+        // IMPORTANT: strip groups first to avoid extracting shapes inside groups twice
+        // (groups are handled separately below with proper coordinate transforms)
+        const layoutXmlNoGroups = stripBalancedTags(layoutXml, 'p:grpSp');
+        const layoutSpMatches = layoutXmlNoGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const m of layoutSpMatches) {
           // Skip placeholders
           if (m[1].includes('<p:ph')) continue;
@@ -1631,11 +1658,8 @@ async function main() {
           const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
           result.element.content = url;
 
-          // If this is a full-bleed image, make it the background
-          if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
-            background = { type: 'image', value: url };
-            continue; // Don't add as element
-          }
+          // Slide-level images are ALWAYS kept as elements (editable by user).
+          // Only layout/master images or <p:bg> become backgrounds.
         }
 
         if (result.element.content) {
