@@ -1323,6 +1323,22 @@ async function main() {
     return layoutToMaster.get(layoutMatch[1]) || null;
   }
 
+  // Group transform types and helpers (used by both layout and slide group extraction)
+  type Transform = { toX: (cx: number) => number; toY: (cy: number) => number; toW: (cw: number) => number; toH: (ch: number) => number };
+
+  // When a nested group transform shrinks shapes below 5px, use the untransformed
+  // child size instead. Google Slides doesn't shrink tiny decorative elements.
+  function safeWidth(childW: number, transform: Transform): number {
+    const transformed = emuToPxX(transform.toW(childW));
+    if (transformed >= 5) return Math.max(1, transformed);
+    return Math.max(1, emuToPxX(childW));
+  }
+  function safeHeight(childH: number, transform: Transform): number {
+    const transformed = emuToPxY(transform.toH(childH));
+    if (transformed >= 5) return Math.max(1, transformed);
+    return Math.max(1, emuToPxY(childH));
+  }
+
   const parsedSlides: ParsedSlide[] = [];
 
   for (let i = 0; i < slideFiles.length; i++) {
@@ -1582,8 +1598,6 @@ async function main() {
 
         // Extract groups from layout (decorative elements like toggles, dot patterns)
         // RECURSIVE: handles nested groups (group inside group) with cumulative transforms
-        type Transform = { toX: (cx: number) => number; toY: (cy: number) => number; toW: (cw: number) => number; toH: (ch: number) => number };
-
         function extractGroupShapes(
           grpXml: string,
           parentTransform?: Transform,
@@ -1633,8 +1647,8 @@ async function main() {
               if (childOff && childExt) {
                 shapeEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(childOff[1]))));
                 shapeEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(childOff[2]))));
-                shapeEl.width = Math.max(1, emuToPxX(transform.toW(parseInt(childExt[1]))));
-                shapeEl.height = Math.max(1, emuToPxY(transform.toH(parseInt(childExt[2]))));
+                shapeEl.width = safeWidth(parseInt(childExt[1]), transform);
+                shapeEl.height = safeHeight(parseInt(childExt[2]), transform);
               }
               shapeEl.locked = true;
               shapeEl.zIndex = zIndex++;
@@ -1756,8 +1770,8 @@ async function main() {
           if (cOff && cExt) {
             shapeEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
             shapeEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
-            shapeEl.width = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
-            shapeEl.height = Math.max(1, emuToPxY(transform.toH(parseInt(cExt[2]))));
+            shapeEl.width = safeWidth(parseInt(cExt[1]), transform);
+            shapeEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
           shapeEl.zIndex = zIndex++;
           elements.push(shapeEl);
@@ -1770,8 +1784,8 @@ async function main() {
           if (cOff && cExt) {
             textEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
             textEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
-            textEl.width = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
-            textEl.height = Math.max(1, emuToPxY(transform.toH(parseInt(cExt[2]))));
+            textEl.width = safeWidth(parseInt(cExt[1]), transform);
+            textEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
           textEl.zIndex = zIndex++;
           elements.push(textEl);
@@ -1787,8 +1801,8 @@ async function main() {
           if (cOff && cExt) {
             result.element.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
             result.element.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
-            result.element.width = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
-            result.element.height = Math.max(1, emuToPxY(transform.toH(parseInt(cExt[2]))));
+            result.element.width = safeWidth(parseInt(cExt[1]), transform);
+            result.element.height = safeHeight(parseInt(cExt[2]), transform);
           }
           result.element.zIndex = zIndex++;
           if (result.imageRef) {
@@ -1806,8 +1820,8 @@ async function main() {
         if (!cOff || !cExt) continue;
         const cx = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
         const cy = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
-        const cw = Math.max(1, emuToPxX(transform.toW(parseInt(cExt[1]))));
-        const ch = Math.max(2, emuToPxY(transform.toH(parseInt(cExt[2]))));
+        const cw = safeWidth(parseInt(cExt[1]), transform);
+        const ch = Math.max(2, safeHeight(parseInt(cExt[2]), transform));
         const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
         const scheme = cxnXml.match(/<a:schemeClr\s+val="(\w+)"/);
         let lineColor = themeColors.dk1;
