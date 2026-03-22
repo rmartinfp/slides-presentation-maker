@@ -129,7 +129,7 @@ export default function CanvasElement({
     height: Math.max(1, element.height),
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
-    zIndex: element.zIndex,
+    zIndex: isEditing ? 9999 : element.zIndex,
     cursor: isEditing ? 'text' : element.locked ? 'default' : 'move',
     touchAction: 'none',
     userSelect: isEditing ? 'text' : 'none',
