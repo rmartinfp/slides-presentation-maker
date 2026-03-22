@@ -375,22 +375,27 @@ export default function EditorPage() {
           {/* Canvas area */}
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
-              <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-slate-100/50 overflow-auto relative">
+              <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative">
                 {/* Nav arrows */}
                 {activeSlideIndex > 0 && (
-                  <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute left-3 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
+                  <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                 )}
                 {activeSlideIndex < presentation.slides.length - 1 && (
-                  <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute right-3 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
+                  <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 )}
 
                 {activeSlide && (
                   <ErrorBoundary>
-                    <div style={{ width: 1920 * scale, height: 1080 * scale }}>
+                    <div style={{
+                      width: 1920 * scale,
+                      height: 1080 * scale,
+                      margin: '0 auto',
+                      marginTop: Math.max(20, (canvasContainerRef.current?.clientHeight || 0) / 2 - (1080 * scale) / 2),
+                    }}>
                       <SlideCanvas slide={activeSlide} theme={presentation.theme} scale={scale} isEditing={true} />
                     </div>
                   </ErrorBoundary>
