@@ -127,6 +127,7 @@ export default function CanvasElement({
     top: element.y,
     width: Math.max(1, element.width),
     height: Math.max(1, element.height),
+    overflow: 'hidden', // Clip visual overflow; auto-shrink measures INSIDE this
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
     zIndex: isEditing ? 9999 : element.zIndex,
@@ -185,7 +186,8 @@ export default function CanvasElement({
           flexDirection: vAlign ? 'column' : undefined,
           justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
           outline: 'none',
-          overflow: 'hidden',
+          // NO overflow:hidden here — wrapper handles clipping.
+          // The text div must allow scrollHeight > clientHeight for auto-shrink to detect overflow.
           whiteSpace: isHtml ? undefined : 'pre-wrap', overflowWrap: 'break-word',
           wordBreak: 'break-word',
           opacity: typeof s.opacity === 'number' ? s.opacity : 1,
