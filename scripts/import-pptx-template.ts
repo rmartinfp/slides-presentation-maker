@@ -365,24 +365,28 @@ function parseTextFromSpTree(
     if (masterSz) firstFontSize = Math.round(masterSz / 100);
   }
 
-  // Inherit bold from layout/master placeholder if not set
-  if (!firstBold && phLookupKeys.length && layoutPlaceholderBold) {
-    for (const key of phLookupKeys) {
-      if (layoutPlaceholderBold.get(key)) { firstBold = true; break; }
+  // Inherit bold: idx-only lookup (same reason as font size — different idx = different bold)
+  if (!firstBold && layoutPlaceholderBold) {
+    if (phIdx && layoutPlaceholderBold.get(`idx:${phIdx}`)) {
+      firstBold = true;
+    } else if (!phIdx && phType && layoutPlaceholderBold.get(`type:${phType}`)) {
+      firstBold = true;
     }
   }
-  // Fall back to master title bold
   if (!firstBold && masterDefaults && (phType === 'ctrTitle' || phType === 'title')) {
     if (masterDefaults.titleBold) firstBold = true;
   }
 
-  // Inherit font family: 1) from layout/master placeholder (by idx then type), 2) from theme
+  // Inherit font family: idx-only from layout, then master/theme defaults
+  // CRITICAL: never fall back to type — idx=5 (Manrope) ≠ idx=1 (should be Manjari)
   if (!firstFontFamily || firstFontFamily === 'Arial') {
-    if (phLookupKeys.length && layoutPlaceholderFonts) {
-      for (const key of phLookupKeys) {
-        const layoutFont = layoutPlaceholderFonts.get(key);
-        if (layoutFont && layoutFont !== 'Arial') { firstFontFamily = layoutFont; break; }
-      }
+    if (phIdx && layoutPlaceholderFonts) {
+      const layoutFont = layoutPlaceholderFonts.get(`idx:${phIdx}`);
+      if (layoutFont && layoutFont !== 'Arial') firstFontFamily = layoutFont;
+    }
+    if ((!firstFontFamily || firstFontFamily === 'Arial') && !phIdx && phType && layoutPlaceholderFonts) {
+      const layoutFont = layoutPlaceholderFonts.get(`type:${phType}`);
+      if (layoutFont && layoutFont !== 'Arial') firstFontFamily = layoutFont;
     }
     // Fall back to theme fonts
     if (!firstFontFamily || firstFontFamily === 'Arial') {
