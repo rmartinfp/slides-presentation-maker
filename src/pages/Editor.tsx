@@ -375,7 +375,7 @@ export default function EditorPage() {
           {/* Canvas area */}
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
-              <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-slate-100/50 overflow-hidden relative">
+              <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-slate-100/50 overflow-auto relative">
                 {/* Nav arrows */}
                 {activeSlideIndex > 0 && (
                   <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute left-3 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
