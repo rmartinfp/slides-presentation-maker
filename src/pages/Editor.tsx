@@ -444,6 +444,12 @@ export default function EditorPage() {
 
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
               <span className="text-[11px] text-slate-500 font-mono px-2">{activeSlideIndex + 1} / {presentation.slides.length}</span>
+
+              <div className="w-px h-6 bg-slate-200/60 mx-1" />
+              {/* Zoom controls */}
+              <button onClick={() => setScale(Math.max(0.15, scale - 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">−</button>
+              <button onClick={updateScale} className="text-[11px] text-slate-500 font-mono px-1 hover:text-slate-900 hover:bg-slate-100 rounded min-w-[40px] text-center">{Math.round(scale * 100)}%</button>
+              <button onClick={() => setScale(Math.min(2, scale + 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">+</button>
             </div>
           </div>
 
