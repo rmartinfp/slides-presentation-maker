@@ -217,7 +217,13 @@ export default function CanvasElement({
         const dashArray = s.shapeStrokeDash as string | undefined;
 
         const svgStyle: React.CSSProperties = { pointerEvents: 'none' };
-        const strokeProps = { stroke, strokeWidth, strokeDasharray: dashArray || undefined };
+        // Use non-scaling-stroke so stroke width is in screen pixels, not viewBox units.
+        // Convert stored strokeWidth (points) to a proportional viewBox value based on element size.
+        const minDim = Math.min(element.width, element.height);
+        const svgStrokeWidth = strokeWidth > 0 && minDim > 0
+          ? Math.max(1, Math.round(strokeWidth / minDim * 100))
+          : 0;
+        const strokeProps = { stroke, strokeWidth: svgStrokeWidth, strokeDasharray: dashArray || undefined };
 
         // Gradient definition (reusable across shape types)
         const gradDef = s.shapeGradient ? (() => {
