@@ -1096,6 +1096,18 @@ async function main() {
   // Step 2: Parse PPTX (ZIP)
   const zip = await JSZip.loadAsync(pptxBuffer);
 
+  // Read actual slide dimensions from presentation.xml (critical for local files)
+  const presentationXmlFile = zip.files['ppt/presentation.xml'];
+  if (presentationXmlFile) {
+    const presXml = await presentationXmlFile.async('string');
+    const sldSzMatch = presXml.match(/<p:sldSz\s+cx="(\d+)"\s+cy="(\d+)"/);
+    if (sldSzMatch) {
+      slideWidthEmu = parseInt(sldSzMatch[1]);
+      slideHeightEmu = parseInt(sldSzMatch[2]);
+      console.log(`Slide size: ${slideWidthEmu} x ${slideHeightEmu} EMU`);
+    }
+  }
+
   // Follow the chain: slide1 → slideLayout → slideMaster → theme
   // to find the correct theme file
   let themeFile = 'ppt/theme/theme1.xml'; // fallback
@@ -1240,26 +1252,33 @@ async function main() {
       }
 
       // 3) Read txStyles (titleStyle/bodyStyle) — final fallback for sz/font
+      // IMPORTANT: Only use lvl1pPr (primary paragraph level), not deeper levels
       const titleStyle = masterXml.match(/<p:titleStyle>([\s\S]*?)<\/p:titleStyle>/);
       if (titleStyle) {
-        const defRPrs = [...titleStyle[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
-        for (const d of defRPrs) {
-          const attrs = d[1] + (d[2] || '');
-          const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-          if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') themeFonts.titleFont = cleanFontName(font);
-          if (!masterTitleSz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterTitleSz = parseInt(sz); }
-          if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+        const lvl1 = titleStyle[1].match(/<a:lvl1pPr[^>]*>([\s\S]*?)<\/a:lvl1pPr>/);
+        if (lvl1) {
+          const defRPr = lvl1[1].match(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+          if (defRPr) {
+            const attrs = defRPr[1] + (defRPr[2] || '');
+            const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+            if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') themeFonts.titleFont = cleanFontName(font);
+            if (!masterTitleSz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterTitleSz = parseInt(sz); }
+            if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+          }
         }
       }
       const bodyStyle = masterXml.match(/<p:bodyStyle>([\s\S]*?)<\/p:bodyStyle>/);
       if (bodyStyle) {
-        const defRPrs = [...bodyStyle[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
-        for (const d of defRPrs) {
-          const attrs = d[1] + (d[2] || '');
-          const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-          if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') themeFonts.bodyFont = cleanFontName(font);
-          if (!masterBodySz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterBodySz = parseInt(sz); }
-          if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
+        const lvl1 = bodyStyle[1].match(/<a:lvl1pPr[^>]*>([\s\S]*?)<\/a:lvl1pPr>/);
+        if (lvl1) {
+          const defRPr = lvl1[1].match(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+          if (defRPr) {
+            const attrs = defRPr[1] + (defRPr[2] || '');
+            const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
+            if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') themeFonts.bodyFont = cleanFontName(font);
+            if (!masterBodySz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterBodySz = parseInt(sz); }
+            if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
+          }
         }
       }
 
@@ -1323,6 +1342,9 @@ async function main() {
         if (nameMatch) layoutName = nameMatch[1];
         // Find placeholders with defRPr sz, font, bold
         // Store by BOTH idx (specific) and type (fallback) keys
+        // CRITICAL: Only use lvl1pPr (first paragraph level) for the primary font size.
+        // Deeper levels (lvl2+) are for indented/sub-content and have different sizes.
+        // If lvl1 has no sz, we must fall through to master defaults — NOT use lvl2+ sizes.
         const phMatches = layoutXml.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
         for (const pm of phMatches) {
           const phTag = pm[1].match(/<p:ph([^/]*)\/?>/);
@@ -1336,20 +1358,36 @@ async function main() {
           if (phIdx) keys.push(`idx:${phIdx}`);
           if (phType) keys.push(`type:${phType}`);
 
-          // Search ALL defRPr occurrences in lstStyle levels
-          const allDefRPr = [...pm[1].matchAll(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/g)];
-          for (const defRPr of allDefRPr) {
-            const attrs = defRPr[1] + (defRPr[2] || '');
-            for (const key of keys) {
+          // Extract lstStyle and find lvl1pPr defRPr specifically
+          const lstStyle = pm[1].match(/<a:lstStyle>([\s\S]*?)<\/a:lstStyle>/);
+          let lvl1DefRPr: string | null = null;
+          if (lstStyle) {
+            // Match lvl1pPr specifically — this is the primary paragraph level
+            const lvl1 = lstStyle[1].match(/<a:lvl1pPr[^>]*>([\s\S]*?)<\/a:lvl1pPr>/);
+            if (lvl1) {
+              const defRPr = lvl1[1].match(/<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+              if (defRPr) lvl1DefRPr = defRPr[1] + (defRPr[2] || '');
+            }
+          }
+
+          // Also check top-level defRPr outside lstStyle (some layouts use this)
+          const topDefRPr = pm[1].match(/<p:txBody>[\s\S]*?<a:defRPr([^>]*?)(?:\/>|>([\s\S]*?)<\/a:defRPr>)/);
+          const topAttrs = topDefRPr ? (topDefRPr[1] + (topDefRPr[2] || '')) : '';
+
+          // Use lvl1 first, then top-level as fallback
+          const effectiveAttrs = lvl1DefRPr || topAttrs;
+
+          for (const key of keys) {
+            if (effectiveAttrs) {
               if (!layoutPlaceholderSizes.has(key)) {
-                const szMatch = attrs.match(/\bsz="(\d+)"/);
+                const szMatch = effectiveAttrs.match(/\bsz="(\d+)"/);
                 if (szMatch) layoutPlaceholderSizes.set(key, parseInt(szMatch[1]));
               }
               if (!layoutPlaceholderBold.has(key)) {
-                if (/\bb="1"/.test(attrs)) layoutPlaceholderBold.set(key, true);
+                if (/\bb="1"/.test(effectiveAttrs)) layoutPlaceholderBold.set(key, true);
               }
               if (!layoutPlaceholderFonts.has(key)) {
-                const fontMatch = attrs.match(/<a:latin\s+typeface="([^"]+)"/);
+                const fontMatch = effectiveAttrs.match(/<a:latin\s+typeface="([^"]+)"/);
                 if (fontMatch) layoutPlaceholderFonts.set(key, cleanFontName(fontMatch[1]));
               }
             }
