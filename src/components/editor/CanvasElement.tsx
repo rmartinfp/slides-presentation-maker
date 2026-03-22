@@ -399,6 +399,7 @@ export default function CanvasElement({
         element.locked && 'opacity-90',
       )}
       data-element-id={element.id}
+      data-tiny={Math.min(element.width, element.height) < 15 ? 'true' : undefined}
     >
       {renderContent()}
 
