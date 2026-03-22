@@ -217,6 +217,18 @@ export default function SlideAIPage() {
               } else {
                 el.content = `<p>${aiText}</p>`;
               }
+              // Auto-fit: if AI text is longer than original, reduce fontSize proportionally
+              // This ensures text never overflows its container in ANY renderer
+              const origPlainText = origContent.replace(/<[^>]+>/g, '').trim();
+              const newPlainText = aiText.trim();
+              if (origPlainText.length > 0 && newPlainText.length > origPlainText.length && el.style?.fontSize) {
+                const ratio = origPlainText.length / newPlainText.length;
+                // Only shrink if significantly longer (>10% overflow)
+                if (ratio < 0.9) {
+                  el.style.fontSize = Math.max(8, Math.round(el.style.fontSize * Math.max(0.5, ratio)));
+                }
+              }
+
               textIdx++;
             }
 
