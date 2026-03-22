@@ -13,6 +13,7 @@
 import * as fs from 'fs';
 import JSZip from 'jszip';
 import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
 
 // ---- Config ----
 const SUPABASE_URL = 'https://okzaoakyasaohohktntd.supabase.co';
@@ -935,6 +936,15 @@ async function uploadImage(data: Buffer, contentType: string): Promise<string> {
     }
     console.warn(`  Could not convert EMF/WMF — no browser-compatible alternative`);
     return '';
+  }
+
+  // Compress large PNGs to JPG (layout textures can be 4-5MB as PNG, ~200KB as JPG)
+  if (contentType.includes('png') && data.length > 500 * 1024) {
+    try {
+      const jpgData = await sharp(data).jpeg({ quality: 85 }).toBuffer();
+      console.log(`  Compressed PNG ${(data.length / 1024).toFixed(0)}KB → JPG ${(jpgData.length / 1024).toFixed(0)}KB`);
+      return uploadImage(jpgData, 'image/jpeg');
+    } catch { /* fall through to upload as PNG */ }
   }
 
   const ext = contentType.includes('jpeg') || contentType.includes('jpg') ? 'jpg'
