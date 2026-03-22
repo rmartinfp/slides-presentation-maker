@@ -155,7 +155,7 @@ Your job: generate compelling content that fits EXACTLY into this structure.
 RULES:
 1. Generate EXACTLY the number of slides specified in the brief — no more, no less.
 2. Each slide must have a "texts" array with EXACTLY the number of entries matching the textSlots (expand "count" slots into individual entries).
-3. CRITICAL: Each text entry MUST be SHORTER than or EQUAL TO the maxChars limit. The maxChars represents what physically fits in the text box — exceeding it causes overflow. Aim for 80-100% of maxChars, never more.
+3. CRITICAL: Each text entry MUST be SHORTER than the maxChars limit. The maxChars is a HARD LIMIT — text exceeding it will be cut off. For titles, aim for 70-90% of maxChars. For body text, aim for 80-95%. NEVER exceed maxChars.
 4. Slot roles guide the tone:
    - "title": concise, impactful heading (often just 2-5 words)
    - "subtitle": supporting tagline or description

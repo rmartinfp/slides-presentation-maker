@@ -106,6 +106,7 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
                 justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
                 wordBreak: 'break-word',
                 whiteSpace: element.content.startsWith('<') ? undefined : 'pre-wrap', overflowWrap: 'break-word',
+                overflow: 'hidden',
                 opacity: typeof s.opacity === 'number' ? s.opacity : 1,
               }}
               className={element.content.startsWith('<') ? 'tiptap-preview' : undefined}
