@@ -258,9 +258,8 @@ function StaticElement({ element }: { element: SlideElement }) {
         const stroke = s.shapeStroke || 'transparent';
         const strokeWidth = s.shapeStrokeWidth || 0;
         const da = s.shapeStrokeDash as string | undefined;
-        const minDim = Math.min(element.width, element.height);
-        const svgSW = strokeWidth > 0 && minDim > 0 ? Math.max(1, Math.round(strokeWidth / minDim * 100)) : 0;
-        const sp = { stroke, strokeWidth: svgSW, strokeDasharray: da || undefined };
+        const effectiveStroke = (stroke === fill || stroke === 'transparent' || Math.min(element.width, element.height) < 15) ? 'none' : stroke;
+        const sp = { stroke: effectiveStroke, strokeWidth: effectiveStroke !== 'none' ? strokeWidth : 0, strokeDasharray: da || undefined };
 
         if (shapeType === 'circle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
         if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} {...sp} /></svg>;
