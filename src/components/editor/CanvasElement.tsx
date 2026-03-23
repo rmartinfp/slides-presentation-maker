@@ -272,9 +272,28 @@ export default function CanvasElement({
           );
         }
         if (shapeType === 'line') {
+          const isVertical = element.height > element.width * 2;
+          const lineStroke = s.shapeFill || stroke;
+          const lineSW = Math.max(strokeWidth, 2);
+          const headType = s.lineHeadEnd as string | undefined;
+          const tailType = s.lineTailEnd as string | undefined;
           return (
             <svg width="100%" height="100%" preserveAspectRatio="none" style={svgStyle}>
-              <line x1="0" y1="50%" x2="100%" y2="50%" stroke={s.shapeFill || stroke} strokeWidth={Math.max(strokeWidth, 2)} strokeDasharray={dashArray || undefined} />
+              {isVertical ? (
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} />
+              ) : (
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} />
+              )}
+              {headType === 'oval' && (
+                isVertical
+                  ? <circle cx="50%" cy="0" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
+                  : <circle cx="0" cy="50%" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
+              )}
+              {tailType === 'oval' && (
+                isVertical
+                  ? <circle cx="50%" cy="100%" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
+                  : <circle cx="100%" cy="50%" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
+              )}
             </svg>
           );
         }

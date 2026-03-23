@@ -137,14 +137,35 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
             const svg = document.createElementNS(svgNs, 'svg');
             svg.setAttribute('width', '100%');
             svg.setAttribute('height', '100%');
+            const isVert = el.height > el.width * 2;
             const line = document.createElementNS(svgNs, 'line');
-            line.setAttribute('x1', '0');
-            line.setAttribute('y1', '50%');
-            line.setAttribute('x2', '100%');
-            line.setAttribute('y2', '50%');
-            line.setAttribute('stroke', fill !== 'transparent' ? fill : stroke);
-            line.setAttribute('stroke-width', String(Math.max(strokeWidth, 2)));
+            const lineColor = fill !== 'transparent' ? fill : stroke;
+            const lineSW = Math.max(strokeWidth, 2);
+            if (isVert) {
+              line.setAttribute('x1', '50%'); line.setAttribute('y1', '0');
+              line.setAttribute('x2', '50%'); line.setAttribute('y2', '100%');
+            } else {
+              line.setAttribute('x1', '0'); line.setAttribute('y1', '50%');
+              line.setAttribute('x2', '100%'); line.setAttribute('y2', '50%');
+            }
+            line.setAttribute('stroke', lineColor);
+            line.setAttribute('stroke-width', String(lineSW));
+            if (el.style.shapeStrokeDash) line.setAttribute('stroke-dasharray', el.style.shapeStrokeDash);
             svg.appendChild(line);
+            const headEnd = (el.style as any)?.lineHeadEnd;
+            const tailEnd = (el.style as any)?.lineTailEnd;
+            if (headEnd === 'oval') {
+              const c = document.createElementNS(svgNs, 'circle');
+              c.setAttribute('cx', isVert ? '50%' : '0'); c.setAttribute('cy', isVert ? '0' : '50%');
+              c.setAttribute('r', String(Math.max(lineSW * 2, 4))); c.setAttribute('fill', lineColor);
+              svg.appendChild(c);
+            }
+            if (tailEnd === 'oval') {
+              const c = document.createElementNS(svgNs, 'circle');
+              c.setAttribute('cx', isVert ? '50%' : '100%'); c.setAttribute('cy', isVert ? '100%' : '50%');
+              c.setAttribute('r', String(Math.max(lineSW * 2, 4))); c.setAttribute('fill', lineColor);
+              svg.appendChild(c);
+            }
             elDiv.appendChild(svg);
           } else {
             elDiv.style.backgroundColor = fill;

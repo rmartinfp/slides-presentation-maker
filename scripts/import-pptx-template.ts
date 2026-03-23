@@ -1848,12 +1848,24 @@ async function main() {
           else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
           const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
           const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700 * 2.666)) : 1;
+          const cxnW = emuToPxX(parseInt(ext[1]));
+          const cxnH = emuToPxY(parseInt(ext[2]));
+          // Detect vertical vs horizontal: if height >> width (or width=0), it's vertical
+          const isVertical = cxnH > cxnW * 2 || cxnW === 0;
+          // Ensure minimum dimension so the line is visible
+          const finalW = isVertical ? Math.max(cxnW, 4) : Math.max(cxnW, 2);
+          const finalH = isVertical ? Math.max(cxnH, 2) : Math.max(cxnH, 4);
+          // Parse head/tail end markers (oval = dot endpoint)
+          const headEnd = cxnXml.match(/<a:headEnd[^>]*type="(\w+)"/);
+          const tailEnd = cxnXml.match(/<a:tailEnd[^>]*type="(\w+)"/);
+          // Center the element if we expanded width for vertical lines
+          const adjustedX = isVertical && cxnW === 0 ? emuToPxX(Math.max(0, parseInt(off[1]))) - 2 : emuToPxX(Math.max(0, parseInt(off[1])));
           elements.push({
             id: genId(), type: 'shape', content: '',
-            x: emuToPxX(Math.max(0, parseInt(off[1]))), y: emuToPxY(Math.max(0, parseInt(off[2]))),
-            width: emuToPxX(parseInt(ext[1])), height: Math.max(emuToPxY(parseInt(ext[2])), 2),
+            x: adjustedX, y: emuToPxY(Math.max(0, parseInt(off[2]))),
+            width: finalW, height: finalH,
             rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
-            style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined },
+            style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined, lineHeadEnd: headEnd?.[1] || undefined, lineTailEnd: tailEnd?.[1] || undefined },
           });
         }
       }
@@ -1970,12 +1982,18 @@ async function main() {
         if (srgb) lineColor = `#${srgb[1]}`;
         else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
         const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
-        const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700)) : 1;
+        const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700 * 2.666)) : 1;
+        // Detect vertical vs horizontal
+        const isVerticalGrp = ch > cw * 2 || cw === 0;
+        const grpFinalW = isVerticalGrp ? Math.max(cw, 4) : Math.max(cw, 2);
+        const grpFinalH = isVerticalGrp ? Math.max(ch, 2) : Math.max(ch, 4);
+        const headEndGrp = cxnXml.match(/<a:headEnd[^>]*type="(\w+)"/);
+        const tailEndGrp = cxnXml.match(/<a:tailEnd[^>]*type="(\w+)"/);
         elements.push({
           id: genId(), type: 'shape', content: '',
-          x: cx, y: cy, width: cw, height: ch,
+          x: isVerticalGrp && cw === 0 ? cx - 2 : cx, y: cy, width: grpFinalW, height: grpFinalH,
           rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
-          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined },
+          style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined, lineHeadEnd: headEndGrp?.[1] || undefined, lineTailEnd: tailEndGrp?.[1] || undefined },
         });
       }
 

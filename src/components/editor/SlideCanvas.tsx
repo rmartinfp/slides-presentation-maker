@@ -268,7 +268,17 @@ function StaticElement({ element }: { element: SlideElement }) {
           return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
         }
         if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} {...sp} /></svg>;
-        if (shapeType === 'line') return <svg width="100%" height="100%" preserveAspectRatio="none"><line x1="0" y1="50%" x2="100%" y2="50%" stroke={fillColor} strokeWidth={Math.max(strokeWidth, 2)} strokeDasharray={da || undefined} /></svg>;
+        if (shapeType === 'line') {
+          const isVert = element.height > element.width * 2;
+          const lineSW = Math.max(strokeWidth, 2);
+          const headT = (element.style as any)?.lineHeadEnd;
+          const tailT = (element.style as any)?.lineTailEnd;
+          return <svg width="100%" height="100%" preserveAspectRatio="none">
+            {isVert ? <line x1="50%" y1="0" x2="50%" y2="100%" stroke={fillColor} strokeWidth={lineSW} strokeDasharray={da || undefined} /> : <line x1="0" y1="50%" x2="100%" y2="50%" stroke={fillColor} strokeWidth={lineSW} strokeDasharray={da || undefined} />}
+            {headT === 'oval' && (isVert ? <circle cx="50%" cy="0" r={Math.max(lineSW * 2, 4)} fill={fillColor} /> : <circle cx="0" cy="50%" r={Math.max(lineSW * 2, 4)} fill={fillColor} />)}
+            {tailT === 'oval' && (isVert ? <circle cx="50%" cy="100%" r={Math.max(lineSW * 2, 4)} fill={fillColor} /> : <circle cx="100%" cy="50%" r={Math.max(lineSW * 2, 4)} fill={fillColor} />)}
+          </svg>;
+        }
         if (shapeType === 'arrow-right') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} {...sp} /></svg>;
         if (shapeType === 'arrow-left') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="100,15 30,15 30,0 0,30 30,60 30,45 100,45" fill={fill} {...sp} /></svg>;
         if (shapeType === 'arrow-up') return <svg width="100%" height="100%" viewBox="0 0 60 100" preserveAspectRatio="none"><polygon points="30,0 60,30 45,30 45,100 15,100 15,30 0,30" fill={fill} {...sp} /></svg>;
