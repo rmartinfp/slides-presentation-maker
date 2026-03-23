@@ -134,6 +134,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
   const [currentSlide, setCurrentSlide] = useState(0);
   const imageCount = template.slideImages?.length || 0;
   const cardRef = React.useRef<HTMLDivElement>(null);
+  const hoverTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popoverSide, setPopoverSide] = useState<'right' | 'left'>('right');
 
   // Determine which side the popover should appear on
@@ -162,8 +163,13 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
     <motion.div
 
       whileHover={{ y: -6 }}
-      onHoverStart={() => setIsHovering(true)}
-      onHoverEnd={() => { setIsHovering(false); setCurrentSlide(0); }}
+      onHoverStart={() => {
+        hoverTimer.current = setTimeout(() => setIsHovering(true), 2000);
+      }}
+      onHoverEnd={() => {
+        if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
+        setIsHovering(false); setCurrentSlide(0);
+      }}
       onClick={() => onSelect(template)}
       className={cn(
         'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full cursor-pointer',
