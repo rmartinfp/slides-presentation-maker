@@ -1607,10 +1607,16 @@ async function main() {
       || layoutName.toLowerCase().startsWith('title only');
 
     // Pre-detect TOC slides BEFORE filtering so they don't get discarded
+    // Headings: "table of contents", "contents", "index", "agenda", "overview", "outline"
+    // Items: 01-09, "1.", roman numerals I/II/III, or single letters A/B/C
     const preTextCount = (slideXml.match(/<a:t>/g) || []).length;
     const hasTocHeadingPre = plainText.includes('table of contents')
-      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText);
-    const hasNumberedItemsPre = /\b0[1-9]\b/.test(plainText) || /\b\d{1,2}\.\s/.test(plainText);
+      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText)
+      || /\b(index|agenda|overview|outline|contents)\b/i.test(plainText);
+    const hasNumberedItemsPre = /\b0[1-9]\b/.test(plainText)
+      || /\b\d{1,2}\.\s/.test(plainText)
+      || /\b[IVX]{1,4}\b/.test(plainText)
+      || /\b[A-H]\.\s/.test(plainText);
     const isTocPreDetect = hasTocHeadingPre && preTextCount >= 3 && hasNumberedItemsPre;
 
     if (((isFinalPage || isInstructionPage) && !isThanksSlide) || (isTitleOnly && !isThanksSlide && !isTocPreDetect)) {
@@ -1991,11 +1997,16 @@ async function main() {
 
     // Detect TOC (Table of Contents) slides
     // TOC can appear in ANY layout (TITLE_ONLY, BLANK_*, CUSTOM, etc.)
-    // Detection: text must contain "table of contents" (split or combined) AND have numbered items
+    // Headings: "table of contents", "contents", "index", "agenda", "overview", "outline"
+    // Items: 01-09, "1.", roman numerals I/II/III, or single letters A/B/C
     const textCount = elements.filter(e => e.type === 'text').length;
     const hasTocHeading = plainText.includes('table of contents')
-      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText);
-    const hasNumberedItems = /\b0[1-9]\b/.test(plainText) || /\b\d{1,2}\.\s/.test(plainText);
+      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText)
+      || /\b(index|agenda|overview|outline|contents)\b/i.test(plainText);
+    const hasNumberedItems = /\b0[1-9]\b/.test(plainText)
+      || /\b\d{1,2}\.\s/.test(plainText)
+      || /\b[IVX]{1,4}\b/.test(plainText)
+      || /\b[A-H]\.\s/.test(plainText);
     const isTocSlide = hasTocHeading && textCount >= 3 && hasNumberedItems;
 
     // Detect "Thank You" / closing slides — check actual text elements

@@ -64,6 +64,21 @@ export default function SlideAIPage() {
 
   // ─── Template analysis helpers ───
 
+  /** Check if plain text is a number/index marker that should be preserved unchanged.
+   *  Covers: "01", "1", "01.", "1.", "(01)", "(1)", "{01}", "#01", "01)",
+   *  roman numerals "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X",
+   *  letters "A", "B", "C", "A.", "B.", etc. */
+  const isNumberMarker = (text: string): boolean => {
+    const t = text.trim();
+    // Arabic digits with optional prefix/suffix: 01, 01., (01), {01}, #01, _01, -01, 01)
+    if (/^[\(\{\[#_\-]?\d{1,3}[\)\}\]]?\.?$/.test(t)) return true;
+    // Roman numerals (I-XII) with optional period
+    if (/^[IVXL]{1,4}\.?$/i.test(t) && /^(I{1,3}|IV|VI{0,3}|IX|XI{0,2}|XII?)\.?$/i.test(t)) return true;
+    // Single letters A-Z with optional period (used as list markers)
+    if (/^[A-Z]\.?$/i.test(t)) return true;
+    return false;
+  };
+
   /** Classify a text element's role based on font size and content */
   const classifyTextRole = (
     el: SlideElement,
@@ -72,8 +87,8 @@ export default function SlideAIPage() {
     const plainText = el.content.replace(/<[^>]+>/g, '').trim();
     const fontSize = el.style?.fontSize || 24;
 
-    // Numbers like "01", "02", "1", "2", "{01}", "_02", "01.", "02." etc — keep unchanged
-    if (/^\{?\d{1,3}\}?\.?$/.test(plainText) || /^[_\-]?\d{1,3}\.?$/.test(plainText)) return 'number';
+    // Numbers/markers — keep unchanged
+    if (isNumberMarker(plainText)) return 'number';
 
     // Largest text element = title
     if (isLargest) return 'title';
@@ -110,7 +125,7 @@ export default function SlideAIPage() {
 
         for (const el of textElements) {
           const plainText = el.content.replace(/<[^>]+>/g, '').trim();
-          if (/^\{?\d{1,3}\}?$/.test(plainText) || /^[_\-]?\d{1,3}$/.test(plainText)) continue; // skip numbers
+          if (isNumberMarker(plainText)) continue; // skip numbers
 
           if (!titleDone) {
             textSlots.push({ role: 'title', maxChars: calcMaxChars(el) });
@@ -192,7 +207,7 @@ export default function SlideAIPage() {
           const replaceableElements: SlideElement[] = [];
           for (const el of textElements) {
             const plainText = el.content.replace(/<[^>]+>/g, '').trim();
-            if (/^\{?\d{1,3}\}?\.?$/.test(plainText) || /^[_\-]?\d{1,3}\.?$/.test(plainText)) continue; // number — skip
+            if (isNumberMarker(plainText)) continue; // number/marker — skip
             replaceableElements.push(el);
           }
 
