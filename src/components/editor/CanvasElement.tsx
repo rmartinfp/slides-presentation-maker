@@ -551,7 +551,7 @@ export default function CanvasElement({
                       data-table-cell={`${element.id}-${ri}-${ci}`}
                       onDoubleClick={(e) => { e.stopPropagation(); handleCellDoubleClick(ri, ci); }}
                       onBlur={(e) => handleCellBlur(ri, ci, e)}
-                      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); const nextCi = (ci + 1) % numCols; const nextRi = ci + 1 >= numCols ? ri + 1 : ri; if (nextRi < numRows) handleCellDoubleClick(nextRi, nextCi); } e.stopPropagation(); }}
+                      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); const nextCi = (ci + 1) % numCols; const nextRi = ci + 1 >= numCols ? ri + 1 : ri; if (nextRi < numRows) handleCellDoubleClick(nextRi, nextCi); } else if (e.key === 'Escape') { (e.target as HTMLElement).blur(); } }}
                       style={{
                         border: `1px solid ${bColor}`,
                         padding: cellPad,

@@ -338,8 +338,18 @@ export const useEditorStore = create<EditorState>()((set, get) => {
             ...JSON.parse(JSON.stringify(original)),
             id: generateId(),
           };
-          // Give new IDs to all elements
-          dup.elements = dup.elements.map((el: SlideElement) => ({ ...el, id: generateId() }));
+          // Give new IDs to all elements and remap connector references
+          const idMap = new Map<string, string>();
+          dup.elements = dup.elements.map((el: SlideElement) => {
+            const newId = generateId();
+            idMap.set(el.id, newId);
+            return { ...el, id: newId };
+          });
+          // Remap connector start/end references to new element IDs
+          dup.elements = dup.elements.map((el: SlideElement) => {
+            if (!el.connector) return el;
+            return { ...el, connector: { ...el.connector, startElementId: idMap.get(el.connector.startElementId) || el.connector.startElementId, endElementId: idMap.get(el.connector.endElementId) || el.connector.endElementId } };
+          });
           state.presentation.slides.splice(idx + 1, 0, dup);
           state.activeSlideIndex = idx + 1;
           state.selectedElementIds = [];
@@ -428,7 +438,13 @@ export const useEditorStore = create<EditorState>()((set, get) => {
         produce((state: EditorState) => {
           const slide = state.presentation.slides[state.activeSlideIndex];
           if (slide) {
-            slide.elements = slide.elements.filter(e => !toDelete.includes(e.id));
+            const deleteSet = new Set(toDelete);
+            // Also remove connectors referencing deleted elements
+            slide.elements = slide.elements.filter(e => {
+              if (deleteSet.has(e.id)) return false;
+              if (e.connector && (deleteSet.has(e.connector.startElementId) || deleteSet.has(e.connector.endElementId))) return false;
+              return true;
+            });
             state.selectedElementIds = [];
             state.presentation.updatedAt = new Date().toISOString();
           }

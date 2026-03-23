@@ -115,7 +115,7 @@ export default function PropertiesPanel() {
     <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-          {el.type === 'text' ? 'Text' : el.type === 'image' ? 'Image' : el.type === 'table' ? 'Table' : 'Shape'}
+          {el.type === 'text' ? 'Text' : el.type === 'image' ? 'Image' : el.type === 'table' ? 'Table' : el.style.shapeType === 'line' ? 'Line' : 'Shape'}
         </h3>
         <div className="flex gap-1">
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 text-slate-500 hover:text-slate-900" onClick={() => duplicateElements()}>

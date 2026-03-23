@@ -141,7 +141,7 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
           {/* Preview */}
           {preview && (
             <div className="rounded-xl overflow-hidden border border-slate-200">
-              <img src={preview} alt="AI Generated" className="w-full object-cover" style={{ aspectRatio: ratio.label === '1:1' ? '1' : ratio.label === '9:16' ? '9/16' : ratio.label === '4:3' ? '4/3' : '16/9' }} />
+              <img src={preview} alt="AI Generated" className="w-full object-cover" style={{ aspectRatio: ratio.ratio.replace(':', '/') }} />
             </div>
           )}
 

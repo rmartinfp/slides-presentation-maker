@@ -3,7 +3,6 @@ import { Slide, PresentationTheme, SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import CanvasElement from './CanvasElement';
 import AlignmentGuides from './AlignmentGuides';
-import { useAutoShrink } from '@/hooks/useAutoShrink';
 
 interface Props {
   slide: Slide;
@@ -201,7 +200,7 @@ export default function SlideCanvas({
             className="absolute z-[200] flex items-center gap-0.5 px-2 py-1 bg-white rounded-xl shadow-2xl border border-slate-200 pointer-events-auto"
             style={{
               left: el.x,
-              top: el.y - 44 / scale,
+              top: Math.max(2, el.y - 44 / scale),
               transform: `scale(${1 / scale})`,
               transformOrigin: 'bottom left',
             }}
@@ -282,7 +281,8 @@ function StaticElement({ element }: { element: SlideElement }) {
       case 'shape': {
         const shapeType = s.shapeType || 'rectangle';
         const fillColor = s.shapeFill || s.backgroundColor || '#6366f1';
-        const fill = s.shapeGradient ? 'url(#grad)' : fillColor;
+        // SVG shapes can't use CSS gradients — for thumbnails, fall back to first color
+        const fill = fillColor;
         const stroke = s.shapeStroke || 'transparent';
         const strokeWidth = s.shapeStrokeWidth || 0;
         const da = s.shapeStrokeDash as string | undefined;
