@@ -1079,9 +1079,26 @@ async function uploadImage(data: Buffer, contentType: string): Promise<string> {
     return '';
   }
 
-  // Compress large PNGs to JPG (layout textures can be 4-5MB as PNG, ~200KB as JPG)
+  // Compress large PNGs: check for transparency first — JPG destroys alpha channel
   if (contentType.includes('png') && data.length > 500 * 1024) {
     try {
+      const meta = await sharp(data).metadata();
+      const hasAlpha = meta.channels === 4;
+      if (hasAlpha) {
+        // Check if alpha channel is actually used (not all-opaque)
+        const { data: raw, info } = await sharp(data).raw().toBuffer({ resolveWithObject: true });
+        let hasTransparency = false;
+        for (let i = 3; i < raw.length; i += info.channels) {
+          if (raw[i] < 250) { hasTransparency = true; break; }
+        }
+        if (hasTransparency) {
+          // Keep as PNG but compress with lower effort/quality
+          const pngData = await sharp(data).png({ compressionLevel: 9, palette: true, quality: 80 }).toBuffer();
+          console.log(`  Compressed PNG (transparent) ${(data.length / 1024).toFixed(0)}KB → PNG ${(pngData.length / 1024).toFixed(0)}KB`);
+          return uploadImage(pngData, 'image/png');
+        }
+      }
+      // No real transparency — safe to convert to JPG
       const jpgData = await sharp(data).jpeg({ quality: 85 }).toBuffer();
       console.log(`  Compressed PNG ${(data.length / 1024).toFixed(0)}KB → JPG ${(jpgData.length / 1024).toFixed(0)}KB`);
       return uploadImage(jpgData, 'image/jpeg');
