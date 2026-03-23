@@ -395,6 +395,8 @@ export default function EditorPage() {
                       height: 1080 * scale,
                       margin: '0 auto',
                       marginTop: Math.max(20, (canvasContainerRef.current?.clientHeight || 0) / 2 - (1080 * scale) / 2),
+                      boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
+                      borderRadius: 4,
                     }}>
                       <SlideCanvas slide={activeSlide} theme={presentation.theme} scale={scale} isEditing={true} />
                     </div>
