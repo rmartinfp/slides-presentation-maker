@@ -314,7 +314,7 @@ export default function EditorPage() {
         {/* Main area */}
         <div className="flex-1 flex overflow-hidden">
           {/* Slide list — dark */}
-          <div className="w-48 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-hidden">
+          <div className="w-36 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-hidden">
             <div className="p-3 flex items-center justify-between">
               <span className="text-xs text-slate-500">{presentation.slides.length} slides</span>
               <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={addSlide}>
@@ -476,15 +476,16 @@ export default function EditorPage() {
           </div>
 
           {/* Right panel toggle + properties */}
-          <button
-            onClick={() => setShowRightPanel(!showRightPanel)}
-            className="absolute top-3 right-3 z-30 w-7 h-7 rounded-lg bg-white/80 hover:bg-white border border-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors shadow-sm"
-            title={showRightPanel ? 'Hide panel' : 'Show panel'}
-            style={{ right: showRightPanel ? 'calc(16rem + 12px)' : 12 }}
-          >
-            {showRightPanel ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
-          </button>
-          {showRightPanel && <PropertiesPanel />}
+          <div className="flex shrink-0">
+            <button
+              onClick={() => setShowRightPanel(!showRightPanel)}
+              className="w-6 bg-white/60 hover:bg-white/90 border-l border-r border-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors shrink-0"
+              title={showRightPanel ? 'Hide panel' : 'Show panel'}
+            >
+              {showRightPanel ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+            </button>
+            {showRightPanel && <PropertiesPanel />}
+          </div>
         </div>
       </div>
 
