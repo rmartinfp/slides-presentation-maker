@@ -23,6 +23,8 @@ import ChartDialog from '@/components/editor/ChartDialog';
 import ImageEditDialog from '@/components/editor/ImageEditDialog';
 import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
 import SmartSuggest from '@/components/editor/SmartSuggest';
+import AddSlideDialog from '@/components/editor/AddSlideDialog';
+import InfographicsDialog from '@/components/editor/InfographicsDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
@@ -249,6 +251,8 @@ export default function EditorPage() {
   const [showImageEdit, setShowImageEdit] = React.useState(false);
   const [showVoiceToSlides, setShowVoiceToSlides] = React.useState(false);
   const [showSuggest, setShowSuggest] = React.useState(false);
+  const [showAddSlide, setShowAddSlide] = React.useState(false);
+  const [showInfographics, setShowInfographics] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
@@ -440,7 +444,7 @@ export default function EditorPage() {
           <div className="w-36 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-hidden">
             <div className="p-3 flex items-center justify-between">
               <span className="text-xs text-slate-500">{presentation.slides.length} slides</span>
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={addSlide}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={() => setShowAddSlide(true)}>
                 <Plus className="w-3 h-3" />Add
               </Button>
             </div>
@@ -597,6 +601,7 @@ export default function EditorPage() {
               </DropdownMenu>
               <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
               <ToolBtn icon={<BarChart3 className="w-4 h-4" />} label="Chart" onClick={() => setShowChart(true)} />
+              <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" onClick={() => setShowInfographics(true)} />
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
@@ -678,6 +683,8 @@ export default function EditorPage() {
         )}
         {showVoiceToSlides && <VoiceToSlidesDialog onClose={() => setShowVoiceToSlides(false)} />}
         {showSuggest && <SmartSuggest onClose={() => setShowSuggest(false)} />}
+        {showAddSlide && <AddSlideDialog onClose={() => setShowAddSlide(false)} />}
+        {showInfographics && <InfographicsDialog onClose={() => setShowInfographics(false)} />}
       </AnimatePresence>
     </>
   );

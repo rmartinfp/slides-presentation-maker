@@ -61,6 +61,12 @@ Each element in the output must have:
 { "id": "<keep original id>", "type": "<keep original>", "content": "<keep original>", "x": number, "y": number, "width": number, "height": number, "rotation": number, "opacity": number, "style": { ...keep original style but can adjust fontSize, textAlign, color } }
 
 IMPORTANT: Keep the SAME element IDs, types, and content. Only change positions, sizes, and layout-related styles.
+You CAN add NEW elements (with new IDs) if it improves the design:
+- Add decorative shapes (rectangles, circles) as backgrounds or accents
+- If the slide has no images and would benefit from one, add an image element with content "https://images.unsplash.com/photo-1497366216548-37526070297c?w=800" (placeholder — user will replace)
+- Add divider lines or accent shapes to improve visual structure
+New elements must have: { "id": "new-<random>", "type": "shape"|"image", ... }
+
 Return ONLY valid JSON.`;
 
     const simplifiedElements = elements.map((el: any) => ({
