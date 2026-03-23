@@ -60,7 +60,14 @@ export default function CanvasElement({
 }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCropping, setIsCropping] = useState(false);
   const isDragging = useRef(false);
+  const cropStartRef = useRef<{ x: number; y: number; posX: number; posY: number } | null>(null);
+
+  // Exit crop mode when deselected
+  useEffect(() => {
+    if (!isSelected && isCropping) setIsCropping(false);
+  }, [isSelected, isCropping]);
 
   // Use refs to always have latest values without re-running the effect
   const elementRef = useRef(element);
@@ -73,7 +80,7 @@ export default function CanvasElement({
   // interact.js setup — only recreate when id, locked, or editing changes
   useEffect(() => {
     const node = ref.current;
-    if (!node || element.locked || isEditing) return;
+    if (!node || element.locked || isEditing || isCropping) return;
 
     // Set low start threshold so drag activates quickly even at small canvas scale
     interact.pointerMoveTolerance(2);
@@ -131,7 +138,7 @@ export default function CanvasElement({
     return () => {
       interactable.unset();
     };
-  }, [element.id, element.locked, isEditing, moveElement, resizeElement, pushSnapshot]);
+  }, [element.id, element.locked, isEditing, isCropping, moveElement, resizeElement, pushSnapshot]);
 
   // Use mousedown for selection — doesn't interfere with interact.js pointer events
   const handleMouseDown = useCallback(
@@ -148,14 +155,74 @@ export default function CanvasElement({
       if (element.type === 'text') {
         setIsEditing(true);
         onDoubleClick?.(element.id);
+      } else if (element.type === 'image') {
+        // Enter crop/pan mode — only useful for cover mode
+        const fit = element.style.objectFit || 'cover';
+        if (fit === 'cover') {
+          setIsCropping(true);
+          pushSnapshot();
+        }
       }
     },
-    [element.id, element.type, onDoubleClick],
+    [element.id, element.type, element.style.objectFit, onDoubleClick, pushSnapshot],
   );
 
   const handleBlur = useCallback(() => {
     setIsEditing(false);
   }, []);
+
+  // Image crop/pan: exit on click outside or Escape
+  useEffect(() => {
+    if (!isCropping) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsCropping(false);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsCropping(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside, true);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside, true);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, [isCropping]);
+
+  // Image crop/pan: drag to reposition
+  const handleCropMouseDown = useCallback((e: React.MouseEvent) => {
+    if (!isCropping) return;
+    e.stopPropagation();
+    e.preventDefault();
+    const s = element.style;
+    // Parse current objectPosition to get starting percentages
+    const pos = s.objectPosition || '50% 50%';
+    const parts = pos.split(/\s+/);
+    const posX = parseFloat(parts[0]) || 50;
+    const posY = parseFloat(parts[1]) || 50;
+    cropStartRef.current = { x: e.clientX, y: e.clientY, posX, posY };
+
+    const handleMove = (ev: MouseEvent) => {
+      if (!cropStartRef.current) return;
+      const dx = ev.clientX - cropStartRef.current.x;
+      const dy = ev.clientY - cropStartRef.current.y;
+      // Convert pixel delta to percentage based on element size and scale
+      const pctX = (dx / (element.width * scale)) * 100;
+      const pctY = (dy / (element.height * scale)) * 100;
+      // Moving mouse right → image moves right → objectPosition X decreases
+      const newX = Math.max(0, Math.min(100, cropStartRef.current.posX - pctX));
+      const newY = Math.max(0, Math.min(100, cropStartRef.current.posY - pctY));
+      updateElement(element.id, { style: { objectPosition: `${newX.toFixed(1)}% ${newY.toFixed(1)}%` } });
+    };
+    const handleUp = () => {
+      cropStartRef.current = null;
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+  }, [isCropping, element.id, element.style, element.width, element.height, scale, updateElement]);
 
   // Build inline style for the element wrapper
   const wrapperStyle: React.CSSProperties = {
@@ -164,13 +231,13 @@ export default function CanvasElement({
     top: element.y,
     width: Math.max(1, element.width),
     height: Math.max(1, element.height),
-    overflow: isEditing ? 'visible' : 'hidden', // visible only during text editing (FormattingToolbar). Contextual toolbar renders at canvas level.
+    overflow: isEditing ? 'visible' : 'hidden',
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
-    zIndex: isEditing ? 9999 : element.zIndex,
-    cursor: isEditing ? 'text' : element.locked ? 'default' : 'move',
+    zIndex: (isEditing || isCropping) ? 9999 : element.zIndex,
+    cursor: isCropping ? 'grab' : isEditing ? 'text' : element.locked ? 'default' : 'move',
     touchAction: 'none',
-    userSelect: isEditing ? 'text' : 'none',
+    userSelect: isEditing ? 'text' : 'none' as const,
     // Critical: prevent browser default drag behavior
     WebkitUserDrag: 'none' as any,
     boxShadow: element.style.boxShadow || undefined,
@@ -467,16 +534,29 @@ export default function CanvasElement({
 
         return (
           <div
-            className="w-full h-full pointer-events-none"
-            style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}
+            className={cn('w-full h-full', isCropping ? 'pointer-events-auto' : 'pointer-events-none')}
+            style={{
+              borderRadius: br,
+              overflow: 'hidden',
+              border: isCropping ? '2px dashed #4F46E5' : imgBorder,
+              cursor: isCropping ? 'grab' : undefined,
+            }}
+            onMouseDown={isCropping ? handleCropMouseDown : undefined}
           >
             <img
               src={element.content}
               alt=""
               className="w-full h-full"
-              style={{ objectFit: fit, objectPosition: pos }}
+              style={{ objectFit: fit, objectPosition: pos, pointerEvents: 'none' }}
               draggable={false}
             />
+            {isCropping && (
+              <div className="absolute inset-0 flex items-end justify-center pb-2 pointer-events-none">
+                <div className="bg-black/70 text-white text-[10px] px-2 py-1 rounded-full">
+                  Drag to reposition · Esc to exit
+                </div>
+              </div>
+            )}
           </div>
         );
       }
@@ -587,7 +667,7 @@ export default function CanvasElement({
 
       {/* Resize handles — visual only, interact.js handles the actual resize */}
       {/* Hide handles on tiny elements (< 15px) — handles are 10px each, would dwarf the element */}
-      {isSelected && !element.locked && !isEditing && Math.min(element.width, element.height) >= 15 && (
+      {isSelected && !element.locked && !isEditing && !isCropping && Math.min(element.width, element.height) >= 15 && (
         <>
           {(['nw', 'ne', 'sw', 'se'] as const).map((pos) => {
             const posStyles: Record<string, React.CSSProperties> = {
