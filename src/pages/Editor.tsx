@@ -67,6 +67,48 @@ export default function EditorPage() {
   const singleSelected = selectedElements.length === 1 ? selectedElements[0] : null;
   const theme = presentation.theme.tokens;
 
+  // Detect actual font sizes/families used in this presentation for text presets
+  const detectedStyles = React.useMemo(() => {
+    const allText = presentation.slides.flatMap(s => (s.elements || []).filter(e => e.type === 'text'));
+    if (allText.length === 0) {
+      // Fallback to theme defaults
+      return {
+        title:    { font: theme.typography.titleFont, size: theme.typography.titleSize, weight: 'bold' as const, color: theme.palette.text },
+        subtitle: { font: theme.typography.bodyFont, size: Math.round(theme.typography.titleSize * 0.6), weight: undefined, color: theme.palette.text },
+        body:     { font: theme.typography.bodyFont, size: theme.typography.bodySize, weight: undefined, color: theme.palette.text },
+        caption:  { font: theme.typography.bodyFont, size: Math.round(theme.typography.bodySize * 0.45), weight: undefined, color: theme.palette.text },
+      };
+    }
+    // Collect unique font sizes, sorted descending
+    const sizeEntries = allText.map(e => ({
+      size: e.style.fontSize ?? 16,
+      font: e.style.fontFamily || theme.typography.bodyFont,
+      weight: e.style.fontWeight,
+      color: e.style.color || theme.palette.text,
+    }));
+    // Group by size and pick the most common font for each size bucket
+    const sizeMap = new Map<number, { font: string; weight?: string; color: string; count: number }>();
+    for (const e of sizeEntries) {
+      const existing = sizeMap.get(e.size);
+      if (!existing || existing.count < 1) {
+        sizeMap.set(e.size, { font: e.font, weight: e.weight, color: e.color, count: (existing?.count || 0) + 1 });
+      } else {
+        existing.count++;
+      }
+    }
+    const sorted = [...sizeMap.entries()].sort((a, b) => b[0] - a[0]); // largest first
+    const titleEntry = sorted[0];
+    const subtitleEntry = sorted[1] || sorted[0];
+    const bodyEntry = sorted[2] || sorted[1] || sorted[0];
+    const captionEntry = sorted[sorted.length - 1] || sorted[0];
+    return {
+      title:    { font: titleEntry[1].font, size: titleEntry[0], weight: titleEntry[1].weight || 'bold', color: titleEntry[1].color },
+      subtitle: { font: subtitleEntry[1].font, size: subtitleEntry[0] === titleEntry[0] ? Math.round(titleEntry[0] * 0.6) : subtitleEntry[0], weight: subtitleEntry[1].weight, color: subtitleEntry[1].color },
+      body:     { font: bodyEntry[1].font, size: bodyEntry[0] === titleEntry[0] ? Math.round(titleEntry[0] * 0.35) : bodyEntry[0], weight: bodyEntry[1].weight, color: bodyEntry[1].color },
+      caption:  { font: captionEntry[1].font, size: captionEntry[0] === titleEntry[0] ? Math.round(titleEntry[0] * 0.25) : Math.min(captionEntry[0], bodyEntry[0] * 0.7), weight: captionEntry[1].weight, color: captionEntry[1].color },
+    };
+  }, [presentation.slides, theme]);
+
   useKeyboardShortcuts();
 
   const [cinematicPreset, setCinematicPreset] = React.useState<CinematicPreset | null>(() => {
@@ -492,10 +534,10 @@ export default function EditorPage() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Type className="w-4 h-4" />} label="Text" /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2 w-44">
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.titleFont, fontSize: theme.typography.titleSize, fontWeight: 'bold', color: theme.palette.text, textAlign: 'left' } })}><span className="text-lg font-bold mr-2">T</span>Title</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: Math.round(theme.typography.titleSize * 0.6), color: theme.palette.text, textAlign: 'left' } })}><span className="text-base font-medium mr-2">S</span>Subtitle</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: theme.typography.bodySize, color: theme.palette.text, textAlign: 'left' } })}><span className="text-sm mr-2">B</span>Body</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption text', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: Math.round(theme.typography.bodySize * 0.45), color: theme.palette.text, textAlign: 'left', opacity: 0.7 } })}><span className="text-xs mr-2">c</span>Caption</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.title.font, fontSize: detectedStyles.title.size, fontWeight: detectedStyles.title.weight || 'bold', color: detectedStyles.title.color, textAlign: 'left' } })}><span className="text-lg font-bold mr-2">T</span>Title ({detectedStyles.title.size}pt)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.subtitle.font, fontSize: detectedStyles.subtitle.size, color: detectedStyles.subtitle.color, textAlign: 'left' } })}><span className="text-base font-medium mr-2">S</span>Subtitle ({detectedStyles.subtitle.size}pt)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.body.font, fontSize: detectedStyles.body.size, color: detectedStyles.body.color, textAlign: 'left' } })}><span className="text-sm mr-2">B</span>Body ({detectedStyles.body.size}pt)</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption text', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.caption.font, fontSize: detectedStyles.caption.size, color: detectedStyles.caption.color, textAlign: 'left', opacity: 0.7 } })}><span className="text-xs mr-2">c</span>Caption ({Math.round(detectedStyles.caption.size)}pt)</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <DropdownMenu>
