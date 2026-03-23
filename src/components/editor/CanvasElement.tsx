@@ -6,6 +6,8 @@ import { cn } from '@/lib/utils';
 import RichTextEditor from './RichTextEditor';
 import { useAutoShrink } from '@/hooks/useAutoShrink';
 import { resolveConnectorPosition } from '@/lib/connector-utils';
+import ChartRenderer from './ChartRenderer';
+import type { ChartData } from '@/types/presentation';
 
 /** Render SVG marker definitions for line endpoints (arrow, oval, diamond, stealth) */
 function renderMarkerDefs(id: string, type: string | undefined, color: string, size: number, sw: number) {
@@ -162,6 +164,9 @@ export default function CanvasElement({
           setIsCropping(true);
           pushSnapshot();
         }
+      } else if (element.type === 'chart') {
+        // Open chart editor
+        window.dispatchEvent(new CustomEvent('slideai-edit-chart', { detail: element.id }));
       }
     },
     [element.id, element.type, element.style.objectFit, onDoubleClick, pushSnapshot],
@@ -641,6 +646,16 @@ export default function CanvasElement({
               ))}
             </tbody>
           </table>
+        );
+      }
+
+      case 'chart': {
+        let chartConfig: ChartData;
+        try { chartConfig = JSON.parse(element.content); } catch { return <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center text-slate-400 text-xs pointer-events-none">Invalid chart</div>; }
+        return (
+          <div className="w-full h-full pointer-events-none" style={{ borderRadius: s.borderRadius ?? 0 }}>
+            <ChartRenderer config={chartConfig} interactive={false} />
+          </div>
         );
       }
 

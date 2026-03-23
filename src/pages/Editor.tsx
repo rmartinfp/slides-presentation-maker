@@ -259,20 +259,27 @@ export default function EditorPage() {
     return () => clearTimeout(t);
   }, [showRightPanel, updateScale]);
 
-  // Listen for AI image / replace image requests from ContextToolbar
+  // Listen for AI image / replace image / chart edit requests from ContextToolbar
   const replaceTargetRef = useRef<string | null>(null);
   const replaceInputRef = useRef<HTMLInputElement>(null);
+  const editChartRef = useRef<string | null>(null);
   useEffect(() => {
     const handleAI = () => setShowAIImage(true);
     const handleReplace = (e: Event) => {
       replaceTargetRef.current = (e as CustomEvent).detail;
       replaceInputRef.current?.click();
     };
+    const handleEditChart = (e: Event) => {
+      editChartRef.current = (e as CustomEvent).detail;
+      setShowChart(true);
+    };
     window.addEventListener('slideai-open-ai-image', handleAI);
     window.addEventListener('slideai-replace-image', handleReplace);
+    window.addEventListener('slideai-edit-chart', handleEditChart);
     return () => {
       window.removeEventListener('slideai-open-ai-image', handleAI);
       window.removeEventListener('slideai-replace-image', handleReplace);
+      window.removeEventListener('slideai-edit-chart', handleEditChart);
     };
   }, []);
 
@@ -588,6 +595,7 @@ export default function EditorPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
+              <ToolBtn icon={<BarChart3 className="w-4 h-4" />} label="Chart" onClick={() => setShowChart(true)} />
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
@@ -599,7 +607,7 @@ export default function EditorPage() {
                   {singleSelected?.type === 'image' && (
                     <DropdownMenuItem onClick={() => setShowImageEdit(true)}><Palette className="w-4 h-4 mr-2" />Edit image with AI</DropdownMenuItem>
                   )}
-                  <DropdownMenuItem onClick={() => setShowChart(true)}><BarChart3 className="w-4 h-4 mr-2" />AI Chart / Data Viz</DropdownMenuItem>
+                  {/* Chart moved to main toolbar */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate presentation</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Extract Brand Kit</DropdownMenuItem>
@@ -663,7 +671,7 @@ export default function EditorPage() {
         {showCoach && <CoachDialog onClose={() => setShowCoach(false)} />}
         {showRedesign && <RedesignDialog onClose={() => setShowRedesign(false)} />}
         {showBrandKit && <BrandKitDialog onClose={() => setShowBrandKit(false)} />}
-        {showChart && <ChartDialog onClose={() => setShowChart(false)} />}
+        {showChart && <ChartDialog onClose={() => { setShowChart(false); editChartRef.current = null; }} editElementId={editChartRef.current || undefined} />}
         {showImageEdit && singleSelected?.type === 'image' && (
           <ImageEditDialog elementId={singleSelected.id} onClose={() => setShowImageEdit(false)} />
         )}

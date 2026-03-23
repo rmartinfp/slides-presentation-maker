@@ -1,6 +1,20 @@
 // ============ Element Types ============
 
-export type ElementType = 'text' | 'image' | 'shape' | 'icon' | 'video' | 'table';
+export type ElementType = 'text' | 'image' | 'shape' | 'icon' | 'video' | 'table' | 'chart';
+
+export type ChartType = 'bar' | 'line' | 'area' | 'pie';
+
+export interface ChartData {
+  chartType: ChartType;
+  data: Record<string, string | number>[];
+  dataKeys: string[];
+  nameKey: string;
+  colors: string[];
+  title?: string;
+  showGrid?: boolean;
+  showLegend?: boolean;
+  unit?: string;
+}
 
 export interface TableCell {
   text: string;

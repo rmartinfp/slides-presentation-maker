@@ -1,5 +1,6 @@
 import React, { useCallback, useState, useRef } from 'react';
-import { Slide, PresentationTheme, SlideElement } from '@/types/presentation';
+import { Slide, PresentationTheme, SlideElement, ChartData } from '@/types/presentation';
+import ChartRenderer from './ChartRenderer';
 import { useEditorStore } from '@/stores/editor-store';
 import CanvasElement from './CanvasElement';
 import AlignmentGuides from './AlignmentGuides';
@@ -382,6 +383,16 @@ function StaticElement({ element }: { element: SlideElement }) {
               ))}
             </tbody>
           </table>
+        );
+      }
+
+      case 'chart': {
+        let chartConfig: ChartData;
+        try { chartConfig = JSON.parse(element.content); } catch { return null; }
+        return (
+          <div className="w-full h-full" style={{ borderRadius: s.borderRadius ?? 0 }}>
+            <ChartRenderer config={chartConfig} interactive={false} />
+          </div>
         );
       }
 

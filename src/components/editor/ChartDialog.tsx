@@ -1,234 +1,137 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, X, Loader2, PieChart, TrendingUp, AreaChart } from 'lucide-react';
+import { BarChart3, X, Plus, Trash2, TrendingUp, PieChart, AreaChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
-import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import {
-  BarChart, Bar,
-  LineChart, Line,
-  AreaChart as ReAreaChart, Area,
-  PieChart as RePieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer,
-} from 'recharts';
-
-type ChartType = 'auto' | 'bar' | 'line' | 'area' | 'pie';
-
-interface ChartConfig {
-  type: 'bar' | 'line' | 'area' | 'pie';
-  data: Record<string, any>[];
-  dataKeys: string[];
-  nameKey: string;
-  title?: string;
-  colors: string[];
-}
+import ChartRenderer from './ChartRenderer';
+import type { ChartType, ChartData } from '@/types/presentation';
 
 const CHART_TYPES: { value: ChartType; label: string; icon: React.ReactNode }[] = [
-  { value: 'auto', label: 'Auto', icon: <BarChart3 className="w-4 h-4" /> },
   { value: 'bar', label: 'Bar', icon: <BarChart3 className="w-4 h-4" /> },
   { value: 'line', label: 'Line', icon: <TrendingUp className="w-4 h-4" /> },
   { value: 'area', label: 'Area', icon: <AreaChart className="w-4 h-4" /> },
   { value: 'pie', label: 'Pie', icon: <PieChart className="w-4 h-4" /> },
 ];
 
-const DEFAULT_COLORS = [
-  '#6366f1', '#ec4899', '#f59e0b', '#10b981', '#3b82f6',
-  '#8b5cf6', '#ef4444', '#14b8a6', '#f97316', '#06b6d4',
+const DEFAULT_COLORS = ['#4F46E5', '#9333EA', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
+
+const SAMPLE_DATA = [
+  { name: 'Q1', value: 1200 },
+  { name: 'Q2', value: 1800 },
+  { name: 'Q3', value: 1500 },
+  { name: 'Q4', value: 2200 },
 ];
 
 interface Props {
   onClose: () => void;
+  /** If provided, edit existing chart element */
+  editElementId?: string;
 }
 
-export default function ChartDialog({ onClose }: Props) {
-  const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [chartType, setChartType] = useState<ChartType>('auto');
-  const [chartConfig, setChartConfig] = useState<ChartConfig | null>(null);
-  const chartRef = useRef<HTMLDivElement>(null);
-  const { addElement } = useEditorStore();
+export default function ChartDialog({ onClose, editElementId }: Props) {
+  const { addElement, updateElement, presentation, activeSlideIndex } = useEditorStore();
 
-  const handleGenerate = async () => {
-    if (!prompt.trim()) return;
-    setLoading(true);
-    setChartConfig(null);
+  // Load existing chart data if editing
+  const existingElement = editElementId
+    ? presentation.slides[activeSlideIndex]?.elements?.find(e => e.id === editElementId)
+    : null;
+  const existingConfig = existingElement ? (() => {
+    try { return JSON.parse(existingElement.content) as ChartData; } catch { return null; }
+  })() : null;
 
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-chart', {
-        body: {
-          prompt: prompt.trim(),
-          chartType: chartType === 'auto' ? undefined : chartType,
-        },
-      });
-
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
-      if (!data?.data) throw new Error('No chart data returned');
-
-      // Map edge function response to ChartConfig
-      const config: ChartConfig = {
-        type: data.chartType || 'bar',
-        data: data.data,
-        dataKeys: data.config?.yKeys || ['value'],
-        nameKey: data.config?.xKey || 'name',
-        title: data.title,
-        colors: data.config?.colors?.length ? data.config.colors : DEFAULT_COLORS,
-      };
-
-      setChartConfig(config);
-    } catch (err: any) {
-      console.error('Chart generation error:', err);
-      toast.error(err.message || 'Failed to generate chart. Check your API configuration.');
-    } finally {
-      setLoading(false);
+  const [chartType, setChartType] = useState<ChartType>(existingConfig?.chartType || 'bar');
+  const [title, setTitle] = useState(existingConfig?.title || '');
+  const [rows, setRows] = useState<{ name: string; values: number[] }[]>(() => {
+    if (existingConfig) {
+      return existingConfig.data.map(d => ({
+        name: String(d[existingConfig.nameKey] || ''),
+        values: existingConfig.dataKeys.map(k => Number(d[k]) || 0),
+      }));
     }
+    return SAMPLE_DATA.map(d => ({ name: d.name, values: [d.value] }));
+  });
+  const [seriesNames, setSeriesNames] = useState<string[]>(
+    existingConfig?.dataKeys || ['Value']
+  );
+  const [colors, setColors] = useState<string[]>(existingConfig?.colors || DEFAULT_COLORS);
+  const [unit, setUnit] = useState(existingConfig?.unit || '');
+
+  // Build ChartData for preview
+  const chartData: ChartData = {
+    chartType,
+    data: rows.map(r => {
+      const obj: Record<string, string | number> = { name: r.name };
+      seriesNames.forEach((key, i) => { obj[key] = r.values[i] ?? 0; });
+      return obj;
+    }),
+    dataKeys: seriesNames,
+    nameKey: 'name',
+    colors: colors.slice(0, seriesNames.length),
+    title: title || undefined,
+    showGrid: true,
+    showLegend: seriesNames.length > 1,
+    unit: unit || undefined,
   };
 
-  const handleInsert = useCallback(() => {
-    if (!chartRef.current) return;
+  const addRow = () => {
+    setRows([...rows, { name: `Item ${rows.length + 1}`, values: seriesNames.map(() => 0) }]);
+  };
 
-    const svgElement = chartRef.current.querySelector('svg');
-    if (!svgElement) {
-      toast.error('Could not find chart SVG');
-      return;
-    }
+  const removeRow = (idx: number) => {
+    if (rows.length <= 1) return;
+    setRows(rows.filter((_, i) => i !== idx));
+  };
 
-    // Clone the SVG so we can modify it for export
-    const cloned = svgElement.cloneNode(true) as SVGSVGElement;
-    cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    cloned.setAttribute('width', '800');
-    cloned.setAttribute('height', '500');
+  const updateRowName = (idx: number, name: string) => {
+    const updated = [...rows];
+    updated[idx] = { ...updated[idx], name };
+    setRows(updated);
+  };
 
-    // Inline computed styles for proper rendering as data URL
-    const allElements = cloned.querySelectorAll('*');
-    allElements.forEach((el) => {
-      const computed = window.getComputedStyle(el as Element);
-      const importantProps = ['font-family', 'font-size', 'fill', 'stroke', 'stroke-width', 'opacity'];
-      importantProps.forEach((prop) => {
-        const val = computed.getPropertyValue(prop);
-        if (val) (el as HTMLElement).style.setProperty(prop, val);
+  const updateRowValue = (rowIdx: number, valIdx: number, value: string) => {
+    const updated = [...rows];
+    const values = [...updated[rowIdx].values];
+    values[valIdx] = parseFloat(value) || 0;
+    updated[rowIdx] = { ...updated[rowIdx], values };
+    setRows(updated);
+  };
+
+  const addSeries = () => {
+    const newName = `Series ${seriesNames.length + 1}`;
+    setSeriesNames([...seriesNames, newName]);
+    setRows(rows.map(r => ({ ...r, values: [...r.values, 0] })));
+  };
+
+  const removeSeries = (idx: number) => {
+    if (seriesNames.length <= 1) return;
+    setSeriesNames(seriesNames.filter((_, i) => i !== idx));
+    setRows(rows.map(r => ({ ...r, values: r.values.filter((_, i) => i !== idx) })));
+  };
+
+  const handleInsert = () => {
+    const content = JSON.stringify(chartData);
+
+    if (editElementId) {
+      updateElement(editElementId, { content });
+      toast.success('Chart updated!');
+    } else {
+      addElement({
+        type: 'chart',
+        content,
+        x: 280,
+        y: 160,
+        width: 800,
+        height: 500,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        style: { borderRadius: 12 },
       });
-    });
-
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(cloned);
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgString)}`;
-
-    addElement({
-      type: 'image',
-      content: dataUrl,
-      x: 280,
-      y: 160,
-      width: 800,
-      height: 500,
-      rotation: 0,
-      opacity: 1,
-      locked: false,
-      visible: true,
-      style: { objectFit: 'contain', borderRadius: 8 },
-    });
-
-    toast.success('Chart added to slide!');
+      toast.success('Chart added to slide!');
+    }
     onClose();
-  }, [addElement, onClose]);
-
-  const renderChart = (config: ChartConfig) => {
-    const { type, data, dataKeys, nameKey, colors } = config;
-
-    if (type === 'pie') {
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <RePieChart>
-            <Pie
-              data={data}
-              dataKey={dataKeys[0]}
-              nameKey={nameKey}
-              cx="50%"
-              cy="50%"
-              outerRadius={100}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-            >
-              {data.map((_, index) => (
-                <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
-              ))}
-            </Pie>
-            <Tooltip />
-            <Legend />
-          </RePieChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (type === 'line') {
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey={nameKey} tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Legend />
-            {dataKeys.map((key, i) => (
-              <Line
-                key={key}
-                type="monotone"
-                dataKey={key}
-                stroke={colors[i % colors.length]}
-                strokeWidth={2}
-                dot={{ r: 4 }}
-              />
-            ))}
-          </LineChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    if (type === 'area') {
-      return (
-        <ResponsiveContainer width="100%" height={300}>
-          <ReAreaChart data={data}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-            <XAxis dataKey={nameKey} tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} />
-            <Tooltip />
-            <Legend />
-            {dataKeys.map((key, i) => (
-              <Area
-                key={key}
-                type="monotone"
-                dataKey={key}
-                stroke={colors[i % colors.length]}
-                fill={colors[i % colors.length]}
-                fillOpacity={0.3}
-              />
-            ))}
-          </ReAreaChart>
-        </ResponsiveContainer>
-      );
-    }
-
-    // Default: bar
-    return (
-      <ResponsiveContainer width="100%" height={300}>
-        <BarChart data={data}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey={nameKey} tick={{ fontSize: 12 }} />
-          <YAxis tick={{ fontSize: 12 }} />
-          <Tooltip />
-          <Legend />
-          {dataKeys.map((key, i) => (
-            <Bar
-              key={key}
-              dataKey={key}
-              fill={colors[i % colors.length]}
-              radius={[4, 4, 0, 0]}
-            />
-          ))}
-        </BarChart>
-      </ResponsiveContainer>
-    );
   };
 
   return (
@@ -238,24 +141,23 @@ export default function ChartDialog({ onClose }: Props) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}
-      onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
               <BarChart3 className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">Chart Generator</h3>
-              <p className="text-xs text-slate-400">Describe your data to create a chart</p>
+              <h3 className="font-semibold text-slate-800">{editElementId ? 'Edit Chart' : 'Insert Chart'}</h3>
+              <p className="text-xs text-slate-400">Add your data and customize the chart</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center">
@@ -263,88 +165,141 @@ export default function ChartDialog({ onClose }: Props) {
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
-          {/* Chart type selector */}
-          <div>
-            <label className="text-xs text-slate-500 mb-2 block">Chart Type</label>
-            <div className="flex gap-2">
-              {CHART_TYPES.map((ct) => (
-                <button
-                  key={ct.value}
-                  onClick={() => setChartType(ct.value)}
-                  className={`flex-1 py-2 px-2 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 ${
-                    chartType === ct.value
-                      ? 'bg-indigo-600 text-white'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
-                >
-                  {ct.icon}
-                  {ct.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Chart preview */}
-          {chartConfig && (
-            <div
-              ref={chartRef}
-              className="rounded-xl border border-slate-200 bg-white p-4"
-              style={{ width: 480, height: 300, margin: '0 auto' }}
-            >
-              {renderChart(chartConfig)}
-            </div>
-          )}
-
-          {/* Loading state */}
-          {loading && (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-2" />
-                <p className="text-sm text-slate-500">Generating chart...</p>
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {/* Chart type + title row */}
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="text-[10px] text-slate-500 mb-1 block font-medium">Chart Type</label>
+              <div className="flex gap-1">
+                {CHART_TYPES.map(ct => (
+                  <button
+                    key={ct.value}
+                    onClick={() => setChartType(ct.value)}
+                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1 ${
+                      chartType === ct.value
+                        ? 'bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white shadow-sm'
+                        : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                    }`}
+                  >
+                    {ct.icon}
+                    {ct.label}
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-
-          {/* Input */}
-          <div className="space-y-2">
-            <textarea
-              value={prompt}
-              onChange={e => setPrompt(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey && !loading) {
-                  e.preventDefault();
-                  handleGenerate();
-                }
-              }}
-              placeholder="Sales by quarter: Q1 $1.2M, Q2 $1.5M, Q3 $1.8M, Q4 $2.1M"
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 resize-none"
-              rows={3}
-              autoFocus
-              disabled={loading}
-            />
-            <Button
-              onClick={handleGenerate}
-              disabled={loading || !prompt.trim()}
-              className="w-full bg-gradient-to-r from-indigo-500 to-cyan-500 text-white rounded-xl"
-            >
-              {loading ? (
-                <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Generating...</>
-              ) : (
-                <><BarChart3 className="w-4 h-4 mr-2" /> Generate Chart</>
-              )}
-            </Button>
+            <div className="w-48">
+              <label className="text-[10px] text-slate-500 mb-1 block font-medium">Title (optional)</label>
+              <input
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                placeholder="Chart title..."
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
+              />
+            </div>
+            <div className="w-20">
+              <label className="text-[10px] text-slate-500 mb-1 block font-medium">Unit</label>
+              <input
+                value={unit}
+                onChange={e => setUnit(e.target.value)}
+                placeholder="$, %, ..."
+                className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
+              />
+            </div>
           </div>
 
-          {/* Insert button */}
-          {chartConfig && (
-            <Button
-              onClick={handleInsert}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white gap-2"
-            >
-              Insert into Slide
-            </Button>
-          )}
+          {/* Data table */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="text-[10px] text-slate-500 font-medium">Data</label>
+              <div className="flex gap-1">
+                <button onClick={addSeries} className="text-[10px] text-[#4F46E5] hover:text-[#4338CA] font-medium px-2 py-0.5 rounded hover:bg-indigo-50 transition-colors">
+                  + Series
+                </button>
+                <button onClick={addRow} className="text-[10px] text-[#4F46E5] hover:text-[#4338CA] font-medium px-2 py-0.5 rounded hover:bg-indigo-50 transition-colors">
+                  + Row
+                </button>
+              </div>
+            </div>
+            <div className="border border-slate-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-3 py-1.5 text-left text-[10px] font-semibold text-slate-500 w-32">Label</th>
+                    {seriesNames.map((name, i) => (
+                      <th key={i} className="px-2 py-1.5 text-[10px] font-semibold text-slate-500">
+                        <div className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
+                          <input
+                            value={name}
+                            onChange={e => {
+                              const updated = [...seriesNames];
+                              updated[i] = e.target.value;
+                              setSeriesNames(updated);
+                            }}
+                            className="w-full bg-transparent text-[10px] font-semibold text-slate-600 focus:outline-none"
+                          />
+                          {seriesNames.length > 1 && (
+                            <button onClick={() => removeSeries(i)} className="text-slate-300 hover:text-red-400">
+                              <X className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
+                      </th>
+                    ))}
+                    <th className="w-8" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, ri) => (
+                    <tr key={ri} className="border-t border-slate-100 hover:bg-slate-50/50">
+                      <td className="px-3 py-1">
+                        <input
+                          value={row.name}
+                          onChange={e => updateRowName(ri, e.target.value)}
+                          className="w-full bg-transparent text-sm text-slate-700 focus:outline-none"
+                        />
+                      </td>
+                      {row.values.map((val, vi) => (
+                        <td key={vi} className="px-2 py-1">
+                          <input
+                            type="number"
+                            value={val}
+                            onChange={e => updateRowValue(ri, vi, e.target.value)}
+                            className="w-full bg-transparent text-sm text-slate-700 text-center focus:outline-none focus:bg-indigo-50 rounded px-1"
+                          />
+                        </td>
+                      ))}
+                      <td className="px-1">
+                        {rows.length > 1 && (
+                          <button onClick={() => removeRow(ri)} className="text-slate-300 hover:text-red-400 p-0.5">
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Live preview */}
+          <div>
+            <label className="text-[10px] text-slate-500 mb-1 block font-medium">Preview</label>
+            <div className="rounded-xl border border-slate-200 bg-white p-2" style={{ height: 260 }}>
+              <ChartRenderer config={chartData} interactive />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 shrink-0">
+          <Button
+            onClick={handleInsert}
+            className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE] text-white rounded-xl shadow-lg shadow-[#4F46E5]/20"
+          >
+            {editElementId ? 'Update Chart' : 'Insert Chart'}
+          </Button>
         </div>
       </motion.div>
     </motion.div>

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { Slide, PresentationTheme, SlideElement } from '@/types/presentation';
+import { Slide, PresentationTheme, SlideElement, ChartData } from '@/types/presentation';
+import ChartRenderer from './ChartRenderer';
 
 interface Props {
   slides: Slide[];
@@ -218,6 +219,16 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
                 ))}
               </tbody>
             </table>
+          </div>
+        );
+      }
+
+      case 'chart': {
+        let chartConfig: ChartData;
+        try { chartConfig = JSON.parse(element.content); } catch { return null; }
+        return (
+          <div key={element.id} style={{ ...wrapperStyle, borderRadius: s.borderRadius ?? 0 }}>
+            <ChartRenderer config={chartConfig} interactive />
           </div>
         );
       }
