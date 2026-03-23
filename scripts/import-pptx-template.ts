@@ -1281,7 +1281,7 @@ async function main() {
         for (const d of defRPrSources) {
           const attrs = d[1] + (d[2] || '');
           const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-          if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') {
+          if (font && font !== 'Arial') {
             themeFonts.titleFont = cleanFontName(font);
           }
           if (!masterTitleSz) {
@@ -1304,7 +1304,7 @@ async function main() {
         for (const d of defRPrSources) {
           const attrs = d[1] + (d[2] || '');
           const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-          if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') {
+          if (font && font !== 'Arial') {
             themeFonts.bodyFont = cleanFontName(font);
           }
           if (!masterBodySz) {
@@ -1325,7 +1325,7 @@ async function main() {
           if (defRPr) {
             const attrs = defRPr[1] + (defRPr[2] || '');
             const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-            if (font && font !== 'Arial' && themeFonts.titleFont === 'Arial') themeFonts.titleFont = cleanFontName(font);
+            if (font && font !== 'Arial') themeFonts.titleFont = cleanFontName(font);
             if (!masterTitleSz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterTitleSz = parseInt(sz); }
             if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
           }
@@ -1339,7 +1339,7 @@ async function main() {
           if (defRPr) {
             const attrs = defRPr[1] + (defRPr[2] || '');
             const font = attrs.match(/<a:latin\s+typeface="([^"]+)"/)?.[1];
-            if (font && font !== 'Arial' && themeFonts.bodyFont === 'Arial') themeFonts.bodyFont = cleanFontName(font);
+            if (font && font !== 'Arial') themeFonts.bodyFont = cleanFontName(font);
             if (!masterBodySz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterBodySz = parseInt(sz); }
             if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
           }
