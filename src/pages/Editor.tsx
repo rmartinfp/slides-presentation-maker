@@ -187,6 +187,7 @@ export default function EditorPage() {
 
   const [isPresenterView, setIsPresenterView] = React.useState(false);
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
+  const [showRightPanel, setShowRightPanel] = React.useState(true);
 
   if (idFromUrl && presentation.slides.length === 0) return <EditorSkeleton />;
 
@@ -460,8 +461,16 @@ export default function EditorPage() {
             </div>
           </div>
 
-          {/* Right panel — properties */}
-          <PropertiesPanel />
+          {/* Right panel toggle + properties */}
+          <button
+            onClick={() => setShowRightPanel(!showRightPanel)}
+            className="absolute top-3 right-3 z-30 w-7 h-7 rounded-lg bg-white/80 hover:bg-white border border-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors shadow-sm"
+            title={showRightPanel ? 'Hide panel' : 'Show panel'}
+            style={{ right: showRightPanel ? 'calc(16rem + 12px)' : 12 }}
+          >
+            {showRightPanel ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          </button>
+          {showRightPanel && <PropertiesPanel />}
         </div>
       </div>
 
