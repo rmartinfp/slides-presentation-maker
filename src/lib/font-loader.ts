@@ -12,12 +12,67 @@ const SYSTEM_FONTS = new Set([
   'sans-serif', 'serif', 'monospace',
 ]);
 
+// Map PPTX font names (with weight suffixes) to valid Google Fonts names
+const FONT_NAME_MAP: Record<string, string> = {
+  'Playfair Medium': 'Playfair Display',
+  'Playfair Bold': 'Playfair Display',
+  'Playfair Regular': 'Playfair Display',
+  'Playfair SemiBold': 'Playfair Display',
+  'Inter Tight SemiBold': 'Inter Tight',
+  'Inter Tight Bold': 'Inter Tight',
+  'Inter Tight Medium': 'Inter Tight',
+  'Bricolage Grotesque SemiBold': 'Bricolage Grotesque',
+  'Bricolage Grotesque Bold': 'Bricolage Grotesque',
+  'Montserrat Medium': 'Montserrat',
+  'Montserrat Bold': 'Montserrat',
+  'Montserrat SemiBold': 'Montserrat',
+  'Lato Medium': 'Lato',
+  'Lato Bold': 'Lato',
+  'Poppins Medium': 'Poppins',
+  'Poppins Bold': 'Poppins',
+  'Poppins SemiBold': 'Poppins',
+  'Raleway Medium': 'Raleway',
+  'Raleway Bold': 'Raleway',
+  'Open Sans Medium': 'Open Sans',
+  'Open Sans Bold': 'Open Sans',
+  'Roboto Medium': 'Roboto',
+  'Roboto Bold': 'Roboto',
+  'Roboto Light': 'Roboto',
+  'Source Sans Pro Medium': 'Source Sans 3',
+  'Source Sans Pro Bold': 'Source Sans 3',
+  'Nunito SemiBold': 'Nunito',
+  'Nunito Bold': 'Nunito',
+  'Work Sans Medium': 'Work Sans',
+  'Work Sans Bold': 'Work Sans',
+  'DM Sans Medium': 'DM Sans',
+  'DM Sans Bold': 'DM Sans',
+  'Josefin Sans Medium': 'Josefin Sans',
+  'Josefin Sans Bold': 'Josefin Sans',
+};
+
+const WEIGHT_SUFFIXES = ['ExtraBold', 'SemiBold', 'Bold', 'Medium', 'Regular', 'Light', 'Thin', 'Black', 'ExtraLight', 'Heavy'];
+
+function resolveGoogleFontName(name: string): string {
+  if (FONT_NAME_MAP[name]) return FONT_NAME_MAP[name];
+  for (const suffix of WEIGHT_SUFFIXES) {
+    if (name.endsWith(` ${suffix}`)) {
+      const base = name.slice(0, -(suffix.length + 1));
+      if (base.length > 1) return base;
+    }
+  }
+  return name;
+}
+
 export function loadGoogleFont(fontFamily: string): void {
   // Clean font family name (remove quotes, fallbacks)
-  const clean = fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+  const raw = fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+  // Resolve PPTX font names to valid Google Fonts names
+  const clean = resolveGoogleFontName(raw);
   if (!clean || SYSTEM_FONTS.has(clean) || loadedFonts.has(clean)) return;
 
   loadedFonts.add(clean);
+  // Also mark the raw name so we don't try again
+  if (raw !== clean) loadedFonts.add(raw);
 
   const link = document.createElement('link');
   link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(clean)}:wght@300;400;500;600;700;800&display=swap`;

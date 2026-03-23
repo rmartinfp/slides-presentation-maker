@@ -105,9 +105,82 @@ async function extractGoogleFontsFromRels(zip: JSZip): Promise<string[]> {
 }
 
 // ---- Clean font name utility ----
+// Map PPTX font names to valid Google Fonts names
+// PPTX often uses weight suffixes (e.g. "Playfair Medium") that don't exist as separate Google Font families
+const FONT_NAME_MAP: Record<string, string> = {
+  'Playfair Medium': 'Playfair Display',
+  'Playfair Bold': 'Playfair Display',
+  'Playfair Regular': 'Playfair Display',
+  'Playfair SemiBold': 'Playfair Display',
+  'Playfair Light': 'Playfair Display',
+  'Playfair ExtraBold': 'Playfair Display',
+  'Playfair Black': 'Playfair Display',
+  'Inter Tight SemiBold': 'Inter Tight',
+  'Inter Tight Bold': 'Inter Tight',
+  'Inter Tight Medium': 'Inter Tight',
+  'Inter Tight Light': 'Inter Tight',
+  'Inter Tight ExtraBold': 'Inter Tight',
+  'Bricolage Grotesque SemiBold': 'Bricolage Grotesque',
+  'Bricolage Grotesque Bold': 'Bricolage Grotesque',
+  'Bricolage Grotesque Medium': 'Bricolage Grotesque',
+  'Bricolage Grotesque Light': 'Bricolage Grotesque',
+  'Montserrat Medium': 'Montserrat',
+  'Montserrat Bold': 'Montserrat',
+  'Montserrat SemiBold': 'Montserrat',
+  'Montserrat Light': 'Montserrat',
+  'Lato Medium': 'Lato',
+  'Lato Bold': 'Lato',
+  'Lato SemiBold': 'Lato',
+  'Lato Light': 'Lato',
+  'Poppins Medium': 'Poppins',
+  'Poppins Bold': 'Poppins',
+  'Poppins SemiBold': 'Poppins',
+  'Poppins Light': 'Poppins',
+  'Raleway Medium': 'Raleway',
+  'Raleway Bold': 'Raleway',
+  'Raleway SemiBold': 'Raleway',
+  'Open Sans Medium': 'Open Sans',
+  'Open Sans Bold': 'Open Sans',
+  'Open Sans SemiBold': 'Open Sans',
+  'Open Sans Light': 'Open Sans',
+  'Roboto Medium': 'Roboto',
+  'Roboto Bold': 'Roboto',
+  'Roboto Light': 'Roboto',
+  'Roboto Thin': 'Roboto',
+  'Source Sans Pro Medium': 'Source Sans 3',
+  'Source Sans Pro Bold': 'Source Sans 3',
+  'Source Sans Pro Light': 'Source Sans 3',
+  'Nunito SemiBold': 'Nunito',
+  'Nunito Bold': 'Nunito',
+  'Nunito Medium': 'Nunito',
+  'Nunito Light': 'Nunito',
+  'Work Sans Medium': 'Work Sans',
+  'Work Sans Bold': 'Work Sans',
+  'Work Sans SemiBold': 'Work Sans',
+  'DM Sans Medium': 'DM Sans',
+  'DM Sans Bold': 'DM Sans',
+  'Josefin Sans Medium': 'Josefin Sans',
+  'Josefin Sans Bold': 'Josefin Sans',
+  'Josefin Sans SemiBold': 'Josefin Sans',
+  'Josefin Sans Light': 'Josefin Sans',
+};
+
+// Weight suffixes that PPTX appends to font family names
+const WEIGHT_SUFFIXES = ['ExtraBold', 'SemiBold', 'Bold', 'Medium', 'Regular', 'Light', 'Thin', 'Black', 'ExtraLight', 'Heavy'];
+
 function cleanFontName(name: string): string {
   // Strip URL query params that sometimes leak into font names
-  return name.split('?')[0].trim();
+  let clean = name.split('?')[0].trim();
+  // Check direct mapping first
+  if (FONT_NAME_MAP[clean]) return FONT_NAME_MAP[clean];
+  // Try stripping weight suffix as fallback (e.g. "CustomFont Bold" -> "CustomFont")
+  for (const suffix of WEIGHT_SUFFIXES) {
+    if (clean.endsWith(` ${suffix}`)) {
+      const base = clean.slice(0, -(suffix.length + 1));
+      if (base.length > 1) return FONT_NAME_MAP[clean] || base;
+    }
+  }
+  return clean;
 }
 
 // ---- Slide Parsing ----
