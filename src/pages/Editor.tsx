@@ -142,6 +142,13 @@ export default function EditorPage() {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
+  // Recalculate canvas scale when right panel toggles
+  useEffect(() => {
+    // Small delay so the DOM layout updates before measuring
+    const t = setTimeout(updateScale, 250);
+    return () => clearTimeout(t);
+  }, [showRightPanel, updateScale]);
+
   // Keyboard nav
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -396,11 +403,11 @@ export default function EditorPage() {
                               </button>
                             </div>
                             <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
-                              <div style={{ width: 1920 * 0.09, height: 1080 * 0.09 }}>
+                              <div style={{ width: 1920 * 0.065, height: 1080 * 0.065, transformOrigin: 'top left' }}>
                                 <SlideCanvas
                                   slide={slide}
                                   theme={presentation.theme}
-                                  scale={0.09}
+                                  scale={0.065}
                                   isEditing={false}
                                 />
                               </div>
