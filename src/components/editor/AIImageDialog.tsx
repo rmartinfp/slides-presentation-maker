@@ -1,20 +1,32 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ImagePlus, X, Loader2, Send } from 'lucide-react';
+import { ImagePlus, X, Loader2, Send, Replace } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
+const ASPECT_RATIOS = [
+  { label: '16:9', size: '1792x1024', w: 1200, h: 672 },
+  { label: '1:1', size: '1024x1024', w: 600, h: 600 },
+  { label: '9:16', size: '1024x1792', w: 400, h: 712 },
+  { label: '4:3', size: '1024x768', w: 800, h: 600 },
+] as const;
+
 interface Props {
   onClose: () => void;
+  /** If provided, the generated image replaces this element instead of creating new */
+  replaceElementId?: string;
 }
 
-export default function AIImageDialog({ onClose }: Props) {
+export default function AIImageDialog({ onClose, replaceElementId }: Props) {
   const [prompt, setPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
-  const addElement = useEditorStore(s => s.addElement);
+  const [selectedRatio, setSelectedRatio] = useState(0); // index into ASPECT_RATIOS
+  const { addElement, updateElement } = useEditorStore();
+
+  const ratio = ASPECT_RATIOS[selectedRatio];
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -25,18 +37,19 @@ export default function AIImageDialog({ onClose }: Props) {
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
           prompt: prompt.trim(),
-          size: '1792x1024',
+          size: ratio.size,
           quality: 'standard',
         },
       });
 
       if (error) throw new Error(error.message);
-      if (data.error) throw new Error(data.error);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error('No image URL returned');
 
       setPreview(data.url);
-    } catch (err) {
-      console.error(err);
-      toast.error('Failed to generate image');
+    } catch (err: any) {
+      console.error('AI Image error:', err);
+      toast.error(err.message || 'Failed to generate image. Check your API configuration.');
     } finally {
       setLoading(false);
     }
@@ -44,23 +57,28 @@ export default function AIImageDialog({ onClose }: Props) {
 
   const handleInsert = () => {
     if (!preview) return;
-    addElement({
-      type: 'image',
-      content: preview,
-      x: 360,
-      y: 200,
-      width: 1200,
-      height: 672,
-      rotation: 0,
-      opacity: 1,
-      locked: false,
-      visible: true,
-      style: {
-        objectFit: 'cover',
-        borderRadius: 12,
-      },
-    });
-    toast.success('Image added to slide!');
+
+    if (replaceElementId) {
+      // Replace existing image — keep position and size
+      updateElement(replaceElementId, { content: preview });
+      toast.success('Image replaced!');
+    } else {
+      // Create new image element
+      addElement({
+        type: 'image',
+        content: preview,
+        x: 360,
+        y: 200,
+        width: ratio.w,
+        height: ratio.h,
+        rotation: 0,
+        opacity: 1,
+        locked: false,
+        visible: true,
+        style: { objectFit: 'cover', borderRadius: 12 },
+      });
+      toast.success('Image added to slide!');
+    }
     onClose();
   };
 
@@ -85,8 +103,12 @@ export default function AIImageDialog({ onClose }: Props) {
               <ImagePlus className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">AI Image Generator</h3>
-              <p className="text-xs text-slate-400">Describe the image you need</p>
+              <h3 className="font-semibold text-slate-800">
+                {replaceElementId ? 'Recreate Image with AI' : 'AI Image Generator'}
+              </h3>
+              <p className="text-xs text-slate-400">
+                {replaceElementId ? 'Describe the new image to replace the current one' : 'Describe the image you need'}
+              </p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center">
@@ -95,10 +117,32 @@ export default function AIImageDialog({ onClose }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Aspect ratio selector — only for new images */}
+          {!replaceElementId && (
+            <div>
+              <label className="text-xs text-slate-500 mb-2 block">Aspect Ratio</label>
+              <div className="flex gap-2">
+                {ASPECT_RATIOS.map((ar, i) => (
+                  <button
+                    key={ar.label}
+                    onClick={() => setSelectedRatio(i)}
+                    className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
+                      i === selectedRatio
+                        ? 'bg-indigo-600 text-white'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                  >
+                    {ar.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Preview */}
           {preview && (
             <div className="rounded-xl overflow-hidden border border-slate-200">
-              <img src={preview} alt="AI Generated" className="w-full aspect-video object-cover" />
+              <img src={preview} alt="AI Generated" className="w-full object-cover" style={{ aspectRatio: ratio.label === '1:1' ? '1' : ratio.label === '9:16' ? '9/16' : ratio.label === '4:3' ? '4/3' : '16/9' }} />
             </div>
           )}
 
@@ -132,13 +176,17 @@ export default function AIImageDialog({ onClose }: Props) {
             </Button>
           </div>
 
-          {/* Insert button */}
+          {/* Insert/Replace button */}
           {preview && (
             <Button
               onClick={handleInsert}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white gap-2"
             >
-              Insert into Slide
+              {replaceElementId ? (
+                <><Replace className="w-4 h-4" /> Replace Image</>
+              ) : (
+                'Insert into Slide'
+              )}
             </Button>
           )}
         </div>

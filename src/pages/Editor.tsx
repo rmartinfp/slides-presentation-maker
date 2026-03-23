@@ -548,6 +548,20 @@ export default function EditorPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* Image actions when image is selected */}
+              {singleSelected?.type === 'image' && (
+                <>
+                  <div className="w-px h-6 bg-slate-200/60 mx-1" />
+                  {(['cover', 'contain', 'fill'] as const).map(fit => (
+                    <button key={fit} onClick={() => updateElement(singleSelected.id, { style: { ...singleSelected.style, objectFit: fit } })}
+                      className={`px-2 py-1 rounded-lg text-[9px] font-medium transition-colors ${singleSelected.style.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>
+                      {fit}
+                    </button>
+                  ))}
+                  <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI Replace" highlight onClick={() => setShowAIImage(true)} />
+                </>
+              )}
+
               {selectedElementIds.length > 0 && (
                 <>
                   <div className="w-px h-6 bg-slate-200/60 mx-1" />
@@ -604,7 +618,10 @@ export default function EditorPage() {
           <AIRewriteDialog slide={activeSlide} presentationTitle={presentation.title} onUpdate={handleAIUpdate} onClose={() => setShowAIRewrite(false)} />
         )}
         {showAIImage && (
-          <AIImageDialog onClose={() => setShowAIImage(false)} />
+          <AIImageDialog
+            onClose={() => setShowAIImage(false)}
+            replaceElementId={singleSelected?.type === 'image' ? singleSelected.id : undefined}
+          />
         )}
       </AnimatePresence>
     </>
