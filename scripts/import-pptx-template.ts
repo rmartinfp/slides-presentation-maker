@@ -244,6 +244,10 @@ function parseTextFromSpTree(
   let html = '';
   let firstFontSize: number | null = null;
   let firstFontFamily: string | null = null;
+  let firstInlineFont: string | null = null; // Track first inline font for mixed-font detection
+  let mixedFonts = false; // True when different runs use different explicit fonts
+  let hasExplicitFont = false; // Some runs have explicit font-family
+  let hasInheritedFont = false; // Some runs have NO font (use container/inherited)
   let firstColor: string | null = null;
   let firstAlign: string | null = null;
   let firstBold = false;
@@ -279,7 +283,12 @@ function parseTextFromSpTree(
       const color = solidFill ? parseColorFromShapeXml(solidFill[1], themeColors) : null;
 
       if (!firstFontSize && fontSize) firstFontSize = fontSize;
-      if (!firstFontFamily && fontFamily) firstFontFamily = fontFamily;
+      // Track inline fonts for mixed-font detection (inherited check is after text extraction below)
+      if (fontFamily) {
+        if (!firstInlineFont) firstInlineFont = fontFamily;
+        else if (firstInlineFont !== fontFamily) mixedFonts = true;
+        hasExplicitFont = true;
+      }
       if (!firstColor && color) firstColor = color;
       // Bold from run OR inherited from paragraph default
       const runBold = isBold(rPrXml) || paragraphBold;
@@ -291,6 +300,9 @@ function parseTextFromSpTree(
       if (!textMatch) continue;
       let text = textMatch[1]
         .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+      // Track runs with text but NO explicit font → uses inherited/container font
+      if (!fontFamily && text.trim()) hasInheritedFont = true;
 
       // Apply formatting
       const styles: string[] = [];
@@ -375,6 +387,13 @@ function parseTextFromSpTree(
   }
   if (!firstBold && masterDefaults && (phType === 'ctrTitle' || phType === 'title')) {
     if (masterDefaults.titleBold) firstBold = true;
+  }
+
+  // If all runs use the SAME explicit font (no mixing, no inherited), use it as container.
+  // If fonts are mixed OR some runs are inherited, let placeholder/theme define container.
+  // This ensures "Meow Script" on decorative letters doesn't become the container font.
+  if (!firstFontFamily && firstInlineFont && !mixedFonts && !hasInheritedFont) {
+    firstFontFamily = firstInlineFont;
   }
 
   // Inherit font family: idx-only from layout, then master/theme defaults
