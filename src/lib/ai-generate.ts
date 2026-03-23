@@ -176,3 +176,123 @@ export async function importPdf(options: {
 
   return data.slides || [];
 }
+
+// ─── AI FEATURES ────────────────────────────────────────────
+
+/**
+ * #4 — Generate speaker notes for a slide.
+ */
+export async function generateNotes(options: {
+  elements: unknown[];
+  slideIndex: number;
+  totalSlides: number;
+  presentationTitle: string;
+  language?: string;
+}) {
+  const { data, error } = await supabase.functions.invoke('generate-notes', { body: options });
+  if (error) throw new Error(error.message || 'Failed to generate notes');
+  if (data?.error) throw new Error(data.error);
+  return data.notes as string;
+}
+
+/**
+ * #9 — Translate entire presentation.
+ */
+export async function translatePresentation(options: {
+  slides: unknown[];
+  targetLanguage: string;
+  title?: string;
+}) {
+  const { data, error } = await supabase.functions.invoke('translate-presentation', { body: options });
+  if (error) throw new Error(error.message || 'Failed to translate');
+  if (data?.error) throw new Error(data.error);
+  return { slides: data.slides, title: data.title } as { slides: unknown[]; title: string };
+}
+
+/**
+ * #13 — AI Presentation Coach.
+ */
+export async function coachPresentation(options: {
+  slides: unknown[];
+  title: string;
+  language?: string;
+}) {
+  const { data, error } = await supabase.functions.invoke('coach-presentation', { body: options });
+  if (error) throw new Error(error.message || 'Failed to analyze');
+  if (data?.error) throw new Error(data.error);
+  return data as {
+    overallScore: number;
+    summary: string;
+    strengths: string[];
+    issues: { slide: number; severity: string; category: string; title: string; description: string }[];
+    tips: string[];
+  };
+}
+
+/**
+ * #1 + #2 — Redesign / Reorganize slide layout.
+ */
+export async function redesignSlide(options: {
+  elements: unknown[];
+  mode: 'redesign' | 'reorganize';
+  themeTokens?: unknown;
+  instruction?: string;
+}) {
+  const { data, error } = await supabase.functions.invoke('redesign-slide', { body: options });
+  if (error) throw new Error(error.message || 'Failed to redesign');
+  if (data?.error) throw new Error(data.error);
+  return data.variants as { name: string; elements: unknown[] }[];
+}
+
+/**
+ * #8 — Extract brand kit from presentation.
+ */
+export async function extractBrand(options: {
+  slides: unknown[];
+  currentTheme?: unknown;
+}) {
+  const { data, error } = await supabase.functions.invoke('extract-brand', { body: options });
+  if (error) throw new Error(error.message || 'Failed to extract brand');
+  if (data?.error) throw new Error(data.error);
+  return data as {
+    brandName: string;
+    palette: { primary: string; secondary: string; accent: string; bg: string; text: string };
+    typography: { titleFont: string; bodyFont: string; titleSize: number; bodySize: number };
+    style: { radii: string; shadows: string; mood: string };
+    recommendations: string[];
+  };
+}
+
+/**
+ * #7 — Generate chart configuration from data/prompt.
+ */
+export async function generateChart(options: {
+  prompt?: string;
+  data?: string;
+  chartType?: string;
+  themeTokens?: unknown;
+}) {
+  const { data, error } = await supabase.functions.invoke('generate-chart', { body: options });
+  if (error) throw new Error(error.message || 'Failed to generate chart');
+  if (data?.error) throw new Error(data.error);
+  return data as {
+    chartType: string;
+    title: string;
+    data: { name: string; value: number; value2?: number }[];
+    config: { xKey: string; yKeys: string[]; colors: string[]; showGrid: boolean; showLegend: boolean; unit?: string; stacked: boolean };
+  };
+}
+
+/**
+ * #3 — Edit image with AI.
+ */
+export async function editImage(options: {
+  imageUrl: string;
+  instruction: string;
+  mode?: 'edit' | 'remove-bg' | 'extend';
+}) {
+  const { data, error } = await supabase.functions.invoke('edit-image', { body: options });
+  if (error) throw new Error(error.message || 'Failed to edit image');
+  if (data?.error) throw new Error(data.error);
+  return { url: data.url as string };
+}

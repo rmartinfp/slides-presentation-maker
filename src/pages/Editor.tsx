@@ -15,6 +15,14 @@ import CinematicPresentation from '@/components/cinematic/CinematicPresentation'
 import { CinematicPreset } from '@/types/cinematic';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import AIImageDialog from '@/components/editor/AIImageDialog';
+import TranslateDialog from '@/components/editor/TranslateDialog';
+import CoachDialog from '@/components/editor/CoachDialog';
+import RedesignDialog from '@/components/editor/RedesignDialog';
+import BrandKitDialog from '@/components/editor/BrandKitDialog';
+import ChartDialog from '@/components/editor/ChartDialog';
+import ImageEditDialog from '@/components/editor/ImageEditDialog';
+import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
+import SmartSuggest from '@/components/editor/SmartSuggest';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
@@ -33,6 +41,7 @@ import {
   Trash2, Copy, Lock, Unlock, ArrowUpToLine, ArrowDownToLine, Sparkles,
   FileText, FileDown, ChevronDown, Plus, MoreVertical, Star, Pentagon, Hexagon,
   Heart, MoveLeft, ArrowUp, ArrowDown, Monitor, Grid3X3, Upload,
+  Languages, GraduationCap, Wand2, Palette, BarChart3, Mic, ImagePlus, LayoutGrid,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -232,6 +241,13 @@ export default function EditorPage() {
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [showRightPanel, setShowRightPanel] = React.useState(true);
   const [showAIImage, setShowAIImage] = React.useState(false);
+  const [showTranslate, setShowTranslate] = React.useState(false);
+  const [showCoach, setShowCoach] = React.useState(false);
+  const [showRedesign, setShowRedesign] = React.useState(false);
+  const [showBrandKit, setShowBrandKit] = React.useState(false);
+  const [showChart, setShowChart] = React.useState(false);
+  const [showImageEdit, setShowImageEdit] = React.useState(false);
+  const [showVoiceToSlides, setShowVoiceToSlides] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
@@ -575,9 +591,21 @@ export default function EditorPage() {
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2 w-52">
+                <DropdownMenuContent side="top" className="mb-2 w-56">
                   <DropdownMenuItem onClick={() => setShowAIRewrite(true)}><Sparkles className="w-4 h-4 mr-2" />Rewrite this slide</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowAIImage(true)}><Image className="w-4 h-4 mr-2" />Generate image</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowRedesign(true)}><Wand2 className="w-4 h-4 mr-2" />Redesign this slide</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowAIImage(true)}><ImagePlus className="w-4 h-4 mr-2" />Generate image</DropdownMenuItem>
+                  {singleSelected?.type === 'image' && (
+                    <DropdownMenuItem onClick={() => setShowImageEdit(true)}><Palette className="w-4 h-4 mr-2" />Edit image with AI</DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={() => setShowChart(true)}><BarChart3 className="w-4 h-4 mr-2" />AI Chart / Data Viz</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate presentation</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Extract Brand Kit</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowVoiceToSlides(true)}><Mic className="w-4 h-4 mr-2" />Voice to Slides</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Presentation Coach</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               {connectorMode && (
@@ -592,6 +620,7 @@ export default function EditorPage() {
             </div>
 
             {/* Contextual toolbar is now inside CanvasElement (ElementContextBar) */}
+            <SmartSuggest />
           </div>
 
           {/* Right panel toggle + properties */}
@@ -630,6 +659,15 @@ export default function EditorPage() {
             replaceElementId={singleSelected?.type === 'image' ? singleSelected.id : undefined}
           />
         )}
+        {showTranslate && <TranslateDialog onClose={() => setShowTranslate(false)} />}
+        {showCoach && <CoachDialog onClose={() => setShowCoach(false)} />}
+        {showRedesign && <RedesignDialog onClose={() => setShowRedesign(false)} />}
+        {showBrandKit && <BrandKitDialog onClose={() => setShowBrandKit(false)} />}
+        {showChart && <ChartDialog onClose={() => setShowChart(false)} />}
+        {showImageEdit && singleSelected?.type === 'image' && (
+          <ImageEditDialog elementId={singleSelected.id} onClose={() => setShowImageEdit(false)} />
+        )}
+        {showVoiceToSlides && <VoiceToSlidesDialog onClose={() => setShowVoiceToSlides(false)} />}
       </AnimatePresence>
     </>
   );
