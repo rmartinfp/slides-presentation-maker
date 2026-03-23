@@ -118,9 +118,8 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Aspect ratio selector — only for new images */}
-          {!replaceElementId && (
-            <div>
+          {/* Aspect ratio selector */}
+          <div>
               <label className="text-xs text-slate-500 mb-2 block">Aspect Ratio</label>
               <div className="flex gap-2">
                 {ASPECT_RATIOS.map((ar, i) => (
@@ -138,7 +137,6 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
                 ))}
               </div>
             </div>
-          )}
 
           {/* Preview */}
           {preview && (

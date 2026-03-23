@@ -164,7 +164,7 @@ export default function CanvasElement({
     top: element.y,
     width: Math.max(1, element.width),
     height: Math.max(1, element.height),
-    overflow: isEditing ? 'visible' : 'hidden', // visible when editing so FormattingToolbar above element isn't clipped
+    overflow: (isEditing || isSelected) ? 'visible' : 'hidden', // visible when selected/editing so toolbars above element aren't clipped
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
     zIndex: isEditing ? 9999 : element.zIndex,

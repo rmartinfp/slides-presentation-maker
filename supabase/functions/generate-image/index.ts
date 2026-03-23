@@ -7,17 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
-/**
- * Edge function: generate-image
- *
- * Generates an image using Google Imagen 3 via Gemini API
- * and uploads it to Supabase Storage.
- *
- * Request body: {
- *   prompt: string,
- *   aspectRatio?: "1:1" | "16:9" | "9:16" | "4:3" | "3:4",
- * }
- */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -41,89 +30,111 @@ serve(async (req) => {
       );
     }
 
-    // Generate image with Imagen 3 via Gemini API
-    const genRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+    const enhancedPrompt = `Professional presentation graphic: ${prompt}. Clean, modern, high quality, suitable for a business presentation slide.`;
+
+    // Try Imagen 3 first
+    try {
+      const imagenRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            instances: [{ prompt: enhancedPrompt }],
+            parameters: { sampleCount: 1, aspectRatio },
+          }),
+        },
+      );
+
+      if (imagenRes.ok) {
+        const data = await imagenRes.json();
+        const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
+        if (imageBase64) {
+          const imageBytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+          const url = await uploadToStorage(imageBytes, "image/png");
+          return new Response(
+            JSON.stringify({ url }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+      }
+      console.log("Imagen 3 failed, trying Gemini fallback...");
+    } catch (e) {
+      console.log("Imagen 3 error:", e.message);
+    }
+
+    // Fallback: Gemini 2.0 Flash with image generation
+    const geminiRes = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          instances: [
+          contents: [
             {
-              prompt: `Professional presentation graphic: ${prompt}. Clean, modern, high quality, suitable for a business presentation slide.`,
+              parts: [
+                { text: `Generate an image: ${enhancedPrompt}` },
+              ],
             },
           ],
-          parameters: {
-            sampleCount: 1,
-            aspectRatio,
+          generationConfig: {
+            responseModalities: ["IMAGE", "TEXT"],
           },
         }),
       },
     );
 
-    if (!genRes.ok) {
-      // Fallback: try Gemini 2.0 Flash with image generation
-      const geminiRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
+    if (!geminiRes.ok) {
+      const errorText = await geminiRes.text();
+      console.error("Gemini error:", errorText);
+
+      // Last resort: try gemini-2.0-flash-preview-image-generation
+      const imgGenRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [
-              {
-                parts: [
-                  {
-                    text: `Generate an image: Professional presentation graphic about "${prompt}". Clean, modern, high quality, suitable for a business presentation slide.`,
-                  },
-                ],
-              },
-            ],
-            generationConfig: {
-              responseModalities: ["IMAGE", "TEXT"],
-              responseMimeType: "image/png",
-            },
+            contents: [{ parts: [{ text: `Generate an image: ${enhancedPrompt}` }] }],
+            generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
           }),
         },
       );
 
-      if (!geminiRes.ok) {
-        const error = await geminiRes.text();
-        throw new Error(`Google AI error: ${error}`);
+      if (!imgGenRes.ok) {
+        const err2 = await imgGenRes.text();
+        throw new Error(`All models failed. Last error: ${err2.substring(0, 200)}`);
       }
 
-      const geminiData = await geminiRes.json();
-      const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
+      const imgGenData = await imgGenRes.json();
+      const imgPart = imgGenData.candidates?.[0]?.content?.parts?.find(
         (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
       );
+      if (!imgPart?.inlineData?.data) throw new Error("No image in response");
 
-      if (!imagePart?.inlineData?.data) {
-        throw new Error("No image generated by Gemini");
-      }
-
-      // Upload base64 image to Supabase
-      const imageBytes = Uint8Array.from(
-        atob(imagePart.inlineData.data),
-        (c) => c.charCodeAt(0),
-      );
-
-      const url = await uploadToStorage(imageBytes, "image/png");
+      const bytes = Uint8Array.from(atob(imgPart.inlineData.data), (c) => c.charCodeAt(0));
+      const url = await uploadToStorage(bytes, imgPart.inlineData.mimeType || "image/png");
       return new Response(
         JSON.stringify({ url }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Imagen 3 success path
-    const data = await genRes.json();
-    const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
+    const geminiData = await geminiRes.json();
+    const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
+      (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
+    );
 
-    if (!imageBase64) {
-      throw new Error("No image in Imagen response");
+    if (!imagePart?.inlineData?.data) {
+      throw new Error("No image generated — model may not support image output");
     }
 
-    const imageBytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
-    const url = await uploadToStorage(imageBytes, "image/png");
+    const imageBytes = Uint8Array.from(
+      atob(imagePart.inlineData.data),
+      (c) => c.charCodeAt(0),
+    );
 
+    const url = await uploadToStorage(imageBytes, imagePart.inlineData.mimeType || "image/png");
     return new Response(
       JSON.stringify({ url }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -137,10 +148,7 @@ serve(async (req) => {
   }
 });
 
-async function uploadToStorage(
-  imageBytes: Uint8Array,
-  contentType: string,
-): Promise<string> {
+async function uploadToStorage(imageBytes: Uint8Array, contentType: string): Promise<string> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -148,18 +156,10 @@ async function uploadToStorage(
   const fileName = `ai-generated/${crypto.randomUUID()}.png`;
   const { error } = await supabase.storage
     .from("presentation-assets")
-    .upload(fileName, imageBytes, {
-      contentType,
-      cacheControl: "3600",
-    });
+    .upload(fileName, imageBytes, { contentType, cacheControl: "3600" });
 
-  if (error) {
-    throw new Error(`Upload error: ${error.message}`);
-  }
+  if (error) throw new Error(`Upload error: ${error.message}`);
 
-  const { data } = supabase.storage
-    .from("presentation-assets")
-    .getPublicUrl(fileName);
-
+  const { data } = supabase.storage.from("presentation-assets").getPublicUrl(fileName);
   return data.publicUrl;
 }
