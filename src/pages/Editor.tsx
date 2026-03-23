@@ -41,7 +41,7 @@ import {
   Trash2, Copy, Lock, Unlock, ArrowUpToLine, ArrowDownToLine, Sparkles,
   FileText, FileDown, ChevronDown, Plus, MoreVertical, Star, Pentagon, Hexagon,
   Heart, MoveLeft, ArrowUp, ArrowDown, Monitor, Grid3X3, Upload,
-  Languages, GraduationCap, Wand2, Palette, BarChart3, Mic, ImagePlus, LayoutGrid,
+  Languages, GraduationCap, Wand2, Palette, BarChart3, Mic, ImagePlus, LayoutGrid, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -248,6 +248,7 @@ export default function EditorPage() {
   const [showChart, setShowChart] = React.useState(false);
   const [showImageEdit, setShowImageEdit] = React.useState(false);
   const [showVoiceToSlides, setShowVoiceToSlides] = React.useState(false);
+  const [showSuggest, setShowSuggest] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
@@ -613,6 +614,7 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Extract Brand Kit</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowVoiceToSlides(true)}><Mic className="w-4 h-4 mr-2" />Voice to Slides</DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowSuggest(true)}><Lightbulb className="w-4 h-4 mr-2" />Smart Suggestions</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Presentation Coach</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -628,7 +630,6 @@ export default function EditorPage() {
             </div>
 
             {/* Contextual toolbar is now inside CanvasElement (ElementContextBar) */}
-            <SmartSuggest />
           </div>
 
           {/* Right panel toggle + properties */}
@@ -676,6 +677,7 @@ export default function EditorPage() {
           <ImageEditDialog elementId={singleSelected.id} onClose={() => setShowImageEdit(false)} />
         )}
         {showVoiceToSlides && <VoiceToSlidesDialog onClose={() => setShowVoiceToSlides(false)} />}
+        {showSuggest && <SmartSuggest onClose={() => setShowSuggest(false)} />}
       </AnimatePresence>
     </>
   );

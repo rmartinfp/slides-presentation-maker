@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, X, Loader2, ChevronRight, Scissors, BarChart3, ImagePlus, FileText, AlertTriangle, Palette } from 'lucide-react';
+import React, { useState } from 'react';
+import { Lightbulb, X, Loader2, Scissors, ImagePlus, FileText, Palette } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 
@@ -14,131 +13,113 @@ interface Suggestion {
   priority: 'high' | 'medium' | 'low';
 }
 
-export default function SmartSuggest() {
+interface Props {
+  onClose: () => void;
+}
+
+export default function SmartSuggest({ onClose }: Props) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [loading, setLoading] = useState(false);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [collapsed, setCollapsed] = useState(false);
-  const lastSlideRef = useRef<string>('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const [fetched, setFetched] = useState(false);
 
   const { presentation, activeSlideIndex } = useEditorStore();
   const activeSlide = presentation.slides[activeSlideIndex];
 
-  // Auto-fetch suggestions when slide changes (debounced)
-  useEffect(() => {
+  const fetchSuggestions = async () => {
     if (!activeSlide) return;
-
-    const slideKey = `${activeSlideIndex}-${activeSlide.elements?.length || 0}`;
-    if (slideKey === lastSlideRef.current) return;
-    lastSlideRef.current = slideKey;
-
-    // Reset dismissed for new slide
-    setDismissed(new Set());
-
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('smart-suggest', {
-          body: {
-            slide: activeSlide,
-            slideIndex: activeSlideIndex,
-            totalSlides: presentation.slides.length,
-            presentationTitle: presentation.title,
-          },
-        });
-
-        if (error || data?.error) {
-          setSuggestions([]);
-          return;
-        }
-
-        setSuggestions(data?.suggestions || []);
-      } catch {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('smart-suggest', {
+        body: {
+          slide: activeSlide,
+          slideIndex: activeSlideIndex,
+          totalSlides: presentation.slides.length,
+          presentationTitle: presentation.title,
+        },
+      });
+      if (error || data?.error) {
         setSuggestions([]);
-      } finally {
-        setLoading(false);
+      } else {
+        setSuggestions(data?.suggestions || []);
       }
-    }, 2000); // 2s debounce
+    } catch {
+      setSuggestions([]);
+    } finally {
+      setLoading(false);
+      setFetched(true);
+    }
+  };
 
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, [activeSlideIndex, activeSlide?.elements?.length]);
+  // Fetch on mount
+  React.useEffect(() => { fetchSuggestions(); }, []);
 
-  const visibleSuggestions = suggestions.filter(s => !dismissed.has(s.id));
+  const typeIcon = (type: string) => {
+    if (type === 'content') return <FileText className="w-3.5 h-3.5" />;
+    if (type === 'design') return <Palette className="w-3.5 h-3.5" />;
+    if (type === 'add') return <ImagePlus className="w-3.5 h-3.5" />;
+    if (type === 'split') return <Scissors className="w-3.5 h-3.5" />;
+    return <Lightbulb className="w-3.5 h-3.5" />;
+  };
 
-  if (visibleSuggestions.length === 0 && !loading) return null;
-
-  const priorityColor = (p: string) => {
-    if (p === 'high') return 'border-red-200 bg-red-50';
-    if (p === 'medium') return 'border-amber-200 bg-amber-50';
-    return 'border-blue-200 bg-blue-50';
+  const severityDot = (p: string) => {
+    if (p === 'high') return 'bg-red-400';
+    if (p === 'medium') return 'bg-amber-400';
+    return 'bg-blue-400';
   };
 
   return (
-    <div className="absolute bottom-14 right-4 z-20 w-72">
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-slate-200 overflow-hidden"
-          >
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-slate-100">
-              <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
-              <span className="text-[11px] font-semibold text-slate-700">AI Suggestions</span>
-              {loading && <Loader2 className="w-3 h-3 text-slate-400 animate-spin ml-auto" />}
-              <button
-                onClick={() => setCollapsed(true)}
-                className="ml-auto p-0.5 hover:bg-slate-100 rounded"
-              >
-                <X className="w-3 h-3 text-slate-400" />
-              </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-sm bg-white rounded-2xl shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
+              <Lightbulb className="w-3.5 h-3.5 text-white" />
             </div>
-            <div className="max-h-48 overflow-y-auto">
-              {visibleSuggestions.map(s => (
-                <div
-                  key={s.id}
-                  className={`px-3 py-2 border-b border-slate-50 last:border-0 flex items-start gap-2 group hover:bg-slate-50 transition-colors ${priorityColor(s.priority)} border-l-2`}
-                >
-                  <span className="mt-0.5 shrink-0 text-slate-400">
-                    {s.type === 'content' ? <FileText className="w-3.5 h-3.5" /> :
-                     s.type === 'design' ? <Palette className="w-3.5 h-3.5" /> :
-                     s.type === 'add' ? <ImagePlus className="w-3.5 h-3.5" /> :
-                     s.type === 'split' ? <Scissors className="w-3.5 h-3.5" /> :
-                     <Lightbulb className="w-3.5 h-3.5" />}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-medium text-slate-800 leading-tight">{s.title}</div>
-                    <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{s.description}</div>
-                  </div>
-                  <button
-                    onClick={() => setDismissed(prev => new Set(prev).add(s.id))}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-200 rounded transition-opacity shrink-0"
-                  >
-                    <X className="w-2.5 h-2.5 text-slate-400" />
-                  </button>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-800">Smart Suggestions</h3>
+              <p className="text-[10px] text-slate-400">Slide {activeSlideIndex + 1}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center">
+            <X className="w-4 h-4 text-slate-400" />
+          </button>
+        </div>
+
+        <div className="max-h-[60vh] overflow-y-auto">
+          {loading && (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="w-5 h-5 text-[#4F46E5] animate-spin" />
+              <span className="text-xs text-slate-400 ml-2">Analyzing slide...</span>
+            </div>
+          )}
+
+          {fetched && !loading && suggestions.length === 0 && (
+            <div className="py-10 text-center">
+              <Lightbulb className="w-6 h-6 text-slate-300 mx-auto mb-2" />
+              <p className="text-xs text-slate-400">This slide looks good! No suggestions.</p>
+            </div>
+          )}
+
+          {suggestions.map(s => (
+            <div
+              key={s.id}
+              className="px-5 py-3 border-b border-slate-100 last:border-0 flex items-start gap-3 hover:bg-slate-50/50 transition-colors"
+            >
+              <span className="mt-0.5 shrink-0 text-slate-400">{typeIcon(s.type)}</span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${severityDot(s.priority)}`} />
+                  <span className="text-xs font-medium text-slate-700 leading-tight">{s.title}</span>
                 </div>
-              ))}
+                <p className="text-[11px] text-slate-500 leading-snug mt-0.5">{s.description}</p>
+              </div>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      {collapsed && visibleSuggestions.length > 0 && (
-        <motion.button
-          initial={{ scale: 0.8 }}
-          animate={{ scale: 1 }}
-          onClick={() => setCollapsed(false)}
-          className="ml-auto flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-lg text-[10px] font-medium text-amber-700 shadow-sm transition-colors"
-        >
-          <Lightbulb className="w-3 h-3" />
-          {visibleSuggestions.length} suggestion{visibleSuggestions.length > 1 ? 's' : ''}
-          <ChevronRight className="w-3 h-3" />
-        </motion.button>
-      )}
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
