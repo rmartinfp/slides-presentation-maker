@@ -192,6 +192,27 @@ export default function SlideCanvas({
         )
       ))}
 
+      {/* Contextual toolbar — rendered at canvas level so it's not clipped by element overflow */}
+      {isEditing && selectedElementIds.length === 1 && (() => {
+        const el = slide.elements?.find(e => e.id === selectedElementIds[0]);
+        if (!el || el.type === 'text' || el.locked) return null;
+        return (
+          <div
+            className="absolute z-[200] flex items-center gap-0.5 px-2 py-1 bg-white rounded-xl shadow-2xl border border-slate-200 pointer-events-auto"
+            style={{
+              left: el.x,
+              top: el.y - 44 / scale,
+              transform: `scale(${1 / scale})`,
+              transformOrigin: 'bottom left',
+            }}
+            onMouseDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+          >
+            <ContextToolbar element={el} />
+          </div>
+        );
+      })()}
+
       {/* Marquee selection box */}
       {marqueeStyle && <div style={marqueeStyle} />}
     </div>
@@ -390,4 +411,50 @@ function StaticElement({ element }: { element: SlideElement }) {
   };
 
   return <div style={wrapperStyle}>{renderContent()}</div>;
+}
+
+/** Contextual toolbar rendered at canvas level (not inside element's overflow) */
+function ContextToolbar({ element }: { element: SlideElement }) {
+  const { updateElement, deleteElements, duplicateElements, bringToFront, sendToBack } = useEditorStore();
+  const s = element.style;
+  const btn = 'w-7 h-7 flex items-center justify-center rounded-md transition-colors';
+
+  return (
+    <>
+      <button onClick={() => duplicateElements()} className={`${btn} text-slate-600 hover:bg-slate-100`} title="Duplicate">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+      <button onClick={() => deleteElements()} className={`${btn} text-red-500 hover:bg-red-50`} title="Delete">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
+      <button onClick={() => bringToFront(element.id)} className={`${btn} text-slate-600 hover:bg-slate-100`} title="Front">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+      <button onClick={() => sendToBack(element.id)} className={`${btn} text-slate-600 hover:bg-slate-100`} title="Back">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </button>
+      {element.type === 'image' && (
+        <>
+          <div className="w-px h-5 bg-slate-200 mx-0.5" />
+          {(['cover', 'contain', 'fill'] as const).map(fit => (
+            <button key={fit} onClick={() => updateElement(element.id, { style: { objectFit: fit } })}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${s.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>{fit}</button>
+          ))}
+          <div className="w-px h-5 bg-slate-200 mx-0.5" />
+          <button onClick={() => window.dispatchEvent(new CustomEvent('slideai-open-ai-image'))}
+            className={`${btn} text-indigo-600 hover:bg-indigo-50`} title="Recreate with AI">
+            <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 3v2m0 14v2M5.6 5.6l1.4 1.4m10 10l1.4 1.4M3 12h2m14 0h2M5.6 18.4l1.4-1.4m10-10l1.4-1.4"/><circle cx="12" cy="12" r="4"/></svg>
+          </button>
+        </>
+      )}
+      {element.type === 'shape' && s.shapeType !== 'line' && (
+        <>
+          <div className="w-px h-5 bg-slate-200 mx-0.5" />
+          <input type="color" value={s.shapeFill || '#6366f1'}
+            onChange={e => updateElement(element.id, { style: { shapeFill: e.target.value } })}
+            className="w-6 h-6 rounded cursor-pointer border-0 p-0" title="Fill" />
+        </>
+      )}
+    </>
+  );
 }
