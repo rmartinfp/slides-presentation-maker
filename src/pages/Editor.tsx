@@ -13,6 +13,7 @@ import PresentationMode from '@/components/editor/PresentationMode';
 import PresenterView from '@/components/editor/PresenterView';
 import CinematicPresentation from '@/components/cinematic/CinematicPresentation';
 import { CinematicPreset } from '@/types/cinematic';
+import { CINEMATIC_PRESETS as CINEMATIC_PRESETS_LIST } from '@/lib/cinematic-presets';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import AIImageDialog from '@/components/editor/AIImageDialog';
 import TranslateDialog from '@/components/editor/TranslateDialog';
@@ -131,12 +132,7 @@ export default function EditorPage() {
     return null;
   });
 
-  // Auto-launch cinematic mode when content arrives
-  useEffect(() => {
-    if (cinematicPreset && presentation.slides.length > 0 && !isPresentationMode) {
-      setIsPresentationMode(true);
-    }
-  }, [cinematicPreset, presentation.slides.length]);
+  // No auto-launch — cinematic presentations are editable first, user clicks Present when ready
 
   // Load fonts
   useEffect(() => {
@@ -427,12 +423,21 @@ export default function EditorPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setIsPresentationMode(true)}>
-                  <Play className="w-4 h-4 mr-2" />Present
+                <DropdownMenuItem onClick={() => { setCinematicPreset(null); setIsPresentationMode(true); }}>
+                  <Play className="w-4 h-4 mr-2" />Classic Present
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setIsPresenterView(true)}>
                   <Monitor className="w-4 h-4 mr-2" />Presenter View
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Cinematic</div>
+                {CINEMATIC_PRESETS_LIST.map(p => (
+                  <DropdownMenuItem key={p.id} onClick={() => { setCinematicPreset(p); setIsPresentationMode(true); }}>
+                    <span className="w-3 h-3 rounded-full mr-2 shrink-0" style={{ background: `linear-gradient(135deg, ${p.accentColor}, ${p.backgroundColor})` }} />
+                    {p.name}
+                    {cinematicPreset?.id === p.id && <span className="ml-auto text-[#4F46E5] text-[10px]">active</span>}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
@@ -513,6 +518,24 @@ export default function EditorPage() {
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
               <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative">
+                {/* Cinematic indicator bar */}
+                {cinematicPreset && (
+                  <div className="sticky top-0 z-10 flex items-center gap-3 px-4 py-2 bg-slate-900/95 backdrop-blur-sm text-white text-xs">
+                    <span className="w-2 h-2 rounded-full bg-[#4F46E5] animate-pulse shrink-0" />
+                    <span className="font-semibold">{cinematicPreset.name}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-400">Videos: {cinematicPreset.videoCategory}</span>
+                    <span className="text-slate-400">·</span>
+                    <span className="text-slate-400">Transition: {cinematicPreset.transition}</span>
+                    <span className="text-slate-400 ml-auto">Video backgrounds visible in presentation mode</span>
+                    <button
+                      onClick={() => setCinematicPreset(null)}
+                      className="text-slate-500 hover:text-white px-1.5 py-0.5 rounded hover:bg-white/10 transition-colors"
+                    >
+                      Remove cinematic
+                    </button>
+                  </div>
+                )}
                 {activeSlide && (
                   <ErrorBoundary>
                     <div className="relative" style={{
