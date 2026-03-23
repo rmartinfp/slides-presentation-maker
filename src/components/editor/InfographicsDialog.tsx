@@ -4,7 +4,6 @@ import { X, LayoutGrid, ArrowRight, Circle, Triangle, Layers, GitBranch, Target,
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { toast } from 'sonner';
-import { v4 as uuid } from 'uuid';
 import type { SlideElement } from '@/types/presentation';
 
 interface InfographicTemplate {

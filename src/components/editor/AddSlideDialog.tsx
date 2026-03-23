@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { v4 as uuid } from 'uuid';
+const uid = () => crypto.randomUUID().slice(0, 9);
 
 interface Props {
   onClose: () => void;
@@ -56,7 +56,7 @@ export default function AddSlideDialog({ onClose }: Props) {
       if (data?.error) throw new Error(data.error);
 
       const elements = (data.elements || []).map((el: any) => ({
-        id: uuid().slice(0, 9),
+        id: uid(),
         type: el.type || 'text',
         content: el.content || '',
         x: el.x || 100,
@@ -73,7 +73,7 @@ export default function AddSlideDialog({ onClose }: Props) {
 
       // Add slide after current
       const newSlide = {
-        id: uuid().slice(0, 9),
+        id: uid(),
         elements,
         background: presentation.slides[activeSlideIndex]?.background || { type: 'solid' as const, value: theme.palette.bg },
       };

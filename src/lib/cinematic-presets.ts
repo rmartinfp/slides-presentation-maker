@@ -238,7 +238,6 @@ export const CINEMATIC_PRESETS: CinematicPreset[] = [
     showProgressDots: true,
     navStyle: 'dots',
   },
-];
 
   // ---- 6. Obsidian ----
   {
