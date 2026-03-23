@@ -5,6 +5,7 @@ import { THEME_CATALOG } from '@/lib/themes';
 import { generateId, createSampleSlides } from '@/lib/slide-utils';
 import { migrateSlideToElements, migrateAllSlides } from '@/lib/slide-migration';
 import { supabase } from '@/lib/supabase';
+import { resolveConnectorPosition, getConnectorsForElement } from '@/lib/connector-utils';
 
 export interface EditorState {
   // Presentation data
@@ -56,6 +57,9 @@ export interface EditorState {
   bringToFront: (elementId: string) => void;
   sendToBack: (elementId: string) => void;
   lockElement: (elementId: string, locked: boolean) => void;
+
+  // Connector actions
+  addConnector: (startElementId: string, endElementId: string, style?: Record<string, any>) => void;
 
   // Group & Align actions
   groupElements: () => void;
@@ -480,11 +484,21 @@ export const useEditorStore = create<EditorState>()((set, get) => {
       const el = slide.elements[elIdx];
       const dx = Math.round(x) - el.x;
       const dy = Math.round(y) - el.y;
-      const newElements = slide.elements.map(e => {
+      // Collect all moved element IDs (including group siblings)
+      const movedIds = new Set([elementId]);
+      if (el.groupId) slide.elements.forEach(e => { if (e.groupId === el.groupId) movedIds.add(e.id); });
+      let newElements = slide.elements.map(e => {
         if (e.id === elementId) return { ...e, x: Math.round(x), y: Math.round(y) };
-        // Move group siblings by the same delta
         if (el.groupId && e.groupId === el.groupId) return { ...e, x: e.x + dx, y: e.y + dy };
         return e;
+      });
+      // Update connectors attached to moved elements
+      newElements = newElements.map(e => {
+        if (!e.connector) return e;
+        if (!movedIds.has(e.connector.startElementId) && !movedIds.has(e.connector.endElementId)) return e;
+        const pos = resolveConnectorPosition(e.connector, newElements);
+        if (!pos) return e;
+        return { ...e, x: pos.x, y: pos.y, width: pos.width, height: pos.height };
       });
       const newSlide = { ...slide, elements: newElements };
       const newSlides = [...state.presentation.slides];
@@ -548,6 +562,30 @@ export const useEditorStore = create<EditorState>()((set, get) => {
           if (!slide) return;
           const el = slide.elements.find(e => e.id === elementId);
           if (el) el.locked = locked;
+        }),
+      ),
+
+    // Connector actions
+    addConnector: (startElementId, endElementId, style = {}) =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          if (!slide) return;
+          const connector = { startElementId, endElementId, startAnchor: 'auto' as const, endAnchor: 'auto' as const };
+          const pos = resolveConnectorPosition(connector, slide.elements);
+          if (!pos) return;
+          const maxZ = Math.max(0, ...slide.elements.map(e => e.zIndex));
+          slide.elements.push({
+            id: generateId(),
+            type: 'shape',
+            content: '',
+            x: pos.x, y: pos.y, width: pos.width, height: pos.height,
+            rotation: 0, opacity: 1, locked: false, visible: true,
+            zIndex: maxZ + 1,
+            style: { shapeType: 'line', shapeFill: '#6366f1', shapeStrokeWidth: 2, lineTailEnd: 'arrow', ...style },
+            connector,
+          });
+          state.selectedElementIds = [slide.elements[slide.elements.length - 1].id];
         }),
       ),
 

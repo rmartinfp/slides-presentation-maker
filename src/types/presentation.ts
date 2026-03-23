@@ -30,6 +30,15 @@ export type ShapeType =
   | 'hexagon'
   | 'heart';
 
+export type AnchorPosition = 'auto' | 'top' | 'right' | 'bottom' | 'left';
+
+export interface ConnectorData {
+  startElementId: string;
+  endElementId: string;
+  startAnchor: AnchorPosition;
+  endAnchor: AnchorPosition;
+}
+
 export interface ElementStyle {
   // Text
   fontFamily?: string;
@@ -84,6 +93,7 @@ export interface SlideElement {
   zIndex: number;
   style: ElementStyle;
   groupId?: string; // Group membership — elements sharing groupId move/resize together
+  connector?: ConnectorData; // Real connector — line snaps between two elements
 }
 
 // ============ Slide & Presentation ============

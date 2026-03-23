@@ -153,7 +153,7 @@ export default function EditorPage() {
       if ((e.metaKey || e.ctrlKey) && e.key === 'y') { e.preventDefault(); redo(); return; }
       if (isEditing) return;
       if ((e.key === 'Delete' || e.key === 'Backspace') && selectedElementIds.length > 0) { e.preventDefault(); deleteElements(); }
-      if (e.key === 'Escape') clearSelection();
+      if (e.key === 'Escape') { setConnectorMode(null); clearSelection(); }
       if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         if (selectedElementIds.length > 0) {
           e.preventDefault();
@@ -191,8 +191,38 @@ export default function EditorPage() {
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [showRightPanel, setShowRightPanel] = React.useState(true);
   const [showAIImage, setShowAIImage] = React.useState(false);
+  const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
+  const { addConnector } = useEditorStore();
+
+  // Connector mode: when user clicks an element, capture it
+  useEffect(() => {
+    if (!connectorMode || connectorMode === 'pending') return;
+    // connectorMode contains the startElementId, now wait for second selection
+    if (selectedElementIds.length === 1 && selectedElementIds[0] !== connectorMode) {
+      const endId = selectedElementIds[0];
+      // Don't connect to self or to another connector
+      const endEl = activeSlide?.elements?.find(e => e.id === endId);
+      if (endEl && !endEl.connector) {
+        addConnector(connectorMode, endId);
+        setConnectorMode(null);
+        toast.success('Connector created!');
+      }
+    }
+  }, [selectedElementIds, connectorMode]);
+
+  // Capture first element click in connector mode
+  useEffect(() => {
+    if (connectorMode !== 'pending') return;
+    if (selectedElementIds.length === 1) {
+      const el = activeSlide?.elements?.find(e => e.id === selectedElementIds[0]);
+      if (el && el.type !== 'shape' || (el?.style?.shapeType !== 'line')) {
+        setConnectorMode(selectedElementIds[0]);
+        toast.info('Now click the second element to connect.');
+      }
+    }
+  }, [selectedElementIds, connectorMode]);
 
   if (idFromUrl && presentation.slides.length === 0) return <EditorSkeleton />;
 
@@ -470,8 +500,19 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => handleAddLine('arrow-both')}><span className="w-4 h-4 mr-2 text-center text-xs">↔</span>Double Arrow</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddLine('dashed')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┄</span>Dashed</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddLine('dotted')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┈</span>Dotted</DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => { setConnectorMode('pending'); toast.info('Click the first element, then click the second to connect them.'); }}>
+                    <span className="w-4 h-4 mr-2 text-center text-xs">⟿</span>Connector
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+
+              {/* Connector mode indicator */}
+              {connectorMode && (
+                <button onClick={() => setConnectorMode(null)} className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-[9px] font-medium animate-pulse">
+                  Connecting... (ESC to cancel)
+                </button>
+              )}
 
               {/* Image: upload from PC or URL */}
               <DropdownMenu>

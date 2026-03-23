@@ -5,6 +5,7 @@ import { useEditorStore } from '@/stores/editor-store';
 import { cn } from '@/lib/utils';
 import RichTextEditor from './RichTextEditor';
 import { useAutoShrink } from '@/hooks/useAutoShrink';
+import { resolveConnectorPosition } from '@/lib/connector-utils';
 
 /** Render SVG marker definitions for line endpoints (arrow, oval, diamond, stealth) */
 function renderMarkerDefs(id: string, type: string | undefined, color: string, size: number, sw: number) {
@@ -316,12 +317,34 @@ export default function CanvasElement({
           );
         }
         if (shapeType === 'line') {
-          const isVertical = element.height > element.width * 2;
           const lineStroke = s.shapeFill || stroke;
           const lineSW = Math.max(strokeWidth, 2);
           const headType = s.lineHeadEnd as string | undefined;
           const tailType = s.lineTailEnd as string | undefined;
           const markerSize = Math.max(lineSW * 2.5, 6);
+          const mStart = headType && headType !== 'none' ? 'url(#marker-head)' : undefined;
+          const mEnd = tailType && tailType !== 'none' ? 'url(#marker-tail)' : undefined;
+
+          // Connector: use resolved endpoints for diagonal lines
+          if (element.connector) {
+            const pos = resolveConnectorPosition(element.connector, useEditorStore.getState().presentation.slides[useEditorStore.getState().activeSlideIndex]?.elements || []);
+            const lx1 = pos ? pos.x1 : 0;
+            const ly1 = pos ? pos.y1 : 0;
+            const lx2 = pos ? pos.x2 : element.width;
+            const ly2 = pos ? pos.y2 : element.height;
+            return (
+              <svg width="100%" height="100%" viewBox={`0 0 ${element.width} ${element.height}`} preserveAspectRatio="none" style={svgStyle}>
+                <defs>
+                  {renderMarkerDefs('head', headType, lineStroke, markerSize, lineSW)}
+                  {renderMarkerDefs('tail', tailType, lineStroke, markerSize, lineSW)}
+                </defs>
+                <line x1={lx1} y1={ly1} x2={lx2} y2={ly2} stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} markerStart={mStart} markerEnd={mEnd} />
+              </svg>
+            );
+          }
+
+          // Regular line: horizontal or vertical
+          const isVertical = element.height > element.width * 2;
           return (
             <svg width="100%" height="100%" preserveAspectRatio="none" style={svgStyle}>
               <defs>
@@ -329,13 +352,9 @@ export default function CanvasElement({
                 {renderMarkerDefs('tail', tailType, lineStroke, markerSize, lineSW)}
               </defs>
               {isVertical ? (
-                <line x1="50%" y1="0" x2="50%" y2="100%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined}
-                  markerStart={headType && headType !== 'none' ? 'url(#marker-head)' : undefined}
-                  markerEnd={tailType && tailType !== 'none' ? 'url(#marker-tail)' : undefined} />
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} markerStart={mStart} markerEnd={mEnd} />
               ) : (
-                <line x1="0" y1="50%" x2="100%" y2="50%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined}
-                  markerStart={headType && headType !== 'none' ? 'url(#marker-head)' : undefined}
-                  markerEnd={tailType && tailType !== 'none' ? 'url(#marker-tail)' : undefined} />
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} markerStart={mStart} markerEnd={mEnd} />
               )}
             </svg>
           );
