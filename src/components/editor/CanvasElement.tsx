@@ -237,7 +237,15 @@ export default function CanvasElement({
               <linearGradient id="grad" x1={`${50 - 50 * Math.cos(rad)}%`} y1={`${50 - 50 * Math.sin(rad)}%`} x2={`${50 + 50 * Math.cos(rad)}%`} y2={`${50 + 50 * Math.sin(rad)}%`}>
                 {stops.map((stop, i) => {
                   const parts = stop.match(/(#[A-Fa-f0-9]+|rgb[^)]+\))\s*(\d+)%/);
-                  return parts ? <stop key={i} offset={`${parts[2]}%`} stopColor={parts[1]} /> : null;
+                  if (!parts) return null;
+                  let stopColor = parts[1];
+                  let stopOpacity = 1;
+                  // Handle 8-digit hex (#RRGGBBAA) — extract alpha for SVG stop-opacity
+                  if (stopColor.length === 9 && stopColor.startsWith('#')) {
+                    stopOpacity = parseInt(stopColor.slice(7, 9), 16) / 255;
+                    stopColor = stopColor.slice(0, 7);
+                  }
+                  return <stop key={i} offset={`${parts[2]}%`} stopColor={stopColor} stopOpacity={stopOpacity} />;
                 })}
               </linearGradient>
             </defs>

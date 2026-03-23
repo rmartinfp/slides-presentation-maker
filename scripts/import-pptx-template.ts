@@ -746,24 +746,30 @@ function parseShapeFromSpTree(
     triangle: 'triangle', rightArrow: 'arrow-right',
   };
 
-  // Strip <a:ln> from XML to avoid confusing body fill with outline fill
-  const spXmlNoLn = spXml.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln>/g, '');
+  // Extract <p:spPr> section for fill detection — avoids confusing shape fill with text fill from <p:txBody>
+  const spPrMatch = spXml.match(/<p:spPr>([\s\S]*?)<\/p:spPr>/);
+  const spPrXml = spPrMatch ? spPrMatch[1] : '';
+  // Strip <a:ln> from spPr to avoid confusing body fill with outline fill
+  const spPrNoLn = spPrXml.replace(/<a:ln[^>]*>[\s\S]*?<\/a:ln>/g, '');
 
-  // Get BODY fill (solid or gradient) — excluding what's in the outline
-  const solidFill = spXmlNoLn.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+  // Get BODY fill (solid or gradient) from shape properties only
+  const solidFill = spPrNoLn.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
   const fill = solidFill ? parseColorFromShapeXml(solidFill[1], themeColors) : null;
   // Extract fill-level alpha/opacity (e.g. semi-transparent rectangles from Google Slides)
   const fillAlpha = solidFill ? parseAlphaFromXml(solidFill[1]) : 1;
   let gradientFill: string | null = null;
   let gradientAlpha = 1;
   if (!solidFill) {
-    const gradFill = spXmlNoLn.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
+    const gradFill = spPrNoLn.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
     if (gradFill) {
       gradientFill = parseGradientFill(gradFill[1], themeColors);
-      gradientAlpha = parseAlphaFromXml(gradFill[1]);
+      // Per-stop alpha is already baked into gradient colors (#RRGGBBAA).
+      // Only use alphaModFix for element-level opacity (rare, e.g. overlay shapes).
+      const alphaModFix = gradFill[1].match(/<a:alphaModFix\s+amt="(\d+)"/);
+      gradientAlpha = alphaModFix ? parseInt(alphaModFix[1]) / 100000 : 1;
     }
   }
-  const bodyNoFill = spXmlNoLn.includes('<a:noFill/>');
+  const bodyNoFill = spPrNoLn.includes('<a:noFill/>');
 
   // Get OUTLINE properties (from original XML with <a:ln>)
   const ln = spXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
@@ -842,13 +848,23 @@ function parseShapeFromSpTree(
 }
 
 function parseGradientFill(gradXml: string, themeColors: ThemeColors): string | null {
-  // Extract gradient stops: <a:gs pos="0"><a:srgbClr val="..."/></a:gs>
+  // Extract gradient stops: <a:gs pos="0"><a:srgbClr val="..."><a:alpha val="65000"/></a:srgbClr></a:gs>
   const stops: { pos: number; color: string }[] = [];
   const gsMatches = gradXml.matchAll(/<a:gs\s+pos="(\d+)">([\s\S]*?)<\/a:gs>/g);
   for (const gs of gsMatches) {
     const pos = parseInt(gs[1]) / 1000; // OOXML pos is in thousandths of percent
     const color = parseColorFromShapeXml(gs[2], themeColors);
-    if (color) stops.push({ pos, color });
+    if (!color) continue;
+
+    // Parse per-stop alpha — <a:alpha val="65000"/> means 65% opacity
+    const stopAlpha = parseAlphaFromXml(gs[2]);
+    let colorWithAlpha = color;
+    if (stopAlpha < 1) {
+      // Append alpha as 2 hex digits: #RRGGBBAA (CSS Color Level 4)
+      const alphaHex = Math.round(stopAlpha * 255).toString(16).padStart(2, '0');
+      colorWithAlpha = `${color}${alphaHex}`;
+    }
+    stops.push({ pos, color: colorWithAlpha });
   }
   if (stops.length < 2) return null;
 
