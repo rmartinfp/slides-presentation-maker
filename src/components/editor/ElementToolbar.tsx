@@ -125,7 +125,7 @@ export default function ElementToolbar() {
     const tableData = JSON.stringify({ rows: defaultRows, headerRow: true, borderColor: '#e2e8f0' });
     addElement({
       type: 'table', content: tableData, x: 400, y: 300, width: 700, height: 300,
-      rotation: 0, opacity: 1, locked: false, visible: true, style: {},
+      rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 },
     });
   };
 

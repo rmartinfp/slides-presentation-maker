@@ -368,8 +368,9 @@ function StaticElement({ element }: { element: SlideElement }) {
         const bc = td.borderColor || '#e2e8f0';
         const cp = Math.max(2, element.height / td.rows.length * 0.12);
         const cf = Math.max(6, element.height / td.rows.length * 0.4);
+        const br = s.borderRadius ?? 8;
         return (
-          <table className="w-full h-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <table className="w-full h-full" style={{ borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', borderRadius: br, overflow: 'hidden' }}>
             <tbody>
               {td.rows.map((row, ri) => (
                 <tr key={ri}>{row.map((cell, ci) => (

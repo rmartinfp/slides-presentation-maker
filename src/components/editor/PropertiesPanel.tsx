@@ -422,6 +422,7 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
   let td: TableData;
   try { td = JSON.parse(el.content); } catch { td = { rows: [[{ text: '' }]] }; }
   const save = (newTd: TableData) => updateElement(el.id, { content: JSON.stringify(newTd) });
+  const updateStyle = (updates: Record<string, any>) => updateElement(el.id, { style: { ...el.style, ...updates } });
 
   const addRow = () => {
     const cols = td.rows[0]?.length || 3;
@@ -440,8 +441,8 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
   };
 
   return (
-    <div className="space-y-2">
-      <div className="text-[10px] text-slate-500">{td.rows.length} rows × {td.rows[0]?.length || 0} cols</div>
+    <div className="space-y-3">
+      <div className="text-[10px] text-slate-500">{td.rows.length} rows × {td.rows[0]?.length || 0} cols — double-click cells to edit</div>
       <div className="grid grid-cols-2 gap-1">
         <button onClick={addRow} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600">+ Row</button>
         <button onClick={removeRow} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600">− Row</button>
@@ -449,14 +450,50 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
         <button onClick={removeCol} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600">− Column</button>
       </div>
       <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={td.headerRow ?? false}
-          onChange={(e) => save({ ...td, headerRow: e.target.checked })}
-          className="rounded border-slate-300"
-        />
+        <input type="checkbox" checked={td.headerRow ?? false} onChange={(e) => save({ ...td, headerRow: e.target.checked })} className="rounded border-slate-300" />
         Header row (bold + bg)
       </label>
+
+      {/* Border radius */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block">Corner Radius</label>
+        <Slider value={[el.style.borderRadius ?? 8]} onValueChange={([v]) => updateStyle({ borderRadius: v })} min={0} max={24} step={2} />
+      </div>
+
+      {/* Border color */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1.5 block">Border Color</label>
+        <div className="flex gap-2">
+          <input type="color" value={td.borderColor || '#e2e8f0'} onChange={(e) => save({ ...td, borderColor: e.target.value })} className="w-7 h-7 rounded cursor-pointer border-0 p-0" />
+          <input type="text" value={td.borderColor || '#e2e8f0'} onChange={(e) => { if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) save({ ...td, borderColor: e.target.value }); }} placeholder="#e2e8f0" className="flex-1 px-2 py-1 text-[10px] rounded border border-slate-200 focus:outline-none focus:border-indigo-500" />
+        </div>
+      </div>
+
+      {/* Header bg color */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1.5 block">Header Background</label>
+        <div className="grid grid-cols-6 gap-1">
+          {['#f1f5f9', '#e0e7ff', '#fce7f3', '#d1fae5', '#fef3c7', '#1e293b'].map(c => (
+            <button key={c} onClick={() => {
+              const newRows = td.rows.map((row, ri) => ri === 0 ? row.map(cell => ({ ...cell, bg: c })) : row);
+              save({ ...td, rows: newRows });
+            }} className="w-full aspect-square rounded border border-slate-200 hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
+          ))}
+        </div>
+      </div>
+
+      {/* Body bg color */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1.5 block">Body Background</label>
+        <div className="grid grid-cols-6 gap-1">
+          {['transparent', '#ffffff', '#f8fafc', '#f1f5f9', '#fefce8', '#0f172a'].map(c => (
+            <button key={c} onClick={() => {
+              const newRows = td.rows.map((row, ri) => ri > 0 || !td.headerRow ? row.map(cell => ({ ...cell, bg: c === 'transparent' ? undefined : c })) : row);
+              save({ ...td, rows: newRows });
+            }} className={cn('w-full aspect-square rounded border border-slate-200 hover:scale-110 transition-transform', c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]')} style={c !== 'transparent' ? { backgroundColor: c } : undefined} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

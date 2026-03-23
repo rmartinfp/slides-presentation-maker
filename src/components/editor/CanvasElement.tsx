@@ -479,28 +479,77 @@ export default function CanvasElement({
 
       case 'table': {
         let tableData: import('@/types/presentation').TableData;
-        try { tableData = JSON.parse(element.content); } catch { tableData = { rows: [['', '', ''], ['', '', ''], ['', '', '']].map(r => r.map(t => ({ text: t }))) }; }
+        try { tableData = JSON.parse(element.content); } catch { tableData = { rows: [[{ text: '' }]] }; }
         const bColor = tableData.borderColor || '#e2e8f0';
         const cellPad = Math.max(4, element.height / tableData.rows.length * 0.15);
         const cellFontPx = Math.max(10, element.height / tableData.rows.length * 0.45);
+        const borderRad = s.borderRadius ?? 8;
+        const numRows = tableData.rows.length;
+        const numCols = tableData.rows[0]?.length || 1;
+
+        const handleCellDoubleClick = (ri: number, ci: number) => {
+          const td = document.querySelector(`[data-table-cell="${element.id}-${ri}-${ci}"]`) as HTMLElement;
+          if (!td) return;
+          td.contentEditable = 'true';
+          td.focus();
+          // Select all text
+          const range = document.createRange();
+          range.selectNodeContents(td);
+          window.getSelection()?.removeAllRanges();
+          window.getSelection()?.addRange(range);
+        };
+
+        const handleCellBlur = (ri: number, ci: number, e: React.FocusEvent<HTMLTableCellElement>) => {
+          e.currentTarget.contentEditable = 'false';
+          const newText = e.currentTarget.textContent || '';
+          const newRows = tableData.rows.map((row, rri) =>
+            row.map((cell, cci) => rri === ri && cci === ci ? { ...cell, text: newText } : cell)
+          );
+          updateElement(element.id, { content: JSON.stringify({ ...tableData, rows: newRows }) });
+        };
+
+        const cornerRadius = (ri: number, ci: number) => {
+          if (!borderRad) return undefined;
+          const isTopLeft = ri === 0 && ci === 0;
+          const isTopRight = ri === 0 && ci === numCols - 1;
+          const isBottomLeft = ri === numRows - 1 && ci === 0;
+          const isBottomRight = ri === numRows - 1 && ci === numCols - 1;
+          if (isTopLeft) return `${borderRad}px 0 0 0`;
+          if (isTopRight) return `0 ${borderRad}px 0 0`;
+          if (isBottomLeft) return `0 0 0 ${borderRad}px`;
+          if (isBottomRight) return `0 0 ${borderRad}px 0`;
+          return undefined;
+        };
+
         return (
-          <table className="w-full h-full pointer-events-none" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <table className="w-full h-full" style={{ borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', borderRadius: borderRad, overflow: 'hidden' }}>
             <tbody>
               {tableData.rows.map((row, ri) => (
                 <tr key={ri}>
                   {row.map((cell, ci) => (
-                    <td key={ci} style={{
-                      border: `1px solid ${bColor}`,
-                      padding: cellPad,
-                      fontSize: cellFontPx,
-                      fontWeight: (tableData.headerRow && ri === 0) || cell.bold ? 'bold' : 'normal',
-                      textAlign: cell.align || 'left',
-                      backgroundColor: cell.bg || (tableData.headerRow && ri === 0 ? '#f1f5f9' : 'transparent'),
-                      color: cell.color || '#1e293b',
-                      overflow: 'hidden',
-                      lineHeight: 1.3,
-                      fontFamily: 'sans-serif',
-                    }}>
+                    <td
+                      key={ci}
+                      data-table-cell={`${element.id}-${ri}-${ci}`}
+                      onDoubleClick={(e) => { e.stopPropagation(); handleCellDoubleClick(ri, ci); }}
+                      onBlur={(e) => handleCellBlur(ri, ci, e)}
+                      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); const nextCi = (ci + 1) % numCols; const nextRi = ci + 1 >= numCols ? ri + 1 : ri; if (nextRi < numRows) handleCellDoubleClick(nextRi, nextCi); } e.stopPropagation(); }}
+                      style={{
+                        border: `1px solid ${bColor}`,
+                        padding: cellPad,
+                        fontSize: cellFontPx,
+                        fontWeight: (tableData.headerRow && ri === 0) || cell.bold ? 'bold' : 'normal',
+                        textAlign: cell.align || 'left',
+                        backgroundColor: cell.bg || (tableData.headerRow && ri === 0 ? '#f1f5f9' : 'transparent'),
+                        color: cell.color || '#1e293b',
+                        overflow: 'hidden',
+                        lineHeight: 1.3,
+                        fontFamily: 'sans-serif',
+                        borderRadius: cornerRadius(ri, ci),
+                        outline: 'none',
+                        cursor: 'text',
+                      }}
+                      suppressContentEditableWarning
+                    >
                       {cell.text}
                     </td>
                   ))}
