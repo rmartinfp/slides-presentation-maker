@@ -201,11 +201,21 @@ export default function EditorPage() {
     return () => clearTimeout(t);
   }, [showRightPanel, updateScale]);
 
-  // Listen for AI image request from ElementContextBar
+  // Listen for AI image / replace image requests from ContextToolbar
+  const replaceTargetRef = useRef<string | null>(null);
+  const replaceInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
-    const handler = () => setShowAIImage(true);
-    window.addEventListener('slideai-open-ai-image', handler);
-    return () => window.removeEventListener('slideai-open-ai-image', handler);
+    const handleAI = () => setShowAIImage(true);
+    const handleReplace = (e: Event) => {
+      replaceTargetRef.current = (e as CustomEvent).detail;
+      replaceInputRef.current?.click();
+    };
+    window.addEventListener('slideai-open-ai-image', handleAI);
+    window.addEventListener('slideai-replace-image', handleReplace);
+    return () => {
+      window.removeEventListener('slideai-open-ai-image', handleAI);
+      window.removeEventListener('slideai-replace-image', handleReplace);
+    };
   }, []);
 
   // Connector mode: when user clicks an element, capture it
@@ -466,6 +476,14 @@ export default function EditorPage() {
               const file = e.target.files?.[0]; if (!file) return;
               const result = await uploadAsset(file);
               if (result) addElement({ type: 'image', content: result.url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } });
+              e.target.value = '';
+            }} />
+            {/* Hidden file input for replacing an existing image */}
+            <input ref={replaceInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file || !replaceTargetRef.current) return;
+              const result = await uploadAsset(file);
+              if (result) updateElement(replaceTargetRef.current, { content: result.url });
+              replaceTargetRef.current = null;
               e.target.value = '';
             }} />
 
