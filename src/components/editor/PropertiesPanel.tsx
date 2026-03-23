@@ -308,7 +308,7 @@ export default function PropertiesPanel() {
                       onClick={() => updateStyle({ objectFit: fit })}
                       className={cn(
                         'flex-1 py-1 rounded text-[10px] font-medium transition-colors',
-                        el.style.objectFit === fit ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
+                        (el.style.objectFit || 'cover') === fit ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
                       )}
                     >
                       {fit}
@@ -316,6 +316,38 @@ export default function PropertiesPanel() {
                   ))}
                 </div>
               </div>
+              {/* Position control for cover mode */}
+              {(!el.style.objectFit || el.style.objectFit === 'cover') && (
+                <div>
+                  <label className="text-[10px] text-slate-500 mb-1 block">Position</label>
+                  <div className="grid grid-cols-3 gap-0.5 w-20">
+                    {[
+                      { label: '↖', pos: '0% 0%' },
+                      { label: '↑', pos: '50% 0%' },
+                      { label: '↗', pos: '100% 0%' },
+                      { label: '←', pos: '0% 50%' },
+                      { label: '·', pos: '50% 50%' },
+                      { label: '→', pos: '100% 50%' },
+                      { label: '↙', pos: '0% 100%' },
+                      { label: '↓', pos: '50% 100%' },
+                      { label: '↘', pos: '100% 100%' },
+                    ].map(p => (
+                      <button
+                        key={p.pos}
+                        onClick={() => updateStyle({ objectPosition: p.pos })}
+                        className={cn(
+                          'w-6 h-6 rounded text-[9px] font-medium transition-colors flex items-center justify-center',
+                          (el.style.objectPosition || '50% 50%') === p.pos
+                            ? 'bg-[#4F46E5] text-white'
+                            : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                        )}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div>
                 <label className="text-[10px] text-slate-500 mb-1 block">Border Radius</label>
                 <Slider

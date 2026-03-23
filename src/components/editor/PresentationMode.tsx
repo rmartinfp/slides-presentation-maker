@@ -179,31 +179,22 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
         const br = s.borderRadius ?? 0;
         const imgBorder = s.borderColor && s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
 
-        const userChangedFit = s.objectFit && s.objectFit !== 'cover';
-        const cropT = userChangedFit ? 0 : ((s.srcRectTop as number) || 0);
-        const cropR = userChangedFit ? 0 : ((s.srcRectRight as number) || 0);
-        const cropB = userChangedFit ? 0 : ((s.srcRectBottom as number) || 0);
-        const cropL = userChangedFit ? 0 : ((s.srcRectLeft as number) || 0);
-        const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
-
-        if (hasCrop) {
-          const scaleX = 100 / (1 - cropL / 100 - cropR / 100);
-          const scaleY = 100 / (1 - cropT / 100 - cropB / 100);
-          return (
-            <div key={element.id} style={{ ...wrapperStyle, borderRadius: br, overflow: 'hidden', border: imgBorder, boxShadow: s.boxShadow || undefined, filter: s.filter || undefined }}>
-              <img src={element.content} alt="" style={{ width: `${scaleX}%`, height: `${scaleY}%`, transform: `translate(-${cropL}%, -${cropT}%)`, objectFit: 'fill' }} />
-            </div>
-          );
+        const fit = (s.objectFit as React.CSSProperties['objectFit']) || 'cover';
+        let pos = s.objectPosition || 'center center';
+        if (!s.objectPosition && fit === 'cover') {
+          const cropT = (s.srcRectTop as number) || 0;
+          const cropR = (s.srcRectRight as number) || 0;
+          const cropB = (s.srcRectBottom as number) || 0;
+          const cropL = (s.srcRectLeft as number) || 0;
+          if (cropT || cropR || cropB || cropL) {
+            pos = `${(cropL + (100 - cropR)) / 2}% ${(cropT + (100 - cropB)) / 2}%`;
+          }
         }
 
         return (
           <div key={element.id} style={{ ...wrapperStyle, borderRadius: br, overflow: 'hidden', border: imgBorder, boxShadow: s.boxShadow || undefined, filter: s.filter || undefined }}>
-            <img
-              src={element.content}
-              alt=""
-              className="w-full h-full"
-              style={{ objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover' }}
-            />
+            <img src={element.content} alt="" className="w-full h-full"
+              style={{ objectFit: fit, objectPosition: pos }} />
           </div>
         );
       }

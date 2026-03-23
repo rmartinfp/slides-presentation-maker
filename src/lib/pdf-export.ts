@@ -104,22 +104,20 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
           img.src = el.content;
           img.crossOrigin = 'anonymous';
 
-          const userChangedFit = el.style.objectFit && el.style.objectFit !== 'cover';
-          const cropT = userChangedFit ? 0 : ((el.style.srcRectTop as number) || 0);
-          const cropR = userChangedFit ? 0 : ((el.style.srcRectRight as number) || 0);
-          const cropB = userChangedFit ? 0 : ((el.style.srcRectBottom as number) || 0);
-          const cropL = userChangedFit ? 0 : ((el.style.srcRectLeft as number) || 0);
-          const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
-
-          if (hasCrop) {
-            const scaleX = 100 / (1 - cropL / 100 - cropR / 100);
-            const scaleY = 100 / (1 - cropT / 100 - cropB / 100);
-            elDiv.style.overflow = 'hidden';
-            elDiv.style.borderRadius = `${el.style.borderRadius || 0}px`;
-            img.style.cssText = `width:${scaleX}%;height:${scaleY}%;transform:translate(-${cropL}%,-${cropT}%);object-fit:fill;`;
-          } else {
-            img.style.cssText = `width:100%;height:100%;object-fit:${el.style.objectFit || 'cover'};border-radius:${el.style.borderRadius || 0}px;`;
+          const fit = el.style.objectFit || 'cover';
+          let pos = el.style.objectPosition || 'center center';
+          if (!el.style.objectPosition && fit === 'cover') {
+            const cropT = (el.style.srcRectTop as number) || 0;
+            const cropR = (el.style.srcRectRight as number) || 0;
+            const cropB = (el.style.srcRectBottom as number) || 0;
+            const cropL = (el.style.srcRectLeft as number) || 0;
+            if (cropT || cropR || cropB || cropL) {
+              pos = `${(cropL + (100 - cropR)) / 2}% ${(cropT + (100 - cropB)) / 2}%`;
+            }
           }
+          elDiv.style.overflow = 'hidden';
+          elDiv.style.borderRadius = `${el.style.borderRadius || 0}px`;
+          img.style.cssText = `width:100%;height:100%;object-fit:${fit};object-position:${pos};`;
           elDiv.appendChild(img);
         } else if (el.type === 'shape') {
           const fill = el.style.shapeFill || el.style.backgroundColor || '#6366f1';

@@ -450,36 +450,19 @@ export default function CanvasElement({
         const imgBorder = s.borderColor && s.borderWidth
           ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
 
-        // srcRect crop from PPTX import — show only a portion of the source image
-        // Only use crop if user hasn't explicitly changed objectFit from default
-        const userChangedFit = s.objectFit && s.objectFit !== 'cover';
-        const cropT = userChangedFit ? 0 : ((s.srcRectTop as number) || 0);
-        const cropR = userChangedFit ? 0 : ((s.srcRectRight as number) || 0);
-        const cropB = userChangedFit ? 0 : ((s.srcRectBottom as number) || 0);
-        const cropL = userChangedFit ? 0 : ((s.srcRectLeft as number) || 0);
-        const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
-
-        if (hasCrop) {
-          const scaleX = 100 / (1 - cropL / 100 - cropR / 100);
-          const scaleY = 100 / (1 - cropT / 100 - cropB / 100);
-          return (
-            <div
-              className="w-full h-full pointer-events-none"
-              style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}
-            >
-              <img
-                src={element.content}
-                alt=""
-                style={{
-                  width: `${scaleX}%`,
-                  height: `${scaleY}%`,
-                  transform: `translate(-${cropL}%, -${cropT}%)`,
-                  objectFit: 'fill',
-                }}
-                draggable={false}
-              />
-            </div>
-          );
+        // Derive objectPosition from srcRect (PPTX crop) if no explicit position set
+        const fit = (s.objectFit as React.CSSProperties['objectFit']) || 'cover';
+        let pos = s.objectPosition || 'center center';
+        if (!s.objectPosition && fit === 'cover') {
+          const cropT = (s.srcRectTop as number) || 0;
+          const cropR = (s.srcRectRight as number) || 0;
+          const cropB = (s.srcRectBottom as number) || 0;
+          const cropL = (s.srcRectLeft as number) || 0;
+          if (cropT || cropR || cropB || cropL) {
+            const cx = (cropL + (100 - cropR)) / 2;
+            const cy = (cropT + (100 - cropB)) / 2;
+            pos = `${cx}% ${cy}%`;
+          }
         }
 
         return (
@@ -491,7 +474,7 @@ export default function CanvasElement({
               src={element.content}
               alt=""
               className="w-full h-full"
-              style={{ objectFit: (s.objectFit as any) || 'cover' }}
+              style={{ objectFit: fit, objectPosition: pos }}
               draggable={false}
             />
           </div>

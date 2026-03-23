@@ -25,9 +25,27 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedRatio, setSelectedRatio] = useState(0); // index into ASPECT_RATIOS
-  const { addElement, updateElement } = useEditorStore();
+  const { addElement, updateElement, presentation, currentSlideIndex } = useEditorStore();
 
-  const ratio = ASPECT_RATIOS[selectedRatio];
+  // When replacing, derive aspect ratio from existing element dimensions
+  const replaceElement = replaceElementId
+    ? presentation.slides[currentSlideIndex]?.elements?.find(e => e.id === replaceElementId)
+    : null;
+
+  const derivedRatio = React.useMemo(() => {
+    if (!replaceElement) return null;
+    const elRatio = replaceElement.width / replaceElement.height;
+    // Find closest ASPECT_RATIO
+    let bestIdx = 0;
+    let bestDiff = Infinity;
+    ASPECT_RATIOS.forEach((ar, i) => {
+      const diff = Math.abs(ar.w / ar.h - elRatio);
+      if (diff < bestDiff) { bestDiff = diff; bestIdx = i; }
+    });
+    return ASPECT_RATIOS[bestIdx];
+  }, [replaceElement]);
+
+  const ratio = derivedRatio || ASPECT_RATIOS[selectedRatio];
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -118,8 +136,9 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Aspect ratio selector */}
-          <div>
+          {/* Aspect ratio selector — hidden when replacing (uses element's ratio) */}
+          {!replaceElementId && (
+            <div>
               <label className="text-xs text-slate-500 mb-2 block">Aspect Ratio</label>
               <div className="flex gap-2">
                 {ASPECT_RATIOS.map((ar, i) => (
@@ -137,6 +156,12 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
                 ))}
               </div>
             </div>
+          )}
+          {replaceElementId && derivedRatio && (
+            <div className="text-xs text-slate-400">
+              Generating at {derivedRatio.label} to match current frame
+            </div>
+          )}
 
           {/* Preview */}
           {preview && (

@@ -73,6 +73,7 @@ export interface ElementStyle {
 
   // Image-specific
   objectFit?: 'cover' | 'contain' | 'fill';
+  objectPosition?: string; // CSS object-position e.g. "50% 30%"
 
   // Extra CSS
   [key: string]: string | number | undefined;

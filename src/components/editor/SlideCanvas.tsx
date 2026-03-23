@@ -343,32 +343,22 @@ function StaticElement({ element }: { element: SlideElement }) {
         const br = s.borderRadius ?? 0;
         const imgBorder = s.borderColor && s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
 
-        const userChangedFit = s.objectFit && s.objectFit !== 'cover';
-        const cropT = userChangedFit ? 0 : ((s.srcRectTop as number) || 0);
-        const cropR = userChangedFit ? 0 : ((s.srcRectRight as number) || 0);
-        const cropB = userChangedFit ? 0 : ((s.srcRectBottom as number) || 0);
-        const cropL = userChangedFit ? 0 : ((s.srcRectLeft as number) || 0);
-        const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
-
-        if (hasCrop) {
-          const scaleX = 100 / (1 - cropL / 100 - cropR / 100);
-          const scaleY = 100 / (1 - cropT / 100 - cropB / 100);
-          return (
-            <div className="w-full h-full" style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}>
-              <img src={element.content} alt="" style={{ width: `${scaleX}%`, height: `${scaleY}%`, transform: `translate(-${cropL}%, -${cropT}%)`, objectFit: 'fill' }} draggable={false} />
-            </div>
-          );
+        const fit = (s.objectFit as React.CSSProperties['objectFit']) || 'cover';
+        let pos = s.objectPosition || 'center center';
+        if (!s.objectPosition && fit === 'cover') {
+          const cropT = (s.srcRectTop as number) || 0;
+          const cropR = (s.srcRectRight as number) || 0;
+          const cropB = (s.srcRectBottom as number) || 0;
+          const cropL = (s.srcRectLeft as number) || 0;
+          if (cropT || cropR || cropB || cropL) {
+            pos = `${(cropL + (100 - cropR)) / 2}% ${(cropT + (100 - cropB)) / 2}%`;
+          }
         }
 
         return (
           <div className="w-full h-full" style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}>
-            <img
-              src={element.content}
-              alt=""
-              className="w-full h-full"
-              style={{ objectFit: (s.objectFit as React.CSSProperties['objectFit']) || 'cover' }}
-              draggable={false}
-            />
+            <img src={element.content} alt="" className="w-full h-full"
+              style={{ objectFit: fit, objectPosition: pos }} draggable={false} />
           </div>
         );
       }
@@ -428,7 +418,7 @@ function ContextToolbar({ element }: { element: SlideElement }) {
           <div className="w-px h-5 bg-slate-200 mx-0.5" />
           {(['cover', 'contain', 'fill'] as const).map(fit => (
             <button key={fit} onClick={() => updateElement(element.id, { style: { objectFit: fit } })}
-              className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${s.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>{fit}</button>
+              className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${(s.objectFit || 'cover') === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>{fit}</button>
           ))}
           <div className="w-px h-5 bg-slate-200 mx-0.5" />
           <button onClick={() => window.dispatchEvent(new CustomEvent('slideai-open-ai-image'))}
