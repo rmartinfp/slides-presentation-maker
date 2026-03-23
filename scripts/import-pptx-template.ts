@@ -639,9 +639,10 @@ function parseShapeFromSpTree(
     }
   }
 
-  // Skip only if truly invisible: no body fill AND no outline
+  // Skip only if truly invisible: no body fill AND no outline AND no custom geometry.
+  // Custom geometry shapes (icons, vectors) inherit fill from group/theme — always keep them.
   const noFill = bodyNoFill || (!fill && !solidFill && !gradientFill);
-  if (noFill && !hasOutline) return null;
+  if (noFill && !hasOutline && !custGeom) return null;
 
   // Convert custom geometry to SVG path
   let svgPath: string | null = null;
@@ -668,7 +669,8 @@ function parseShapeFromSpTree(
     zIndex: 0,
     style: {
       shapeType: svgPath ? 'custom' : (shapeMap[geomType] || 'rectangle'),
-      shapeFill: noFill ? 'transparent' : (fill || themeColors.accent1),
+      // CustGeom shapes without explicit fill inherit dk1 (dark/black) from theme
+      shapeFill: noFill ? (custGeom ? themeColors.dk1 : 'transparent') : (fill || themeColors.accent1),
       shapeGradient: gradientFill || undefined,
       shapeStroke: stroke || 'transparent',
       shapeStrokeWidth: strokeWidth,
