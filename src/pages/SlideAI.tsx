@@ -72,8 +72,8 @@ export default function SlideAIPage() {
     const plainText = el.content.replace(/<[^>]+>/g, '').trim();
     const fontSize = el.style?.fontSize || 24;
 
-    // Numbers like "01", "02", "1", "2", "{01}", "_02" etc — keep unchanged
-    if (/^\{?\d{1,3}\}?$/.test(plainText) || /^[_\-]?\d{1,3}$/.test(plainText)) return 'number';
+    // Numbers like "01", "02", "1", "2", "{01}", "_02", "01.", "02." etc — keep unchanged
+    if (/^\{?\d{1,3}\}?\.?$/.test(plainText) || /^[_\-]?\d{1,3}\.?$/.test(plainText)) return 'number';
 
     // Largest text element = title
     if (isLargest) return 'title';
@@ -192,7 +192,7 @@ export default function SlideAIPage() {
           const replaceableElements: SlideElement[] = [];
           for (const el of textElements) {
             const plainText = el.content.replace(/<[^>]+>/g, '').trim();
-            if (/^\d{1,3}$/.test(plainText)) continue; // number — skip
+            if (/^\{?\d{1,3}\}?\.?$/.test(plainText) || /^[_\-]?\d{1,3}\.?$/.test(plainText)) continue; // number — skip
             replaceableElements.push(el);
           }
 
