@@ -6,6 +6,42 @@ import { cn } from '@/lib/utils';
 import RichTextEditor from './RichTextEditor';
 import { useAutoShrink } from '@/hooks/useAutoShrink';
 
+/** Render SVG marker definitions for line endpoints (arrow, oval, diamond, stealth) */
+function renderMarkerDefs(id: string, type: string | undefined, color: string, size: number, sw: number) {
+  if (!type || type === 'none') return null;
+  const ref = size / sw;
+  const half = ref / 2;
+  if (type === 'arrow' || type === 'triangle') {
+    return (
+      <marker id={`marker-${id}`} markerWidth={ref} markerHeight={ref} refX={half} refY={half} orient="auto-start-reverse" markerUnits="strokeWidth">
+        <polygon points={`0,0 ${ref},${half} 0,${ref}`} fill={color} />
+      </marker>
+    );
+  }
+  if (type === 'stealth') {
+    return (
+      <marker id={`marker-${id}`} markerWidth={ref} markerHeight={ref} refX={half} refY={half} orient="auto-start-reverse" markerUnits="strokeWidth">
+        <polygon points={`0,0 ${ref},${half} 0,${ref} ${ref * 0.3},${half}`} fill={color} />
+      </marker>
+    );
+  }
+  if (type === 'oval') {
+    return (
+      <marker id={`marker-${id}`} markerWidth={ref} markerHeight={ref} refX={half} refY={half} orient="auto-start-reverse" markerUnits="strokeWidth">
+        <circle cx={half} cy={half} r={half * 0.8} fill={color} />
+      </marker>
+    );
+  }
+  if (type === 'diamond') {
+    return (
+      <marker id={`marker-${id}`} markerWidth={ref} markerHeight={ref} refX={half} refY={half} orient="auto-start-reverse" markerUnits="strokeWidth">
+        <polygon points={`${half},0 ${ref},${half} ${half},${ref} 0,${half}`} fill={color} />
+      </marker>
+    );
+  }
+  return null;
+}
+
 interface Props {
   element: SlideElement;
   scale: number;
@@ -285,22 +321,21 @@ export default function CanvasElement({
           const lineSW = Math.max(strokeWidth, 2);
           const headType = s.lineHeadEnd as string | undefined;
           const tailType = s.lineTailEnd as string | undefined;
+          const markerSize = Math.max(lineSW * 2.5, 6);
           return (
             <svg width="100%" height="100%" preserveAspectRatio="none" style={svgStyle}>
+              <defs>
+                {renderMarkerDefs('head', headType, lineStroke, markerSize, lineSW)}
+                {renderMarkerDefs('tail', tailType, lineStroke, markerSize, lineSW)}
+              </defs>
               {isVertical ? (
-                <line x1="50%" y1="0" x2="50%" y2="100%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} />
+                <line x1="50%" y1="0" x2="50%" y2="100%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined}
+                  markerStart={headType && headType !== 'none' ? 'url(#marker-head)' : undefined}
+                  markerEnd={tailType && tailType !== 'none' ? 'url(#marker-tail)' : undefined} />
               ) : (
-                <line x1="0" y1="50%" x2="100%" y2="50%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined} />
-              )}
-              {headType === 'oval' && (
-                isVertical
-                  ? <circle cx="50%" cy="0" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
-                  : <circle cx="0" cy="50%" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
-              )}
-              {tailType === 'oval' && (
-                isVertical
-                  ? <circle cx="50%" cy="100%" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
-                  : <circle cx="100%" cy="50%" r={Math.max(lineSW * 2, 4)} fill={lineStroke} />
+                <line x1="0" y1="50%" x2="100%" y2="50%" stroke={lineStroke} strokeWidth={lineSW} strokeDasharray={dashArray || undefined}
+                  markerStart={headType && headType !== 'none' ? 'url(#marker-head)' : undefined}
+                  markerEnd={tailType && tailType !== 'none' ? 'url(#marker-tail)' : undefined} />
               )}
             </svg>
           );

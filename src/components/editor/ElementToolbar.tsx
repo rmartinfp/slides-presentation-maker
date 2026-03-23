@@ -98,6 +98,23 @@ export default function ElementToolbar() {
     });
   };
 
+  const handleAddLine = (variant: 'plain' | 'arrow' | 'arrow-both' | 'dashed' | 'dotted') => {
+    const style: Record<string, any> = {
+      shapeType: 'line',
+      shapeFill: theme.palette.text,
+      shapeStroke: 'transparent',
+      shapeStrokeWidth: 2,
+    };
+    if (variant === 'arrow') style.lineTailEnd = 'arrow';
+    if (variant === 'arrow-both') { style.lineHeadEnd = 'arrow'; style.lineTailEnd = 'arrow'; }
+    if (variant === 'dashed') style.shapeStrokeDash = '8 4';
+    if (variant === 'dotted') style.shapeStrokeDash = '2 4';
+    addElement({
+      type: 'shape', content: '', x: 600, y: 500, width: 400, height: 4,
+      rotation: 0, opacity: 1, locked: false, visible: true, style,
+    });
+  };
+
   const handleAddImage = () => {
     // Placeholder — Fase 3 will add proper upload
     const url = prompt('Image URL:');
@@ -151,10 +168,23 @@ export default function ElementToolbar() {
             <Triangle className="w-4 h-4 mr-2" /> Triangle
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => handleAddShape('arrow-right')}>
-            <ArrowRight className="w-4 h-4 mr-2" /> Arrow
+            <ArrowRight className="w-4 h-4 mr-2" /> Arrow Shape
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => handleAddShape('line')}>
+          <div className="px-2 py-1.5 text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Lines</div>
+          <DropdownMenuItem onClick={() => handleAddLine('plain')}>
             <Minus className="w-4 h-4 mr-2" /> Line
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleAddLine('arrow')}>
+            <ArrowRight className="w-4 h-4 mr-2" /> Arrow Line
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleAddLine('arrow-both')}>
+            <span className="w-4 h-4 mr-2 text-center text-xs">↔</span> Double Arrow
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleAddLine('dashed')}>
+            <span className="w-4 h-4 mr-2 text-center text-[10px]">┄</span> Dashed
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleAddLine('dotted')}>
+            <span className="w-4 h-4 mr-2 text-center text-[10px]">┈</span> Dotted
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

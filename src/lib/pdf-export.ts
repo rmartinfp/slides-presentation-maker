@@ -154,9 +154,43 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
             svg.setAttribute('width', '100%');
             svg.setAttribute('height', '100%');
             const isVert = el.height > el.width * 2;
-            const line = document.createElementNS(svgNs, 'line');
             const lineColor = fill !== 'transparent' ? fill : stroke;
             const lineSW = Math.max(strokeWidth, 2);
+            const headEnd = (el.style as any)?.lineHeadEnd;
+            const tailEnd = (el.style as any)?.lineTailEnd;
+            const ms = Math.max(lineSW * 2.5, 6);
+            const addMarker = (id: string, t: string | undefined) => {
+              if (!t || t === 'none') return;
+              const r = ms / lineSW, h = r / 2;
+              const marker = document.createElementNS(svgNs, 'marker');
+              marker.setAttribute('id', id); marker.setAttribute('markerWidth', String(r));
+              marker.setAttribute('markerHeight', String(r)); marker.setAttribute('refX', String(h));
+              marker.setAttribute('refY', String(h)); marker.setAttribute('orient', 'auto-start-reverse');
+              marker.setAttribute('markerUnits', 'strokeWidth');
+              if (t === 'arrow' || t === 'triangle') {
+                const p = document.createElementNS(svgNs, 'polygon');
+                p.setAttribute('points', `0,0 ${r},${h} 0,${r}`); p.setAttribute('fill', lineColor);
+                marker.appendChild(p);
+              } else if (t === 'stealth') {
+                const p = document.createElementNS(svgNs, 'polygon');
+                p.setAttribute('points', `0,0 ${r},${h} 0,${r} ${r*0.3},${h}`); p.setAttribute('fill', lineColor);
+                marker.appendChild(p);
+              } else if (t === 'oval') {
+                const c = document.createElementNS(svgNs, 'circle');
+                c.setAttribute('cx', String(h)); c.setAttribute('cy', String(h));
+                c.setAttribute('r', String(h * 0.8)); c.setAttribute('fill', lineColor);
+                marker.appendChild(c);
+              } else if (t === 'diamond') {
+                const p = document.createElementNS(svgNs, 'polygon');
+                p.setAttribute('points', `${h},0 ${r},${h} ${h},${r} 0,${h}`); p.setAttribute('fill', lineColor);
+                marker.appendChild(p);
+              }
+              let defs = svg.querySelector('defs');
+              if (!defs) { defs = document.createElementNS(svgNs, 'defs'); svg.appendChild(defs); }
+              defs.appendChild(marker);
+            };
+            addMarker('pdf-h', headEnd); addMarker('pdf-t', tailEnd);
+            const line = document.createElementNS(svgNs, 'line');
             if (isVert) {
               line.setAttribute('x1', '50%'); line.setAttribute('y1', '0');
               line.setAttribute('x2', '50%'); line.setAttribute('y2', '100%');
@@ -167,21 +201,9 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
             line.setAttribute('stroke', lineColor);
             line.setAttribute('stroke-width', String(lineSW));
             if (el.style.shapeStrokeDash) line.setAttribute('stroke-dasharray', el.style.shapeStrokeDash);
+            if (headEnd && headEnd !== 'none') line.setAttribute('marker-start', 'url(#pdf-h)');
+            if (tailEnd && tailEnd !== 'none') line.setAttribute('marker-end', 'url(#pdf-t)');
             svg.appendChild(line);
-            const headEnd = (el.style as any)?.lineHeadEnd;
-            const tailEnd = (el.style as any)?.lineTailEnd;
-            if (headEnd === 'oval') {
-              const c = document.createElementNS(svgNs, 'circle');
-              c.setAttribute('cx', isVert ? '50%' : '0'); c.setAttribute('cy', isVert ? '0' : '50%');
-              c.setAttribute('r', String(Math.max(lineSW * 2, 4))); c.setAttribute('fill', lineColor);
-              svg.appendChild(c);
-            }
-            if (tailEnd === 'oval') {
-              const c = document.createElementNS(svgNs, 'circle');
-              c.setAttribute('cx', isVert ? '50%' : '100%'); c.setAttribute('cy', isVert ? '100%' : '50%');
-              c.setAttribute('r', String(Math.max(lineSW * 2, 4))); c.setAttribute('fill', lineColor);
-              svg.appendChild(c);
-            }
             elDiv.appendChild(svg);
           } else {
             elDiv.style.backgroundColor = fill;

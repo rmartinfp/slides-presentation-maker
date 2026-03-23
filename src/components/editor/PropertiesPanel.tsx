@@ -137,6 +137,101 @@ export default function PropertiesPanel() {
           <ShapeFillSection el={el} updateStyle={updateStyle} />
         )}
 
+        {/* Line-specific — dash style, width, endpoints */}
+        {el.type === 'shape' && el.style.shapeType === 'line' && (
+          <Section icon={<Palette className="w-3 h-3" />} title="Line Style">
+            <div className="space-y-3">
+              {/* Dash pattern */}
+              <div>
+                <label className="text-[10px] text-slate-500 mb-1.5 block">Style</label>
+                <div className="grid grid-cols-4 gap-1">
+                  {([
+                    { label: 'Solid', value: '' },
+                    { label: 'Dash', value: '8 4' },
+                    { label: 'Dot', value: '2 4' },
+                    { label: 'Dash·Dot', value: '8 4 2 4' },
+                  ] as const).map(d => (
+                    <button
+                      key={d.label}
+                      onClick={() => updateStyle({ shapeStrokeDash: d.value || undefined })}
+                      className={cn(
+                        'py-1 rounded text-[10px] font-medium transition-colors',
+                        (el.style.shapeStrokeDash || '') === d.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Line width */}
+              <div>
+                <label className="text-[10px] text-slate-500 mb-1 block">Width</label>
+                <div className="flex items-center gap-2">
+                  <Slider
+                    value={[el.style.shapeStrokeWidth ?? 2]}
+                    onValueChange={([v]) => updateStyle({ shapeStrokeWidth: v })}
+                    min={1} max={12} step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-[10px] text-slate-500 w-6 text-right tabular-nums">{el.style.shapeStrokeWidth ?? 2}px</span>
+                </div>
+              </div>
+
+              {/* Head endpoint */}
+              <div>
+                <label className="text-[10px] text-slate-500 mb-1.5 block">Start</label>
+                <div className="grid grid-cols-5 gap-1">
+                  {([
+                    { label: 'None', value: 'none' },
+                    { label: '→', value: 'arrow' },
+                    { label: '●', value: 'oval' },
+                    { label: '◆', value: 'diamond' },
+                    { label: '▸', value: 'stealth' },
+                  ] as const).map(m => (
+                    <button
+                      key={m.value}
+                      onClick={() => updateStyle({ lineHeadEnd: m.value === 'none' ? undefined : m.value })}
+                      className={cn(
+                        'py-1 rounded text-[10px] font-medium transition-colors',
+                        (el.style.lineHeadEnd || 'none') === m.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tail endpoint */}
+              <div>
+                <label className="text-[10px] text-slate-500 mb-1.5 block">End</label>
+                <div className="grid grid-cols-5 gap-1">
+                  {([
+                    { label: 'None', value: 'none' },
+                    { label: '→', value: 'arrow' },
+                    { label: '●', value: 'oval' },
+                    { label: '◆', value: 'diamond' },
+                    { label: '▸', value: 'stealth' },
+                  ] as const).map(m => (
+                    <button
+                      key={m.value}
+                      onClick={() => updateStyle({ lineTailEnd: m.value === 'none' ? undefined : m.value })}
+                      className={cn(
+                        'py-1 rounded text-[10px] font-medium transition-colors',
+                        (el.style.lineTailEnd || 'none') === m.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
+                      )}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Section>
+        )}
+
         {/* Image-specific */}
         {el.type === 'image' && (
           <Section icon={<Palette className="w-3 h-3" />} title="Image">

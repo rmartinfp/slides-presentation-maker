@@ -139,10 +139,21 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
             const lineSW = Math.max(sw, 2);
             const headT = (element.style as any)?.lineHeadEnd;
             const tailT = (element.style as any)?.lineTailEnd;
+            const ms = Math.max(lineSW * 2.5, 6);
+            const mkr = (mid: string, t: string | undefined) => {
+              if (!t || t === 'none') return null;
+              const r = ms / lineSW, h = r / 2;
+              if (t === 'arrow' || t === 'triangle') return <marker id={`p-${mid}`} markerWidth={r} markerHeight={r} refX={h} refY={h} orient="auto-start-reverse" markerUnits="strokeWidth"><polygon points={`0,0 ${r},${h} 0,${r}`} fill={fillColor}/></marker>;
+              if (t === 'stealth') return <marker id={`p-${mid}`} markerWidth={r} markerHeight={r} refX={h} refY={h} orient="auto-start-reverse" markerUnits="strokeWidth"><polygon points={`0,0 ${r},${h} 0,${r} ${r*0.3},${h}`} fill={fillColor}/></marker>;
+              if (t === 'oval') return <marker id={`p-${mid}`} markerWidth={r} markerHeight={r} refX={h} refY={h} orient="auto-start-reverse" markerUnits="strokeWidth"><circle cx={h} cy={h} r={h*0.8} fill={fillColor}/></marker>;
+              if (t === 'diamond') return <marker id={`p-${mid}`} markerWidth={r} markerHeight={r} refX={h} refY={h} orient="auto-start-reverse" markerUnits="strokeWidth"><polygon points={`${h},0 ${r},${h} ${h},${r} 0,${h}`} fill={fillColor}/></marker>;
+              return null;
+            };
             return <svg width="100%" height="100%" preserveAspectRatio="none">
-              {isVert ? <line x1="50%" y1="0" x2="50%" y2="100%" stroke={fillColor} strokeWidth={lineSW} strokeDasharray={da || undefined} /> : <line x1="0" y1="50%" x2="100%" y2="50%" stroke={fillColor} strokeWidth={lineSW} strokeDasharray={da || undefined} />}
-              {headT === 'oval' && (isVert ? <circle cx="50%" cy="0" r={Math.max(lineSW * 2, 4)} fill={fillColor} /> : <circle cx="0" cy="50%" r={Math.max(lineSW * 2, 4)} fill={fillColor} />)}
-              {tailT === 'oval' && (isVert ? <circle cx="50%" cy="100%" r={Math.max(lineSW * 2, 4)} fill={fillColor} /> : <circle cx="100%" cy="50%" r={Math.max(lineSW * 2, 4)} fill={fillColor} />)}
+              <defs>{mkr('h', headT)}{mkr('t', tailT)}</defs>
+              {isVert
+                ? <line x1="50%" y1="0" x2="50%" y2="100%" stroke={fillColor} strokeWidth={lineSW} strokeDasharray={da || undefined} markerStart={headT && headT !== 'none' ? 'url(#p-h)' : undefined} markerEnd={tailT && tailT !== 'none' ? 'url(#p-t)' : undefined} />
+                : <line x1="0" y1="50%" x2="100%" y2="50%" stroke={fillColor} strokeWidth={lineSW} strokeDasharray={da || undefined} markerStart={headT && headT !== 'none' ? 'url(#p-h)' : undefined} markerEnd={tailT && tailT !== 'none' ? 'url(#p-t)' : undefined} />}
             </svg>;
           }
           if (shapeType === 'arrow-right') return <svg width="100%" height="100%" viewBox="0 0 100 60" preserveAspectRatio="none"><polygon points="0,15 70,15 70,0 100,30 70,60 70,45 0,45" fill={fill} {...sp} /></svg>;
