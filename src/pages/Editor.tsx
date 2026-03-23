@@ -204,6 +204,15 @@ export default function EditorPage() {
     addElement({ type: 'shape', content: '', x: 600, y: 400, width: s.w, height: s.h, rotation: 0, opacity: 1, locked: false, visible: true, style: { shapeType, shapeFill: theme.palette.primary, borderRadius: shapeType === 'rectangle' ? 8 : 0 } });
   };
 
+  const handleAddLine = (variant: 'plain' | 'arrow' | 'arrow-both' | 'dashed' | 'dotted') => {
+    const style: Record<string, any> = { shapeType: 'line', shapeFill: theme.palette.text, shapeStrokeWidth: 2 };
+    if (variant === 'arrow') style.lineTailEnd = 'arrow';
+    if (variant === 'arrow-both') { style.lineHeadEnd = 'arrow'; style.lineTailEnd = 'arrow'; }
+    if (variant === 'dashed') style.shapeStrokeDash = '8 4';
+    if (variant === 'dotted') style.shapeStrokeDash = '2 4';
+    addElement({ type: 'shape', content: '', x: 500, y: 500, width: 400, height: 4, rotation: 0, opacity: 1, locked: false, visible: true, style });
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination || result.source.index === result.destination.index) return;
     reorderSlides(result.source.index, result.destination.index);
@@ -426,7 +435,11 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => handleAddShape('arrow-up')}><ArrowUp className="w-4 h-4 mr-2" />Arrow Up</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddShape('arrow-down')}><ArrowDown className="w-4 h-4 mr-2" />Arrow Down</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleAddShape('line')}><Minus className="w-4 h-4 mr-2" />Line</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddLine('plain')}><Minus className="w-4 h-4 mr-2" />Line</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddLine('arrow')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Line</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddLine('arrow-both')}><span className="w-4 h-4 mr-2 text-center text-xs">↔</span>Double Arrow</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddLine('dashed')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┄</span>Dashed</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddLine('dotted')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┈</span>Dotted</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               <ToolBtn icon={<Image className="w-4 h-4" />} label="Image" onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }} />

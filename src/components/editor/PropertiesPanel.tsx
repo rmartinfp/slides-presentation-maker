@@ -472,26 +472,36 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
       {/* Header bg color */}
       <div>
         <label className="text-[10px] text-slate-500 mb-1.5 block">Header Background</label>
-        <div className="grid grid-cols-6 gap-1">
-          {['#f1f5f9', '#e0e7ff', '#fce7f3', '#d1fae5', '#fef3c7', '#1e293b'].map(c => (
-            <button key={c} onClick={() => {
-              const newRows = td.rows.map((row, ri) => ri === 0 ? row.map(cell => ({ ...cell, bg: c })) : row);
-              save({ ...td, rows: newRows });
-            }} className="w-full aspect-square rounded border border-slate-200 hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
-          ))}
+        <div className="flex gap-1.5 flex-wrap">
+          <div className="grid grid-cols-6 gap-1 flex-1">
+            {['#f1f5f9', '#e0e7ff', '#fce7f3', '#d1fae5', '#fef3c7', '#1e293b'].map(c => (
+              <button key={c} onClick={() => {
+                const newRows = td.rows.map((row, ri) => ri === 0 ? row.map(cell => ({ ...cell, bg: c })) : row);
+                save({ ...td, rows: newRows });
+              }} className="w-full aspect-square rounded border border-slate-200 hover:scale-110 transition-transform" style={{ backgroundColor: c }} />
+            ))}
+          </div>
+          <input type="color" value={td.rows[0]?.[0]?.bg || '#f1f5f9'}
+            onChange={(e) => { const newRows = td.rows.map((row, ri) => ri === 0 ? row.map(cell => ({ ...cell, bg: e.target.value })) : row); save({ ...td, rows: newRows }); }}
+            className="w-7 h-7 rounded cursor-pointer border-0 p-0 shrink-0" />
         </div>
       </div>
 
       {/* Body bg color */}
       <div>
         <label className="text-[10px] text-slate-500 mb-1.5 block">Body Background</label>
-        <div className="grid grid-cols-6 gap-1">
-          {['transparent', '#ffffff', '#f8fafc', '#f1f5f9', '#fefce8', '#0f172a'].map(c => (
-            <button key={c} onClick={() => {
-              const newRows = td.rows.map((row, ri) => ri > 0 || !td.headerRow ? row.map(cell => ({ ...cell, bg: c === 'transparent' ? undefined : c })) : row);
-              save({ ...td, rows: newRows });
-            }} className={cn('w-full aspect-square rounded border border-slate-200 hover:scale-110 transition-transform', c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]')} style={c !== 'transparent' ? { backgroundColor: c } : undefined} />
-          ))}
+        <div className="flex gap-1.5 flex-wrap">
+          <div className="grid grid-cols-6 gap-1 flex-1">
+            {['transparent', '#ffffff', '#f8fafc', '#f1f5f9', '#fefce8', '#0f172a'].map(c => (
+              <button key={c} onClick={() => {
+                const newRows = td.rows.map((row, ri) => ri > 0 || !td.headerRow ? row.map(cell => ({ ...cell, bg: c === 'transparent' ? undefined : c })) : row);
+                save({ ...td, rows: newRows });
+              }} className={cn('w-full aspect-square rounded border border-slate-200 hover:scale-110 transition-transform', c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]')} style={c !== 'transparent' ? { backgroundColor: c } : undefined} />
+            ))}
+          </div>
+          <input type="color" value={td.rows[1]?.[0]?.bg || '#ffffff'}
+            onChange={(e) => { const newRows = td.rows.map((row, ri) => ri > 0 || !td.headerRow ? row.map(cell => ({ ...cell, bg: e.target.value })) : row); save({ ...td, rows: newRows }); }}
+            className="w-7 h-7 rounded cursor-pointer border-0 p-0 shrink-0" />
         </div>
       </div>
     </div>
