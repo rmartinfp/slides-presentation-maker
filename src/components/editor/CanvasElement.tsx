@@ -600,6 +600,11 @@ export default function CanvasElement({
     >
       {renderContent()}
 
+      {/* Contextual toolbar — floats above selected non-text elements (text uses FormattingToolbar) */}
+      {isSelected && !isEditing && element.type !== 'text' && !element.locked && (
+        <ElementContextBar element={element} scale={scale} />
+      )}
+
       {/* Resize handles — visual only, interact.js handles the actual resize */}
       {/* Hide handles on tiny elements (< 15px) — handles are 10px each, would dwarf the element */}
       {isSelected && !element.locked && !isEditing && Math.min(element.width, element.height) >= 15 && (
@@ -634,6 +639,63 @@ export default function CanvasElement({
               />
             );
           })}
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Contextual toolbar that floats above selected non-text elements */
+function ElementContextBar({ element, scale }: { element: SlideElement; scale: number }) {
+  const { updateElement, deleteElements, duplicateElements, bringToFront, sendToBack } = useEditorStore();
+  const s = element.style;
+
+  const btn = 'w-7 h-7 flex items-center justify-center rounded-md transition-colors';
+  const btnNormal = `${btn} text-slate-600 hover:bg-slate-100`;
+  const btnDanger = `${btn} text-red-500 hover:bg-red-50`;
+
+  return (
+    <div
+      className="absolute z-[200] flex items-center gap-0.5 px-2 py-1 bg-white rounded-xl shadow-2xl border border-slate-200"
+      style={{
+        transform: `scale(${1 / scale})`,
+        transformOrigin: 'bottom left',
+        bottom: '100%',
+        left: 0,
+        marginBottom: 8 / scale,
+      }}
+      onMouseDown={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
+      <button onClick={() => duplicateElements()} className={btnNormal} title="Duplicate">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+      </button>
+      <button onClick={() => deleteElements()} className={btnDanger} title="Delete">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+      </button>
+      <button onClick={() => bringToFront(element.id)} className={btnNormal} title="Front">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+      </button>
+      <button onClick={() => sendToBack(element.id)} className={btnNormal} title="Back">
+        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+      </button>
+
+      {element.type === 'image' && (
+        <>
+          <div className="w-px h-5 bg-slate-200 mx-0.5" />
+          {(['cover', 'contain', 'fill'] as const).map(fit => (
+            <button key={fit} onClick={() => updateElement(element.id, { style: { objectFit: fit } })}
+              className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${s.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>{fit}</button>
+          ))}
+        </>
+      )}
+
+      {element.type === 'shape' && s.shapeType !== 'line' && (
+        <>
+          <div className="w-px h-5 bg-slate-200 mx-0.5" />
+          <input type="color" value={s.shapeFill || '#6366f1'}
+            onChange={e => updateElement(element.id, { style: { shapeFill: e.target.value } })}
+            className="w-6 h-6 rounded cursor-pointer border-0 p-0" title="Fill" />
         </>
       )}
     </div>

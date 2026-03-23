@@ -524,55 +524,7 @@ export default function EditorPage() {
               <button onClick={() => setScale(Math.min(2, scale + 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">+</button>
             </div>
 
-            {/* Contextual toolbar — floats ABOVE selected element (like FormattingToolbar for text) */}
-            {singleSelected && !selectedElements.some(e => e.type === 'text') && (() => {
-              const el = singleSelected;
-              const top = el.y * scale - 52;
-              const left = el.x * scale;
-              return (
-                <div
-                  className="absolute z-40 flex items-center gap-1 px-2 py-1.5 bg-white rounded-xl shadow-2xl border border-slate-200"
-                  style={{ top: Math.max(4, top), left: Math.max(4, left), transform: `scale(${Math.min(1, 1 / scale)})`, transformOrigin: 'bottom left' }}
-                  onMouseDown={e => e.stopPropagation()}
-                >
-                  {/* Common: Duplicate, Delete, Front, Back */}
-                  <button onClick={() => duplicateElements()} className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Duplicate"><Copy className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => deleteElements()} className="w-7 h-7 flex items-center justify-center rounded-md text-red-500 hover:bg-red-50" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => bringToFront(el.id)} className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Bring to front"><ArrowUpToLine className="w-3.5 h-3.5" /></button>
-                  <button onClick={() => sendToBack(el.id)} className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Send to back"><ArrowDownToLine className="w-3.5 h-3.5" /></button>
-
-                  {/* Image-specific */}
-                  {el.type === 'image' && (
-                    <>
-                      <div className="w-px h-5 bg-slate-200 mx-0.5" />
-                      {(['cover', 'contain', 'fill'] as const).map(fit => (
-                        <button key={fit} onClick={() => updateElement(el.id, { style: { objectFit: fit } })}
-                          className={`px-1.5 py-1 rounded text-[10px] font-medium ${el.style.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>{fit}</button>
-                      ))}
-                      <button onClick={() => setShowAIImage(true)} className="w-7 h-7 flex items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50" title="Recreate with AI"><Sparkles className="w-3.5 h-3.5" /></button>
-                    </>
-                  )}
-
-                  {/* Shape-specific (not line) */}
-                  {el.type === 'shape' && el.style.shapeType !== 'line' && (
-                    <>
-                      <div className="w-px h-5 bg-slate-200 mx-0.5" />
-                      <input type="color" value={el.style.shapeFill || '#6366f1'}
-                        onChange={e => updateElement(el.id, { style: { shapeFill: e.target.value } })}
-                        className="w-6 h-6 rounded cursor-pointer border-0 p-0" title="Fill color" />
-                    </>
-                  )}
-
-                  {/* Table-specific */}
-                  {el.type === 'table' && (
-                    <>
-                      <div className="w-px h-5 bg-slate-200 mx-0.5" />
-                      <span className="text-[10px] text-slate-500">Table</span>
-                    </>
-                  )}
-                </div>
-              );
-            })()}
+            {/* Contextual toolbar is now inside CanvasElement (ElementContextBar) */}
           </div>
 
           {/* Right panel toggle + properties */}
