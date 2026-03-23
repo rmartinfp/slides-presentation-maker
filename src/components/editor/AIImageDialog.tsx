@@ -7,10 +7,11 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const ASPECT_RATIOS = [
-  { label: '16:9', size: '1792x1024', w: 1200, h: 672 },
-  { label: '1:1', size: '1024x1024', w: 600, h: 600 },
-  { label: '9:16', size: '1024x1792', w: 400, h: 712 },
-  { label: '4:3', size: '1024x1024', w: 800, h: 600 },
+  { label: '16:9', ratio: '16:9', w: 1200, h: 672 },
+  { label: '1:1', ratio: '1:1', w: 600, h: 600 },
+  { label: '9:16', ratio: '9:16', w: 400, h: 712 },
+  { label: '4:3', ratio: '4:3', w: 800, h: 600 },
+  { label: '3:4', ratio: '3:4', w: 500, h: 667 },
 ] as const;
 
 interface Props {
@@ -37,8 +38,7 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
       const { data, error } = await supabase.functions.invoke('generate-image', {
         body: {
           prompt: prompt.trim(),
-          size: ratio.size,
-          quality: 'standard',
+          aspectRatio: ratio.ratio,
         },
       });
 
