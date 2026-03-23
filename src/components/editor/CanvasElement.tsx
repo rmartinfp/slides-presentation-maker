@@ -387,6 +387,37 @@ export default function CanvasElement({
         const br = s.borderRadius ?? 0;
         const imgBorder = s.borderColor && s.borderWidth
           ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
+
+        // srcRect crop from PPTX import — show only a portion of the source image
+        const cropT = (s.srcRectTop as number) || 0;
+        const cropR = (s.srcRectRight as number) || 0;
+        const cropB = (s.srcRectBottom as number) || 0;
+        const cropL = (s.srcRectLeft as number) || 0;
+        const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
+
+        if (hasCrop) {
+          const scaleX = 100 / (1 - cropL / 100 - cropR / 100);
+          const scaleY = 100 / (1 - cropT / 100 - cropB / 100);
+          return (
+            <div
+              className="w-full h-full pointer-events-none"
+              style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}
+            >
+              <img
+                src={element.content}
+                alt=""
+                style={{
+                  width: `${scaleX}%`,
+                  height: `${scaleY}%`,
+                  transform: `translate(-${cropL}%, -${cropT}%)`,
+                  objectFit: 'fill',
+                }}
+                draggable={false}
+              />
+            </div>
+          );
+        }
+
         return (
           <div
             className="w-full h-full pointer-events-none"

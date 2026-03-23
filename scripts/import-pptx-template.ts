@@ -597,6 +597,22 @@ function parseImageFromSpTree(
   // Extract image-level alpha from <a:alphaModFix> in effect or blipFill
   const imageAlpha = parseAlphaFromXml(picXml);
 
+  // Parse srcRect (crop) from blipFill — values are in 1/1000 percent
+  // e.g. t="50709" means crop 50.709% from top
+  const srcRectMatch = picXml.match(/<a:srcRect([^/]*)\/?>/);
+  let srcRectTop = 0, srcRectRight = 0, srcRectBottom = 0, srcRectLeft = 0;
+  if (srcRectMatch) {
+    const tM = srcRectMatch[1].match(/\bt="(\d+)"/);
+    const bM = srcRectMatch[1].match(/\bb="(\d+)"/);
+    const lM = srcRectMatch[1].match(/\bl="(\d+)"/);
+    const rM = srcRectMatch[1].match(/\br="(\d+)"/);
+    if (tM) srcRectTop = parseInt(tM[1]) / 1000;
+    if (bM) srcRectBottom = parseInt(bM[1]) / 1000;
+    if (lM) srcRectLeft = parseInt(lM[1]) / 1000;
+    if (rM) srcRectRight = parseInt(rM[1]) / 1000;
+  }
+  const hasCrop = srcRectTop > 0 || srcRectRight > 0 || srcRectBottom > 0 || srcRectLeft > 0;
+
   return {
     element: {
       id: genId(),
@@ -613,6 +629,7 @@ function parseImageFromSpTree(
         borderRadius,
         borderColor,
         borderWidth: borderWidth || undefined,
+        ...(hasCrop ? { srcRectTop, srcRectRight, srcRectBottom, srcRectLeft } : {}),
       },
     },
     imageRef,
