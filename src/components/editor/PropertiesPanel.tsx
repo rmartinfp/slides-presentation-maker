@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useEditorStore } from '@/stores/editor-store';
 import { SlideElement } from '@/types/presentation';
 import { Slider } from '@/components/ui/slider';
@@ -10,6 +10,17 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+
+const GRADIENT_PRESETS = [
+  'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+  'linear-gradient(180deg, #1F1F1Fa5 0%, #FFFFFF00 100%)',
+  'linear-gradient(180deg, #00000080 0%, #00000000 100%)',
+];
 
 export default function PropertiesPanel() {
   const {
@@ -121,48 +132,9 @@ export default function PropertiesPanel() {
           </Section>
         )}
 
-        {/* Shape-specific */}
+        {/* Shape-specific — Fill (Solid / Gradient) + Stroke */}
         {el.type === 'shape' && (
-          <Section icon={<Palette className="w-3 h-3" />} title="Fill & Stroke">
-            <div className="space-y-3">
-              <div>
-                <label className="text-[10px] text-slate-500 mb-1.5 block">Fill Color</label>
-                <div className="grid grid-cols-6 gap-1">
-                  {['transparent', '#FFFFFF', '#000000', '#EF4444', '#22C55E', '#3B82F6',
-                    '#8B5CF6', '#F97316', '#EC4899', '#14B8A6', '#6366F1', '#F43F5E',
-                  ].map(c => (
-                    <button
-                      key={c}
-                      onClick={() => updateStyle({ shapeFill: c })}
-                      className={cn(
-                        'w-full aspect-square rounded border transition-transform hover:scale-110',
-                        el.style.shapeFill === c ? 'border-indigo-500 scale-110' : 'border-slate-200',
-                        c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]'
-                      )}
-                      style={c !== 'transparent' ? { backgroundColor: c } : undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-500 mb-1.5 block">Stroke</label>
-                <div className="grid grid-cols-6 gap-1">
-                  {['transparent', '#FFFFFF', '#000000', '#EF4444', '#22C55E', '#3B82F6'].map(c => (
-                    <button
-                      key={c}
-                      onClick={() => updateStyle({ shapeStroke: c, shapeStrokeWidth: c === 'transparent' ? 0 : 2 })}
-                      className={cn(
-                        'w-full aspect-square rounded border transition-transform hover:scale-110',
-                        el.style.shapeStroke === c ? 'border-indigo-500 scale-110' : 'border-slate-200',
-                        c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]'
-                      )}
-                      style={c !== 'transparent' ? { backgroundColor: c } : undefined}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Section>
+          <ShapeFillSection el={el} updateStyle={updateStyle} />
         )}
 
         {/* Image-specific */}
@@ -278,6 +250,190 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
       </div>
       {children}
     </div>
+  );
+}
+
+/** Parse a CSS linear-gradient into { angle, color1, color2 } */
+function parseGradient(grad: string): { angle: number; color1: string; color2: string } | null {
+  const m = grad.match(/linear-gradient\((\d+)deg,\s*(#[A-Fa-f0-9]+)\s+\d+%,\s*(#[A-Fa-f0-9]+)\s+\d+%\)/);
+  if (!m) return null;
+  return { angle: parseInt(m[1]), color1: m[2].slice(0, 7), color2: m[3].slice(0, 7) };
+}
+
+function ShapeFillSection({ el, updateStyle }: { el: SlideElement; updateStyle: (u: Record<string, any>) => void }) {
+  const hasGradient = !!el.style.shapeGradient;
+  const [mode, setMode] = useState<'solid' | 'gradient'>(hasGradient ? 'gradient' : 'solid');
+
+  // Parse current gradient for the custom editor
+  const parsed = useMemo(() => {
+    if (el.style.shapeGradient) return parseGradient(el.style.shapeGradient as string);
+    return null;
+  }, [el.style.shapeGradient]);
+
+  const [gradColor1, setGradColor1] = useState(parsed?.color1 || '#667eea');
+  const [gradColor2, setGradColor2] = useState(parsed?.color2 || '#764ba2');
+  const [gradAngle, setGradAngle] = useState(parsed?.angle || 135);
+
+  const applyCustomGradient = (c1: string, c2: string, angle: number) => {
+    const grad = `linear-gradient(${angle}deg, ${c1} 0%, ${c2} 100%)`;
+    updateStyle({ shapeGradient: grad, shapeFill: undefined });
+  };
+
+  const switchToSolid = () => {
+    setMode('solid');
+    updateStyle({ shapeGradient: undefined });
+  };
+
+  const switchToGradient = () => {
+    setMode('gradient');
+    applyCustomGradient(gradColor1, gradColor2, gradAngle);
+  };
+
+  return (
+    <Section icon={<Palette className="w-3 h-3" />} title="Fill & Stroke">
+      <div className="space-y-3">
+        {/* Solid / Gradient toggle */}
+        <div className="flex rounded-md overflow-hidden border border-slate-200">
+          <button
+            onClick={switchToSolid}
+            className={cn(
+              'flex-1 py-1 text-[10px] font-medium transition-colors',
+              mode === 'solid' ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
+            )}
+          >
+            Solid
+          </button>
+          <button
+            onClick={switchToGradient}
+            className={cn(
+              'flex-1 py-1 text-[10px] font-medium transition-colors',
+              mode === 'gradient' ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:text-slate-900'
+            )}
+          >
+            Gradient
+          </button>
+        </div>
+
+        {mode === 'solid' ? (
+          <div>
+            <label className="text-[10px] text-slate-500 mb-1.5 block">Fill Color</label>
+            <div className="grid grid-cols-6 gap-1">
+              {['transparent', '#FFFFFF', '#000000', '#EF4444', '#22C55E', '#3B82F6',
+                '#8B5CF6', '#F97316', '#EC4899', '#14B8A6', '#6366F1', '#F43F5E',
+              ].map(c => (
+                <button
+                  key={c}
+                  onClick={() => updateStyle({ shapeFill: c, shapeGradient: undefined })}
+                  className={cn(
+                    'w-full aspect-square rounded border transition-transform hover:scale-110',
+                    !hasGradient && el.style.shapeFill === c ? 'border-indigo-500 scale-110' : 'border-slate-200',
+                    c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]'
+                  )}
+                  style={c !== 'transparent' ? { backgroundColor: c } : undefined}
+                />
+              ))}
+            </div>
+            {/* Custom color picker */}
+            <div className="mt-2 flex gap-2">
+              <input
+                type="color"
+                value={el.style.shapeFill || '#6366F1'}
+                onChange={(e) => updateStyle({ shapeFill: e.target.value, shapeGradient: undefined })}
+                className="w-7 h-7 rounded cursor-pointer border-0 p-0"
+              />
+              <input
+                type="text"
+                value={el.style.shapeFill || ''}
+                onChange={(e) => {
+                  if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+                    updateStyle({ shapeFill: e.target.value, shapeGradient: undefined });
+                  }
+                }}
+                placeholder="#FFFFFF"
+                className="flex-1 px-2 py-1 text-[10px] rounded border border-slate-200 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {/* Gradient preview */}
+            <div
+              className="w-full h-8 rounded-md border border-slate-200"
+              style={{ background: el.style.shapeGradient as string || `linear-gradient(${gradAngle}deg, ${gradColor1} 0%, ${gradColor2} 100%)` }}
+            />
+
+            {/* Gradient presets */}
+            <div>
+              <label className="text-[10px] text-slate-500 mb-1 block">Presets</label>
+              <div className="grid grid-cols-4 gap-1">
+                {GRADIENT_PRESETS.map(g => (
+                  <button
+                    key={g}
+                    onClick={() => {
+                      updateStyle({ shapeGradient: g, shapeFill: undefined });
+                      const p = parseGradient(g);
+                      if (p) { setGradColor1(p.color1); setGradColor2(p.color2); setGradAngle(p.angle); }
+                    }}
+                    className={cn(
+                      'w-full aspect-square rounded border-2 transition-transform hover:scale-110',
+                      el.style.shapeGradient === g ? 'border-indigo-500 scale-110' : 'border-transparent'
+                    )}
+                    style={{ background: g }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Custom gradient editor */}
+            <div>
+              <label className="text-[10px] text-slate-500 mb-1 block">Custom</label>
+              <div className="flex gap-1.5 items-center">
+                <input
+                  type="color"
+                  value={gradColor1}
+                  onChange={(e) => { setGradColor1(e.target.value); applyCustomGradient(e.target.value, gradColor2, gradAngle); }}
+                  className="w-7 h-7 rounded cursor-pointer border-0 p-0"
+                />
+                <span className="text-[10px] text-slate-400">→</span>
+                <input
+                  type="color"
+                  value={gradColor2}
+                  onChange={(e) => { setGradColor2(e.target.value); applyCustomGradient(gradColor1, e.target.value, gradAngle); }}
+                  className="w-7 h-7 rounded cursor-pointer border-0 p-0"
+                />
+                <input
+                  type="number"
+                  min={0} max={360} step={15}
+                  value={gradAngle}
+                  onChange={(e) => { const a = parseInt(e.target.value) || 0; setGradAngle(a); applyCustomGradient(gradColor1, gradColor2, a); }}
+                  className="w-12 h-7 px-1 text-[10px] text-center bg-slate-50 border border-slate-200 rounded focus:outline-none focus:border-indigo-500 tabular-nums"
+                />
+                <span className="text-[10px] text-slate-400">°</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stroke */}
+        <div>
+          <label className="text-[10px] text-slate-500 mb-1.5 block">Stroke</label>
+          <div className="grid grid-cols-6 gap-1">
+            {['transparent', '#FFFFFF', '#000000', '#EF4444', '#22C55E', '#3B82F6'].map(c => (
+              <button
+                key={c}
+                onClick={() => updateStyle({ shapeStroke: c, shapeStrokeWidth: c === 'transparent' ? 0 : 2 })}
+                className={cn(
+                  'w-full aspect-square rounded border transition-transform hover:scale-110',
+                  el.style.shapeStroke === c ? 'border-indigo-500 scale-110' : 'border-slate-200',
+                  c === 'transparent' && 'bg-[repeating-conic-gradient(#ccc_0%_25%,#eee_0%_50%)] bg-[length:8px_8px]'
+                )}
+                style={c !== 'transparent' ? { backgroundColor: c } : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    </Section>
   );
 }
 
