@@ -1,6 +1,20 @@
 // ============ Element Types ============
 
-export type ElementType = 'text' | 'image' | 'shape' | 'icon' | 'video';
+export type ElementType = 'text' | 'image' | 'shape' | 'icon' | 'video' | 'table';
+
+export interface TableCell {
+  text: string;
+  bold?: boolean;
+  align?: 'left' | 'center' | 'right';
+  bg?: string;
+  color?: string;
+}
+
+export interface TableData {
+  rows: TableCell[][];
+  headerRow?: boolean;
+  borderColor?: string;
+}
 
 export type ShapeType =
   | 'rectangle'
@@ -69,6 +83,7 @@ export interface SlideElement {
   visible: boolean;
   zIndex: number;
   style: ElementStyle;
+  groupId?: string; // Group membership — elements sharing groupId move/resize together
 }
 
 // ============ Slide & Presentation ============

@@ -217,6 +217,29 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
         );
       }
 
+      case 'table': {
+        let td: import('@/types/presentation').TableData;
+        try { td = JSON.parse(element.content); } catch { td = { rows: [[{ text: '' }]] }; }
+        const bc = td.borderColor || '#e2e8f0';
+        const cp = Math.max(4, element.height / td.rows.length * 0.15);
+        const cf = Math.max(10, element.height / td.rows.length * 0.45);
+        return (
+          <div key={element.id} style={{ ...wrapperStyle, boxShadow: s.boxShadow || undefined }}>
+            <table className="w-full h-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+              <tbody>
+                {td.rows.map((row, ri) => (
+                  <tr key={ri}>{row.map((cell, ci) => (
+                    <td key={ci} style={{ border: `1px solid ${bc}`, padding: cp, fontSize: cf, fontWeight: (td.headerRow && ri === 0) || cell.bold ? 'bold' : 'normal', textAlign: cell.align || 'left', backgroundColor: cell.bg || (td.headerRow && ri === 0 ? '#f1f5f9' : 'transparent'), color: cell.color || '#1e293b', overflow: 'hidden', lineHeight: 1.3, fontFamily: 'sans-serif' }}>
+                      {cell.text}
+                    </td>
+                  ))}</tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      }
+
       default:
         return null;
     }

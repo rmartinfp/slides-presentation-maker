@@ -430,6 +430,7 @@ export default function EditorPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <ToolBtn icon={<Image className="w-4 h-4" />} label="Image" onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }} />
+              <ToolBtn icon={<span className="text-[11px] font-bold">⊞</span>} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: {} }); }} />
 
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
 

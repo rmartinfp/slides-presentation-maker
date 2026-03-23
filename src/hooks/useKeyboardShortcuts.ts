@@ -82,6 +82,20 @@ export function useKeyboardShortcuts() {
         setSelectedElementIds(slide.elements.map(el => el.id));
         return;
       }
+
+      // Group: Ctrl+G
+      if (meta && e.key === 'g' && !e.shiftKey) {
+        e.preventDefault();
+        useEditorStore.getState().groupElements();
+        return;
+      }
+
+      // Ungroup: Ctrl+Shift+G
+      if (meta && e.key === 'g' && e.shiftKey) {
+        e.preventDefault();
+        useEditorStore.getState().ungroupElements();
+        return;
+      }
     };
 
     window.addEventListener('keydown', handler);

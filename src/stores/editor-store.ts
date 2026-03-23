@@ -57,6 +57,12 @@ export interface EditorState {
   sendToBack: (elementId: string) => void;
   lockElement: (elementId: string, locked: boolean) => void;
 
+  // Group & Align actions
+  groupElements: () => void;
+  ungroupElements: () => void;
+  alignElements: (alignment: 'left' | 'center' | 'right' | 'top' | 'middle' | 'bottom') => void;
+  distributeElements: (direction: 'horizontal' | 'vertical') => void;
+
   // UI actions
   setScale: (scale: number) => void;
   setIsPresentationMode: (v: boolean) => void;
@@ -471,18 +477,19 @@ export const useEditorStore = create<EditorState>()((set, get) => {
       if (!slide) return;
       const elIdx = slide.elements.findIndex(e => e.id === elementId);
       if (elIdx === -1) return;
-      const newEl = { ...slide.elements[elIdx], x: Math.round(x), y: Math.round(y) };
-      const newElements = [...slide.elements];
-      newElements[elIdx] = newEl;
+      const el = slide.elements[elIdx];
+      const dx = Math.round(x) - el.x;
+      const dy = Math.round(y) - el.y;
+      const newElements = slide.elements.map(e => {
+        if (e.id === elementId) return { ...e, x: Math.round(x), y: Math.round(y) };
+        // Move group siblings by the same delta
+        if (el.groupId && e.groupId === el.groupId) return { ...e, x: e.x + dx, y: e.y + dy };
+        return e;
+      });
       const newSlide = { ...slide, elements: newElements };
       const newSlides = [...state.presentation.slides];
       newSlides[state.activeSlideIndex] = newSlide;
-      set({
-        presentation: {
-          ...state.presentation,
-          slides: newSlides,
-        },
-      });
+      set({ presentation: { ...state.presentation, slides: newSlides } });
     },
 
     resizeElement: (elementId, width, height, x, y) => {
@@ -541,6 +548,79 @@ export const useEditorStore = create<EditorState>()((set, get) => {
           if (!slide) return;
           const el = slide.elements.find(e => e.id === elementId);
           if (el) el.locked = locked;
+        }),
+      ),
+
+    // Group & Align actions
+    groupElements: () =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          if (!slide || state.selectedElementIds.length < 2) return;
+          const gid = generateId();
+          for (const el of slide.elements) {
+            if (state.selectedElementIds.includes(el.id)) el.groupId = gid;
+          }
+        }),
+      ),
+
+    ungroupElements: () =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          if (!slide) return;
+          for (const el of slide.elements) {
+            if (state.selectedElementIds.includes(el.id)) el.groupId = undefined;
+          }
+        }),
+      ),
+
+    alignElements: (alignment) =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          if (!slide || state.selectedElementIds.length < 2) return;
+          const els = slide.elements.filter(e => state.selectedElementIds.includes(e.id));
+          if (els.length < 2) return;
+          switch (alignment) {
+            case 'left': { const min = Math.min(...els.map(e => e.x)); els.forEach(e => { e.x = min; }); break; }
+            case 'center': { const cx = els.reduce((s, e) => s + e.x + e.width / 2, 0) / els.length; els.forEach(e => { e.x = Math.round(cx - e.width / 2); }); break; }
+            case 'right': { const max = Math.max(...els.map(e => e.x + e.width)); els.forEach(e => { e.x = max - e.width; }); break; }
+            case 'top': { const min = Math.min(...els.map(e => e.y)); els.forEach(e => { e.y = min; }); break; }
+            case 'middle': { const cy = els.reduce((s, e) => s + e.y + e.height / 2, 0) / els.length; els.forEach(e => { e.y = Math.round(cy - e.height / 2); }); break; }
+            case 'bottom': { const max = Math.max(...els.map(e => e.y + e.height)); els.forEach(e => { e.y = max - e.height; }); break; }
+          }
+        }),
+      ),
+
+    distributeElements: (direction) =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          if (!slide || state.selectedElementIds.length < 3) return;
+          const els = slide.elements.filter(e => state.selectedElementIds.includes(e.id));
+          if (els.length < 3) return;
+          if (direction === 'horizontal') {
+            els.sort((a, b) => a.x - b.x);
+            const totalWidth = els.reduce((s, e) => s + e.width, 0);
+            const span = els[els.length - 1].x + els[els.length - 1].width - els[0].x;
+            const gap = (span - totalWidth) / (els.length - 1);
+            let cx = els[0].x + els[0].width + gap;
+            for (let i = 1; i < els.length - 1; i++) {
+              els[i].x = Math.round(cx);
+              cx += els[i].width + gap;
+            }
+          } else {
+            els.sort((a, b) => a.y - b.y);
+            const totalHeight = els.reduce((s, e) => s + e.height, 0);
+            const span = els[els.length - 1].y + els[els.length - 1].height - els[0].y;
+            const gap = (span - totalHeight) / (els.length - 1);
+            let cy = els[0].y + els[0].height + gap;
+            for (let i = 1; i < els.length - 1; i++) {
+              els[i].y = Math.round(cy);
+              cy += els[i].height + gap;
+            }
+          }
         }),
       ),
 

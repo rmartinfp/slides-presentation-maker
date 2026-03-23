@@ -477,6 +477,40 @@ export default function CanvasElement({
         );
       }
 
+      case 'table': {
+        let tableData: import('@/types/presentation').TableData;
+        try { tableData = JSON.parse(element.content); } catch { tableData = { rows: [['', '', ''], ['', '', ''], ['', '', '']].map(r => r.map(t => ({ text: t }))) }; }
+        const bColor = tableData.borderColor || '#e2e8f0';
+        const cellPad = Math.max(4, element.height / tableData.rows.length * 0.15);
+        const cellFontPx = Math.max(10, element.height / tableData.rows.length * 0.45);
+        return (
+          <table className="w-full h-full pointer-events-none" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <tbody>
+              {tableData.rows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} style={{
+                      border: `1px solid ${bColor}`,
+                      padding: cellPad,
+                      fontSize: cellFontPx,
+                      fontWeight: (tableData.headerRow && ri === 0) || cell.bold ? 'bold' : 'normal',
+                      textAlign: cell.align || 'left',
+                      backgroundColor: cell.bg || (tableData.headerRow && ri === 0 ? '#f1f5f9' : 'transparent'),
+                      color: cell.color || '#1e293b',
+                      overflow: 'hidden',
+                      lineHeight: 1.3,
+                      fontFamily: 'sans-serif',
+                    }}>
+                      {cell.text}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      }
+
       default:
         return <div className="w-full h-full bg-gray-200 rounded pointer-events-none" />;
     }

@@ -63,10 +63,17 @@ export default function SlideCanvas({
       if (multi) {
         toggleElementSelection(id);
       } else {
-        setSelectedElementIds([id]);
+        // Auto-select entire group when clicking a grouped element
+        const clicked = slide.elements?.find(e => e.id === id);
+        if (clicked?.groupId) {
+          const groupIds = slide.elements.filter(e => e.groupId === clicked.groupId).map(e => e.id);
+          setSelectedElementIds(groupIds);
+        } else {
+          setSelectedElementIds([id]);
+        }
       }
     },
-    [setSelectedElementIds, toggleElementSelection],
+    [setSelectedElementIds, toggleElementSelection, slide.elements],
   );
 
   // Sort elements by zIndex for rendering
@@ -352,6 +359,27 @@ function StaticElement({ element }: { element: SlideElement }) {
               draggable={false}
             />
           </div>
+        );
+      }
+
+      case 'table': {
+        let td: import('@/types/presentation').TableData;
+        try { td = JSON.parse(element.content); } catch { td = { rows: [[{ text: '' }]] }; }
+        const bc = td.borderColor || '#e2e8f0';
+        const cp = Math.max(2, element.height / td.rows.length * 0.12);
+        const cf = Math.max(6, element.height / td.rows.length * 0.4);
+        return (
+          <table className="w-full h-full" style={{ borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+            <tbody>
+              {td.rows.map((row, ri) => (
+                <tr key={ri}>{row.map((cell, ci) => (
+                  <td key={ci} style={{ border: `1px solid ${bc}`, padding: cp, fontSize: cf, fontWeight: (td.headerRow && ri === 0) || cell.bold ? 'bold' : 'normal', textAlign: cell.align || 'left', backgroundColor: cell.bg || (td.headerRow && ri === 0 ? '#f1f5f9' : 'transparent'), color: cell.color || '#1e293b', overflow: 'hidden', lineHeight: 1.3, fontFamily: 'sans-serif' }}>
+                    {cell.text}
+                  </td>
+                ))}</tr>
+              ))}
+            </tbody>
+          </table>
         );
       }
 

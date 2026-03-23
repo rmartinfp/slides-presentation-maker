@@ -13,6 +13,7 @@ import {
   Unlock,
   ArrowUpToLine,
   ArrowDownToLine,
+  Grid3X3,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -115,6 +116,19 @@ export default function ElementToolbar() {
     });
   };
 
+  const handleAddTable = (rows = 3, cols = 3) => {
+    const defaultRows = Array.from({ length: rows }, (_, ri) =>
+      Array.from({ length: cols }, (_, ci) => ({
+        text: ri === 0 ? `Header ${ci + 1}` : `Cell ${ri},${ci + 1}`,
+      }))
+    );
+    const tableData = JSON.stringify({ rows: defaultRows, headerRow: true, borderColor: '#e2e8f0' });
+    addElement({
+      type: 'table', content: tableData, x: 400, y: 300, width: 700, height: 300,
+      rotation: 0, opacity: 1, locked: false, visible: true, style: {},
+    });
+  };
+
   const handleAddImage = () => {
     // Placeholder — Fase 3 will add proper upload
     const url = prompt('Image URL:');
@@ -197,6 +211,16 @@ export default function ElementToolbar() {
           </Button>
         </TooltipTrigger>
         <TooltipContent>Add Image</TooltipContent>
+      </Tooltip>
+
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button variant="ghost" size="sm" className="h-8 gap-1.5" onClick={() => handleAddTable()}>
+            <Grid3X3 className="w-4 h-4" />
+            <span className="text-xs hidden lg:inline">Table</span>
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Add Table</TooltipContent>
       </Tooltip>
 
       {hasSelection && (

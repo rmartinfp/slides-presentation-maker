@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useEditorStore } from '@/stores/editor-store';
-import { SlideElement } from '@/types/presentation';
+import { SlideElement, TableData } from '@/types/presentation';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import {
@@ -27,11 +27,74 @@ export default function PropertiesPanel() {
     presentation, activeSlideIndex, selectedElementIds,
     updateElement, deleteElements, duplicateElements,
     lockElement, bringToFront, sendToBack, setSlideBackground,
+    groupElements, ungroupElements, alignElements, distributeElements,
   } = useEditorStore();
 
   const slide = presentation.slides[activeSlideIndex];
   const selected = slide?.elements?.filter(e => selectedElementIds.includes(e.id)) ?? [];
   const el = selected.length === 1 ? selected[0] : null;
+
+  // Multi-select: show align/distribute/group controls
+  if (selected.length >= 2) {
+    const hasGroup = selected.some(e => e.groupId);
+    const allSameGroup = hasGroup && new Set(selected.map(e => e.groupId).filter(Boolean)).size === 1;
+    return (
+      <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">{selected.length} Selected</h3>
+
+        <Section icon={<Move className="w-3 h-3" />} title="Align">
+          <div className="grid grid-cols-3 gap-1">
+            {([
+              { label: '⫷ Left', v: 'left' as const },
+              { label: '⫿ Center', v: 'center' as const },
+              { label: '⫸ Right', v: 'right' as const },
+              { label: '⊤ Top', v: 'top' as const },
+              { label: '⊟ Middle', v: 'middle' as const },
+              { label: '⊥ Bottom', v: 'bottom' as const },
+            ]).map(a => (
+              <button key={a.v} onClick={() => alignElements(a.v)}
+                className="py-1.5 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                {a.label}
+              </button>
+            ))}
+          </div>
+        </Section>
+
+        {selected.length >= 3 && (
+          <Section icon={<Maximize2 className="w-3 h-3" />} title="Distribute">
+            <div className="grid grid-cols-2 gap-1">
+              <button onClick={() => distributeElements('horizontal')}
+                className="py-1.5 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                ↔ Horizontal
+              </button>
+              <button onClick={() => distributeElements('vertical')}
+                className="py-1.5 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors">
+                ↕ Vertical
+              </button>
+            </div>
+          </Section>
+        )}
+
+        <div className="flex gap-1 pt-3 border-t border-slate-200/60">
+          {!allSameGroup ? (
+            <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-500 hover:text-indigo-600 gap-1" onClick={groupElements}>
+              Group
+            </Button>
+          ) : (
+            <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-500 hover:text-indigo-600 gap-1" onClick={ungroupElements}>
+              Ungroup
+            </Button>
+          )}
+          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-slate-500 hover:text-indigo-600 gap-1" onClick={() => duplicateElements()}>
+            <Copy className="w-3 h-3" /> Duplicate
+          </Button>
+          <Button variant="ghost" size="sm" className="flex-1 h-7 text-[10px] text-red-500 hover:text-red-600 gap-1" onClick={() => deleteElements()}>
+            <Trash2 className="w-3 h-3" /> Delete
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!el) {
     return (
@@ -292,6 +355,13 @@ export default function PropertiesPanel() {
           </Section>
         )}
 
+        {/* Table properties */}
+        {el.type === 'table' && (
+          <Section icon={<Palette className="w-3 h-3" />} title="Table">
+            <TablePropsSection el={el} updateElement={updateElement} />
+          </Section>
+        )}
+
         {/* Shadow — for shapes and images */}
         {(el.type === 'shape' || el.type === 'image') && (
           <Section icon={<BoxSelect className="w-3 h-3" />} title="Shadow">
@@ -344,6 +414,49 @@ function Section({ icon, title, children }: { icon: React.ReactNode; title: stri
         <span className="text-[11px] font-medium text-slate-500">{title}</span>
       </div>
       {children}
+    </div>
+  );
+}
+
+function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElement: (id: string, u: Partial<SlideElement>) => void }) {
+  let td: TableData;
+  try { td = JSON.parse(el.content); } catch { td = { rows: [[{ text: '' }]] }; }
+  const save = (newTd: TableData) => updateElement(el.id, { content: JSON.stringify(newTd) });
+
+  const addRow = () => {
+    const cols = td.rows[0]?.length || 3;
+    save({ ...td, rows: [...td.rows, Array.from({ length: cols }, () => ({ text: '' }))] });
+  };
+  const removeRow = () => {
+    if (td.rows.length <= 1) return;
+    save({ ...td, rows: td.rows.slice(0, -1) });
+  };
+  const addCol = () => {
+    save({ ...td, rows: td.rows.map(r => [...r, { text: '' }]) });
+  };
+  const removeCol = () => {
+    if ((td.rows[0]?.length || 0) <= 1) return;
+    save({ ...td, rows: td.rows.map(r => r.slice(0, -1)) });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="text-[10px] text-slate-500">{td.rows.length} rows × {td.rows[0]?.length || 0} cols</div>
+      <div className="grid grid-cols-2 gap-1">
+        <button onClick={addRow} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600">+ Row</button>
+        <button onClick={removeRow} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600">− Row</button>
+        <button onClick={addCol} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600">+ Column</button>
+        <button onClick={removeCol} className="py-1 rounded text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-red-50 hover:text-red-600">− Column</button>
+      </div>
+      <label className="flex items-center gap-2 text-[10px] text-slate-600 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={td.headerRow ?? false}
+          onChange={(e) => save({ ...td, headerRow: e.target.checked })}
+          className="rounded border-slate-300"
+        />
+        Header row (bold + bg)
+      </label>
     </div>
   );
 }
