@@ -215,7 +215,7 @@ function parseTextFromSpTree(
   layoutPlaceholderSizes?: Map<string, number>,
   layoutPlaceholderFonts?: Map<string, string>,
   layoutPlaceholderBold?: Map<string, boolean>,
-  masterDefaults?: { titleBold: boolean; titleSz: number | null; bodySz: number | null },
+  masterDefaults?: { titleBold: boolean; titleSz: number | null; bodySz: number | null; titleColor: string | null; bodyColor: string | null },
 ): ParsedElement | null {
   // Extract position (support negative offsets)
   const off = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
@@ -458,7 +458,15 @@ function parseTextFromSpTree(
       fontFamily: firstFontFamily || defaultFonts.bodyFont,
       fontSize: firstFontSize || 12,
       fontWeight: firstBold ? 'bold' : 'normal',
-      color: firstColor || themeColors.dk1,
+      color: firstColor || (() => {
+        // Inherit text color from master placeholder: title uses titleColor, body uses bodyColor
+        if (masterDefaults) {
+          const isTitle = phType === 'ctrTitle' || phType === 'title';
+          const masterColor = isTitle ? masterDefaults.titleColor : masterDefaults.bodyColor;
+          if (masterColor) return masterColor;
+        }
+        return themeColors.dk1;
+      })(),
       textAlign: firstAlign || 'left',
       verticalAlign: verticalAlign,
       lineHeight: lineHeight || 1.4,
@@ -1293,6 +1301,8 @@ async function main() {
   let masterBodyBold = false;
   let masterTitleSz: number | null = null;
   let masterBodySz: number | null = null;
+  let masterTitleColor: string | null = null;
+  let masterBodyColor: string | null = null;
   if (primaryMasterId) {
     const primaryMasterFile = zip.files[`ppt/slideMasters/${primaryMasterId}`];
     if (primaryMasterFile) {
@@ -1319,6 +1329,10 @@ async function main() {
             if (sz) masterTitleSz = parseInt(sz);
           }
           if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+          if (!masterTitleColor) {
+            const sf = attrs.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+            if (sf) masterTitleColor = parseColorFromShapeXml(sf[1], themeColors);
+          }
         }
       }
 
@@ -1342,6 +1356,10 @@ async function main() {
             if (sz) masterBodySz = parseInt(sz);
           }
           if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
+          if (!masterBodyColor) {
+            const sf = attrs.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+            if (sf) masterBodyColor = parseColorFromShapeXml(sf[1], themeColors);
+          }
         }
       }
 
@@ -1358,6 +1376,10 @@ async function main() {
             if (font && font !== 'Arial') themeFonts.titleFont = cleanFontName(font);
             if (!masterTitleSz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterTitleSz = parseInt(sz); }
             if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+            if (!masterTitleColor) {
+              const sf = attrs.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+              if (sf) masterTitleColor = parseColorFromShapeXml(sf[1], themeColors);
+            }
           }
         }
       }
@@ -1372,6 +1394,10 @@ async function main() {
             if (font && font !== 'Arial') themeFonts.bodyFont = cleanFontName(font);
             if (!masterBodySz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterBodySz = parseInt(sz); }
             if (!masterBodyBold && /\bb="1"/.test(attrs)) masterBodyBold = true;
+            if (!masterBodyColor) {
+              const sf = attrs.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
+              if (sf) masterBodyColor = parseColorFromShapeXml(sf[1], themeColors);
+            }
           }
         }
       }
@@ -1380,6 +1406,8 @@ async function main() {
       if (masterTitleBold) console.log(`  Master title bold: true`);
       if (masterTitleSz) console.log(`  Master title sz: ${masterTitleSz}`);
       if (masterBodySz) console.log(`  Master body sz: ${masterBodySz}`);
+      if (masterTitleColor) console.log(`  Master title color: ${masterTitleColor}`);
+      if (masterBodyColor) console.log(`  Master body color: ${masterBodyColor}`);
     }
   }
 
@@ -1782,7 +1810,7 @@ async function main() {
         if (/<p:ph[^>]*type="pic"/.test(spXml) || /<p:ph[^>]*type="media"/.test(spXml)) continue;
 
         // Try as text first
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) { textEl.zIndex = zIndex++; elements.push(textEl); continue; }
 
         // Try as shape
@@ -1885,7 +1913,7 @@ async function main() {
           elements.push(shapeEl);
           continue;
         }
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz });
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) {
           const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
