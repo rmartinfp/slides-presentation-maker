@@ -142,13 +142,6 @@ export default function EditorPage() {
     return () => window.removeEventListener('resize', updateScale);
   }, [updateScale]);
 
-  // Recalculate canvas scale when right panel toggles
-  useEffect(() => {
-    // Small delay so the DOM layout updates before measuring
-    const t = setTimeout(updateScale, 250);
-    return () => clearTimeout(t);
-  }, [showRightPanel, updateScale]);
-
   // Keyboard nav
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -201,6 +194,12 @@ export default function EditorPage() {
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
   const { addConnector } = useEditorStore();
+
+  // Recalculate canvas scale when right panel toggles
+  useEffect(() => {
+    const t = setTimeout(updateScale, 250);
+    return () => clearTimeout(t);
+  }, [showRightPanel, updateScale]);
 
   // Connector mode: when user clicks an element, capture it
   useEffect(() => {
