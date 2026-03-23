@@ -1580,8 +1580,10 @@ async function main() {
 
     // Pre-detect TOC slides BEFORE filtering so they don't get discarded
     const preTextCount = (slideXml.match(/<a:t>/g) || []).length;
-    const isTocPreDetect = (plainText.includes('table of contents') || plainText.includes('contents'))
-      && preTextCount >= 3;
+    const hasTocHeadingPre = plainText.includes('table of contents')
+      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText);
+    const hasNumberedItemsPre = /\b0[1-9]\b/.test(plainText) || /\b\d{1,2}\.\s/.test(plainText);
+    const isTocPreDetect = hasTocHeadingPre && preTextCount >= 3 && hasNumberedItemsPre;
 
     if (((isFinalPage || isInstructionPage) && !isThanksSlide) || (isTitleOnly && !isThanksSlide && !isTocPreDetect)) {
       console.log(`  Skipping: ${isTitleOnly ? 'title-only layout' : isSecondaryMaster ? 'secondary master' : isInstructionPage ? 'instruction page' : 'final page'} (${elementCount} elements, layout: ${layoutName})`);
@@ -1960,10 +1962,13 @@ async function main() {
     }
 
     // Detect TOC (Table of Contents) slides
+    // TOC can appear in ANY layout (TITLE_ONLY, BLANK_*, CUSTOM, etc.)
+    // Detection: text must contain "table of contents" (split or combined) AND have numbered items
     const textCount = elements.filter(e => e.type === 'text').length;
-    const isTocSlide = (plainText.includes('table of contents') || plainText.includes('contents'))
-      && (layoutName === 'TITLE_ONLY' || layoutName.includes('CUSTOM') || layoutName.toLowerCase().includes('custom'))
-      && textCount >= 3; // Multiple text elements = TOC items
+    const hasTocHeading = plainText.includes('table of contents')
+      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText);
+    const hasNumberedItems = /\b0[1-9]\b/.test(plainText) || /\b\d{1,2}\.\s/.test(plainText);
+    const isTocSlide = hasTocHeading && textCount >= 3 && hasNumberedItems;
 
     // Detect "Thank You" / closing slides — check actual text elements
     const allTexts = (elements.filter(e => e.type === 'text') as any[])
