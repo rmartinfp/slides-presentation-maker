@@ -160,6 +160,24 @@ function parseColorFromShapeXml(xml: string, themeColors: ThemeColors): string |
   return null;
 }
 
+/**
+ * Extract alpha/opacity from a color XML block.
+ * OOXML uses <a:alpha val="50000"/> (0-100000 scale = 0%-100%) or
+ * <a:alphaModFix amt="50000"/> for transparency on fills.
+ * Returns a number 0-1 (1 = fully opaque, 0 = fully transparent).
+ */
+function parseAlphaFromXml(xml: string): number {
+  // <a:alpha val="50000"/> — direct alpha (50000 = 50%)
+  const alpha = xml.match(/<a:alpha\s+val="(\d+)"/);
+  if (alpha) return parseInt(alpha[1]) / 100000;
+
+  // <a:alphaModFix amt="50000"/> — alpha modification fixed (50000 = 50%)
+  const alphaModFix = xml.match(/<a:alphaModFix\s+amt="(\d+)"/);
+  if (alphaModFix) return parseInt(alphaModFix[1]) / 100000;
+
+  return 1; // fully opaque by default
+}
+
 function parseFontSize(xml: string): number | null {
   // <a:rPr ... sz="1800" ...> → hundredths of a point
   // Store as points (same as Google Slides / PowerPoint UI)
@@ -495,6 +513,9 @@ function parseImageFromSpTree(
     borderWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700 * 2.666)) : 1;
   }
 
+  // Extract image-level alpha from <a:alphaModFix> in effect or blipFill
+  const imageAlpha = parseAlphaFromXml(picXml);
+
   return {
     element: {
       id: genId(),
@@ -502,7 +523,7 @@ function parseImageFromSpTree(
       content: '',
       x, y, width, height,
       rotation,
-      opacity: 1,
+      opacity: imageAlpha,
       locked: false,
       visible: true,
       zIndex: 0,
@@ -633,10 +654,16 @@ function parseShapeFromSpTree(
   // Get BODY fill (solid or gradient) — excluding what's in the outline
   const solidFill = spXmlNoLn.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
   const fill = solidFill ? parseColorFromShapeXml(solidFill[1], themeColors) : null;
+  // Extract fill-level alpha/opacity (e.g. semi-transparent rectangles from Google Slides)
+  const fillAlpha = solidFill ? parseAlphaFromXml(solidFill[1]) : 1;
   let gradientFill: string | null = null;
+  let gradientAlpha = 1;
   if (!solidFill) {
     const gradFill = spXmlNoLn.match(/<a:gradFill>([\s\S]*?)<\/a:gradFill>/);
-    if (gradFill) gradientFill = parseGradientFill(gradFill[1], themeColors);
+    if (gradFill) {
+      gradientFill = parseGradientFill(gradFill[1], themeColors);
+      gradientAlpha = parseAlphaFromXml(gradFill[1]);
+    }
   }
   const bodyNoFill = spXmlNoLn.includes('<a:noFill/>');
 
@@ -676,13 +703,16 @@ function parseShapeFromSpTree(
     }
   }
 
+  // Use fill alpha as element opacity (handles semi-transparent shapes from Google Slides)
+  const elementOpacity = solidFill ? fillAlpha : (gradientFill ? gradientAlpha : 1);
+
   return {
     id: genId(),
     type: 'shape',
     content: svgPath || '',
     x, y, width, height,
     rotation,
-    opacity: 1,
+    opacity: elementOpacity,
     locked: false,
     visible: true,
     zIndex: 0,
@@ -1786,7 +1816,7 @@ async function main() {
             id: genId(), type: 'shape', content: '',
             x: emuToPxX(Math.max(0, parseInt(off[1]))), y: emuToPxY(Math.max(0, parseInt(off[2]))),
             width: emuToPxX(parseInt(ext[1])), height: Math.max(emuToPxY(parseInt(ext[2])), 2),
-            rotation: 0, opacity: 1, locked: false, visible: true, zIndex: zIndex++,
+            rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
             style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined },
           });
         }
@@ -1908,7 +1938,7 @@ async function main() {
         elements.push({
           id: genId(), type: 'shape', content: '',
           x: cx, y: cy, width: cw, height: ch,
-          rotation: 0, opacity: 1, locked: false, visible: true, zIndex: zIndex++,
+          rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
           style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined },
         });
       }
