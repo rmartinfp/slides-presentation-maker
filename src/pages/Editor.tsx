@@ -463,28 +463,17 @@ export default function EditorPage() {
               e.target.value = '';
             }} />
 
-            {/* Bottom floating toolbar */}
+            {/* Bottom floating toolbar — CREATION ONLY (always the same) */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-3 py-2 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl">
-              {/* Text presets dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Type className="w-4 h-4" />} label="Text" /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2 w-44">
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.titleFont, fontSize: 42, fontWeight: 'bold', color: theme.palette.text, textAlign: 'left' } })}>
-                    <span className="text-lg font-bold mr-2">T</span>Title
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: 24, color: theme.palette.text, textAlign: 'left' } })}>
-                    <span className="text-base font-medium mr-2">S</span>Subtitle
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: theme.typography.bodySize, color: theme.palette.text, textAlign: 'left' } })}>
-                    <span className="text-sm mr-2">B</span>Body
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption text', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: 10, color: theme.palette.text, textAlign: 'left', opacity: 0.7 } })}>
-                    <span className="text-xs mr-2">c</span>Caption
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.titleFont, fontSize: 42, fontWeight: 'bold', color: theme.palette.text, textAlign: 'left' } })}><span className="text-lg font-bold mr-2">T</span>Title</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: 24, color: theme.palette.text, textAlign: 'left' } })}><span className="text-base font-medium mr-2">S</span>Subtitle</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: theme.typography.bodySize, color: theme.palette.text, textAlign: 'left' } })}><span className="text-sm mr-2">B</span>Body</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption text', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: 10, color: theme.palette.text, textAlign: 'left', opacity: 0.7 } })}><span className="text-xs mr-2">c</span>Caption</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Shape + Line dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Square className="w-4 h-4" />} label="Shape" /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2">
@@ -498,99 +487,93 @@ export default function EditorPage() {
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleAddShape('arrow-right')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Right</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddShape('arrow-left')}><MoveLeft className="w-4 h-4 mr-2" />Arrow Left</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('arrow-up')}><ArrowUp className="w-4 h-4 mr-2" />Arrow Up</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('arrow-down')}><ArrowDown className="w-4 h-4 mr-2" />Arrow Down</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleAddLine('plain')}><Minus className="w-4 h-4 mr-2" />Line</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddLine('arrow')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Line</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddLine('arrow-both')}><span className="w-4 h-4 mr-2 text-center text-xs">↔</span>Double Arrow</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddLine('dashed')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┄</span>Dashed</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddLine('dotted')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┈</span>Dotted</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setConnectorMode('pending'); toast.info('Click the first element, then click the second to connect them.'); }}>
-                    <span className="w-4 h-4 mr-2 text-center text-xs">⟿</span>Connector
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { setConnectorMode('pending'); toast.info('Click the first element, then click the second to connect them.'); }}><span className="w-4 h-4 mr-2 text-center text-xs">⟿</span>Connector</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Connector mode indicator */}
-              {connectorMode && (
-                <button onClick={() => setConnectorMode(null)} className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-[9px] font-medium animate-pulse">
-                  Connecting... (ESC to cancel)
-                </button>
-              )}
-
-              {/* Image: upload from PC or URL */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Image className="w-4 h-4" />} label="Image" /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2 w-48">
-                  <DropdownMenuItem onClick={() => imgInputRef.current?.click()}>
-                    <Upload className="w-4 h-4 mr-2" />Upload from PC
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }}>
-                    <Image className="w-4 h-4 mr-2" />Insert from URL
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => imgInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload from PC</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }}><Image className="w-4 h-4 mr-2" />Insert from URL</DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowAIImage(true)}>
-                    <Sparkles className="w-4 h-4 mr-2" />Generate with AI
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAIImage(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
               <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
-
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
-
-              {/* AI actions dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2 w-52">
-                  <DropdownMenuItem onClick={() => setShowAIRewrite(true)}>
-                    <Sparkles className="w-4 h-4 mr-2" />Rewrite this slide
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowAIImage(true)}>
-                    <Image className="w-4 h-4 mr-2" />Generate image
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAIRewrite(true)}><Sparkles className="w-4 h-4 mr-2" />Rewrite this slide</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAIImage(true)}><Image className="w-4 h-4 mr-2" />Generate image</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-
-              {/* Image actions when image is selected */}
-              {singleSelected?.type === 'image' && (
-                <>
-                  <div className="w-px h-6 bg-slate-200/60 mx-1" />
-                  {(['cover', 'contain', 'fill'] as const).map(fit => (
-                    <button key={fit} onClick={() => updateElement(singleSelected.id, { style: { ...singleSelected.style, objectFit: fit } })}
-                      className={`px-2 py-1 rounded-lg text-[9px] font-medium transition-colors ${singleSelected.style.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>
-                      {fit}
-                    </button>
-                  ))}
-                  <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI Replace" highlight onClick={() => setShowAIImage(true)} />
-                </>
+              {connectorMode && (
+                <button onClick={() => setConnectorMode(null)} className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-[9px] font-medium animate-pulse">Connecting... (ESC)</button>
               )}
-
-              {selectedElementIds.length > 0 && (
-                <>
-                  <div className="w-px h-6 bg-slate-200/60 mx-1" />
-                  <ToolBtn icon={<Copy className="w-4 h-4" />} label="Duplicate" onClick={() => duplicateElements()} />
-                  <ToolBtn icon={<Trash2 className="w-4 h-4" />} label="Delete" onClick={() => deleteElements()} danger />
-                  {singleSelected && (
-                    <>
-                      <ToolBtn icon={<ArrowUpToLine className="w-4 h-4" />} label="Front" onClick={() => bringToFront(singleSelected.id)} />
-                      <ToolBtn icon={<ArrowDownToLine className="w-4 h-4" />} label="Back" onClick={() => sendToBack(singleSelected.id)} />
-                    </>
-                  )}
-                </>
-              )}
-
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
-              <span className="text-[11px] text-slate-500 font-mono px-2">{activeSlideIndex + 1} / {presentation.slides.length}</span>
-
+              <span className="text-[10px] text-slate-500 font-mono">{activeSlideIndex + 1}/{presentation.slides.length}</span>
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
-              {/* Zoom controls */}
               <button onClick={() => setScale(Math.max(0.15, scale - 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">−</button>
-              <button onClick={updateScale} className="text-[11px] text-slate-500 font-mono px-1 hover:text-slate-900 hover:bg-slate-100 rounded min-w-[40px] text-center">{Math.round(scale * 100)}%</button>
+              <button onClick={updateScale} className="text-[10px] text-slate-500 font-mono px-1 hover:text-slate-900 hover:bg-slate-100 rounded min-w-[36px] text-center">{Math.round(scale * 100)}%</button>
               <button onClick={() => setScale(Math.min(2, scale + 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">+</button>
             </div>
+
+            {/* Contextual toolbar — floats ABOVE selected element (like FormattingToolbar for text) */}
+            {singleSelected && !selectedElements.some(e => e.type === 'text') && (() => {
+              const el = singleSelected;
+              const top = el.y * scale - 52;
+              const left = el.x * scale;
+              return (
+                <div
+                  className="absolute z-40 flex items-center gap-1 px-2 py-1.5 bg-white rounded-xl shadow-2xl border border-slate-200"
+                  style={{ top: Math.max(4, top), left: Math.max(4, left), transform: `scale(${Math.min(1, 1 / scale)})`, transformOrigin: 'bottom left' }}
+                  onMouseDown={e => e.stopPropagation()}
+                >
+                  {/* Common: Duplicate, Delete, Front, Back */}
+                  <button onClick={() => duplicateElements()} className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Duplicate"><Copy className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => deleteElements()} className="w-7 h-7 flex items-center justify-center rounded-md text-red-500 hover:bg-red-50" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => bringToFront(el.id)} className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Bring to front"><ArrowUpToLine className="w-3.5 h-3.5" /></button>
+                  <button onClick={() => sendToBack(el.id)} className="w-7 h-7 flex items-center justify-center rounded-md text-slate-600 hover:bg-slate-100" title="Send to back"><ArrowDownToLine className="w-3.5 h-3.5" /></button>
+
+                  {/* Image-specific */}
+                  {el.type === 'image' && (
+                    <>
+                      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                      {(['cover', 'contain', 'fill'] as const).map(fit => (
+                        <button key={fit} onClick={() => updateElement(el.id, { style: { objectFit: fit } })}
+                          className={`px-1.5 py-1 rounded text-[10px] font-medium ${el.style.objectFit === fit ? 'bg-indigo-100 text-indigo-700' : 'text-slate-500 hover:bg-slate-100'}`}>{fit}</button>
+                      ))}
+                      <button onClick={() => setShowAIImage(true)} className="w-7 h-7 flex items-center justify-center rounded-md text-indigo-600 hover:bg-indigo-50" title="Recreate with AI"><Sparkles className="w-3.5 h-3.5" /></button>
+                    </>
+                  )}
+
+                  {/* Shape-specific (not line) */}
+                  {el.type === 'shape' && el.style.shapeType !== 'line' && (
+                    <>
+                      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                      <input type="color" value={el.style.shapeFill || '#6366f1'}
+                        onChange={e => updateElement(el.id, { style: { shapeFill: e.target.value } })}
+                        className="w-6 h-6 rounded cursor-pointer border-0 p-0" title="Fill color" />
+                    </>
+                  )}
+
+                  {/* Table-specific */}
+                  {el.type === 'table' && (
+                    <>
+                      <div className="w-px h-5 bg-slate-200 mx-0.5" />
+                      <span className="text-[10px] text-slate-500">Table</span>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Right panel toggle + properties */}
