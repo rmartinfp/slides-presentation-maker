@@ -10,7 +10,7 @@ const ASPECT_RATIOS = [
   { label: '16:9', size: '1792x1024', w: 1200, h: 672 },
   { label: '1:1', size: '1024x1024', w: 600, h: 600 },
   { label: '9:16', size: '1024x1792', w: 400, h: 712 },
-  { label: '4:3', size: '1024x768', w: 800, h: 600 },
+  { label: '4:3', size: '1024x1024', w: 800, h: 600 },
 ] as const;
 
 interface Props {
@@ -89,6 +89,7 @@ export default function AIImageDialog({ onClose, replaceElementId }: Props) {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
       onClick={onClose}
+      onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
     >
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}

@@ -411,9 +411,10 @@ export const useEditorStore = create<EditorState>()((set, get) => {
           if (!slide) return;
           const el = slide.elements.find(e => e.id === elementId);
           if (el) {
-            Object.assign(el, updates);
-            if (updates.style) {
-              el.style = { ...el.style, ...updates.style };
+            const { style: styleUpdates, ...rest } = updates;
+            Object.assign(el, rest);
+            if (styleUpdates) {
+              el.style = { ...el.style, ...styleUpdates };
             }
             state.presentation.updatedAt = new Date().toISOString();
           }

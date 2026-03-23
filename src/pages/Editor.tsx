@@ -39,7 +39,6 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuTrigger, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { useEditorStore as useStore } from '@/stores/editor-store';
 import { ShapeType } from '@/types/presentation';
 import { Input } from '@/components/ui/input';
 
@@ -217,7 +216,7 @@ export default function EditorPage() {
     if (connectorMode !== 'pending') return;
     if (selectedElementIds.length === 1) {
       const el = activeSlide?.elements?.find(e => e.id === selectedElementIds[0]);
-      if (el && el.type !== 'shape' || (el?.style?.shapeType !== 'line')) {
+      if (el && !(el.type === 'shape' && el.style.shapeType === 'line')) {
         setConnectorMode(selectedElementIds[0]);
         toast.info('Now click the second element to connect.');
       }
