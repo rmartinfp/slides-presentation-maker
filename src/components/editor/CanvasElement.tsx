@@ -163,7 +163,7 @@ export default function CanvasElement({
     top: element.y,
     width: Math.max(1, element.width),
     height: Math.max(1, element.height),
-    overflow: 'hidden', // Clip visual overflow; auto-shrink measures INSIDE this
+    overflow: isEditing ? 'visible' : 'hidden', // visible when editing so FormattingToolbar above element isn't clipped
     transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
     opacity: element.opacity,
     zIndex: isEditing ? 9999 : element.zIndex,
