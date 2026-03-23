@@ -454,6 +454,15 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
         Header row (bold + bg)
       </label>
 
+      {/* Font size */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block">Font Size</label>
+        <div className="flex items-center gap-2">
+          <Slider value={[el.style.fontSize ?? 14]} onValueChange={([v]) => updateStyle({ fontSize: v })} min={8} max={48} step={1} className="flex-1" />
+          <span className="text-[10px] text-slate-500 w-8 text-right tabular-nums">{el.style.fontSize ?? 14}px</span>
+        </div>
+      </div>
+
       {/* Border radius */}
       <div>
         <label className="text-[10px] text-slate-500 mb-1 block">Corner Radius</label>

@@ -482,7 +482,7 @@ export default function CanvasElement({
         try { tableData = JSON.parse(element.content); } catch { tableData = { rows: [[{ text: '' }]] }; }
         const bColor = tableData.borderColor || '#e2e8f0';
         const cellPad = Math.max(4, element.height / tableData.rows.length * 0.15);
-        const cellFontPx = Math.max(10, element.height / tableData.rows.length * 0.45);
+        const cellFontPx = s.fontSize ? s.fontSize : Math.max(10, element.height / tableData.rows.length * 0.45);
         const borderRad = s.borderRadius ?? 8;
         const numRows = tableData.rows.length;
         const numCols = tableData.rows[0]?.length || 1;

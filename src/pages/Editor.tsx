@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAssetUpload } from '@/hooks/useAssetUpload';
 import { Presentation, Slide } from '@/types/presentation';
 import { THEME_CATALOG } from '@/lib/themes';
 import { createSampleSlides } from '@/lib/slide-utils';
@@ -13,6 +14,7 @@ import PresenterView from '@/components/editor/PresenterView';
 import CinematicPresentation from '@/components/cinematic/CinematicPresentation';
 import { CinematicPreset } from '@/types/cinematic';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
+import AIImageDialog from '@/components/editor/AIImageDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
@@ -22,7 +24,7 @@ import { loadFontsFromSlides, loadFontsFromTheme } from '@/lib/font-loader';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
 import { exportToPdfFromSlides } from '@/lib/pdf-export';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 import { cn } from '@/lib/utils';
 import {
@@ -30,7 +32,7 @@ import {
   Type, Square, Circle, Triangle, Image, ArrowRight as ArrowRightIcon, Minus,
   Trash2, Copy, Lock, Unlock, ArrowUpToLine, ArrowDownToLine, Sparkles,
   FileText, FileDown, ChevronDown, Plus, MoreVertical, Star, Pentagon, Hexagon,
-  Heart, MoveLeft, ArrowUp, ArrowDown, Monitor, Grid3X3,
+  Heart, MoveLeft, ArrowUp, ArrowDown, Monitor, Grid3X3, Upload,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -188,6 +190,9 @@ export default function EditorPage() {
   const [isPresenterView, setIsPresenterView] = React.useState(false);
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [showRightPanel, setShowRightPanel] = React.useState(true);
+  const [showAIImage, setShowAIImage] = React.useState(false);
+  const imgInputRef = useRef<HTMLInputElement>(null);
+  const { upload: uploadAsset } = useAssetUpload();
 
   if (idFromUrl && presentation.slides.length === 0) return <EditorSkeleton />;
 
@@ -414,10 +419,36 @@ export default function EditorPage() {
               </div>
             </CanvasContextMenu>
 
+            {/* Hidden file input for image upload */}
+            <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file) return;
+              const result = await uploadAsset(file);
+              if (result) addElement({ type: 'image', content: result.url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } });
+              e.target.value = '';
+            }} />
+
             {/* Bottom floating toolbar */}
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-3 py-2 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl">
-              {/* Add elements */}
-              <ToolBtn icon={<Type className="w-4 h-4" />} label="Text" onClick={() => addElement({ type: 'text', content: 'New text', x: 400, y: 400, width: 500, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: theme.typography.bodySize, color: theme.palette.text, textAlign: 'left' } })} />
+              {/* Text presets dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><ToolBtn icon={<Type className="w-4 h-4" />} label="Text" /></DropdownMenuTrigger>
+                <DropdownMenuContent side="top" className="mb-2 w-44">
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.titleFont, fontSize: 42, fontWeight: 'bold', color: theme.palette.text, textAlign: 'left' } })}>
+                    <span className="text-lg font-bold mr-2">T</span>Title
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: 24, color: theme.palette.text, textAlign: 'left' } })}>
+                    <span className="text-base font-medium mr-2">S</span>Subtitle
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: theme.typography.bodySize, color: theme.palette.text, textAlign: 'left' } })}>
+                    <span className="text-sm mr-2">B</span>Body
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption text', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: theme.typography.bodyFont, fontSize: 10, color: theme.palette.text, textAlign: 'left', opacity: 0.7 } })}>
+                    <span className="text-xs mr-2">c</span>Caption
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Shape + Line dropdown */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Square className="w-4 h-4" />} label="Shape" /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2">
@@ -441,13 +472,40 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => handleAddLine('dotted')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┈</span>Dotted</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <ToolBtn icon={<Image className="w-4 h-4" />} label="Image" onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }} />
+
+              {/* Image: upload from PC or URL */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><ToolBtn icon={<Image className="w-4 h-4" />} label="Image" /></DropdownMenuTrigger>
+                <DropdownMenuContent side="top" className="mb-2 w-48">
+                  <DropdownMenuItem onClick={() => imgInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />Upload from PC
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }}>
+                    <Image className="w-4 h-4 mr-2" />Insert from URL
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowAIImage(true)}>
+                    <Sparkles className="w-4 h-4 mr-2" />Generate with AI
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
               <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
 
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
 
-              {/* AI */}
-              <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight onClick={() => setShowAIRewrite(true)} />
+              {/* AI actions dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
+                <DropdownMenuContent side="top" className="mb-2 w-52">
+                  <DropdownMenuItem onClick={() => setShowAIRewrite(true)}>
+                    <Sparkles className="w-4 h-4 mr-2" />Rewrite this slide
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowAIImage(true)}>
+                    <Image className="w-4 h-4 mr-2" />Generate image
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {selectedElementIds.length > 0 && (
                 <>
@@ -483,7 +541,19 @@ export default function EditorPage() {
             >
               {showRightPanel ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
             </button>
-            {showRightPanel && <PropertiesPanel />}
+            <AnimatePresence>
+              {showRightPanel && (
+                <motion.div
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: 256, opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeInOut' }}
+                  className="overflow-hidden shrink-0"
+                >
+                  <PropertiesPanel />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
       </div>
@@ -492,15 +562,19 @@ export default function EditorPage() {
         {showAIRewrite && activeSlide && (
           <AIRewriteDialog slide={activeSlide} presentationTitle={presentation.title} onUpdate={handleAIUpdate} onClose={() => setShowAIRewrite(false)} />
         )}
+        {showAIImage && (
+          <AIImageDialog onClose={() => setShowAIImage(false)} />
+        )}
       </AnimatePresence>
     </>
   );
 }
 
-/** Toolbar button */
-function ToolBtn({ icon, label, onClick, highlight, danger }: { icon: React.ReactNode; label: string; onClick?: () => void; highlight?: boolean; danger?: boolean }) {
-  return (
+/** Toolbar button — forwardRef so it works with Radix asChild */
+const ToolBtn = React.forwardRef<HTMLButtonElement, { icon: React.ReactNode; label: string; onClick?: () => void; highlight?: boolean; danger?: boolean } & React.ButtonHTMLAttributes<HTMLButtonElement>>(
+  ({ icon, label, onClick, highlight, danger, ...props }, ref) => (
     <button
+      ref={ref}
       onClick={onClick}
       className={cn(
         'flex flex-col items-center gap-0.5 px-2.5 py-1.5 rounded-xl transition-all text-slate-500 hover:text-slate-900 hover:bg-slate-100',
@@ -508,9 +582,11 @@ function ToolBtn({ icon, label, onClick, highlight, danger }: { icon: React.Reac
         danger && 'text-red-500 hover:text-red-600 hover:bg-red-50',
       )}
       title={label}
+      {...props}
     >
       {icon}
       <span className="text-[9px] leading-none">{label}</span>
     </button>
-  );
-}
+  )
+);
+ToolBtn.displayName = 'ToolBtn';
