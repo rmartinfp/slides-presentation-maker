@@ -65,11 +65,16 @@ export default function ChartDialog({ onClose }: Props) {
 
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
-      if (!data?.config) throw new Error('No chart config returned');
+      if (!data?.data) throw new Error('No chart data returned');
 
+      // Map edge function response to ChartConfig
       const config: ChartConfig = {
-        ...data.config,
-        colors: data.config.colors?.length ? data.config.colors : DEFAULT_COLORS,
+        type: data.chartType || 'bar',
+        data: data.data,
+        dataKeys: data.config?.yKeys || ['value'],
+        nameKey: data.config?.xKey || 'name',
+        title: data.title,
+        colors: data.config?.colors?.length ? data.config.colors : DEFAULT_COLORS,
       };
 
       setChartConfig(config);

@@ -23,9 +23,9 @@ export default function ImageEditDialog({ elementId, onClose }: Props) {
   const [mode, setMode] = useState<string | undefined>(undefined);
   const [loading, setLoading] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
-  const { updateElement, presentation, currentSlideIndex } = useEditorStore();
+  const { updateElement, presentation, activeSlideIndex } = useEditorStore();
 
-  const element = presentation.slides[currentSlideIndex]?.elements?.find(e => e.id === elementId);
+  const element = presentation.slides[activeSlideIndex]?.elements?.find(e => e.id === elementId);
   const imageUrl = element?.content || '';
 
   const handleQuickAction = (action: typeof QUICK_ACTIONS[number]) => {

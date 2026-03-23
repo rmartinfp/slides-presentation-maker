@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { produce } from 'immer';
 
 interface Props {
   onClose: () => void;
@@ -43,10 +44,10 @@ export default function TranslateDialog({ onClose }: Props) {
 
       if (error) throw error;
 
-      useEditorStore.setState((state) => {
+      useEditorStore.setState(produce((state: any) => {
         state.presentation.slides = data.slides;
         state.presentation.title = data.title;
-      });
+      }));
 
       toast.success(`Presentation translated to ${langLabel}`);
       onClose();

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Lightbulb, X, Loader2, ChevronRight } from 'lucide-react';
+import { Lightbulb, X, Loader2, ChevronRight, Scissors, BarChart3, ImagePlus, FileText, AlertTriangle, Palette } from 'lucide-react';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 
@@ -104,7 +104,13 @@ export default function SmartSuggest() {
                   key={s.id}
                   className={`px-3 py-2 border-b border-slate-50 last:border-0 flex items-start gap-2 group hover:bg-slate-50 transition-colors ${priorityColor(s.priority)} border-l-2`}
                 >
-                  <span className="text-sm mt-0.5 shrink-0">{s.icon}</span>
+                  <span className="mt-0.5 shrink-0 text-slate-400">
+                    {s.type === 'content' ? <FileText className="w-3.5 h-3.5" /> :
+                     s.type === 'design' ? <Palette className="w-3.5 h-3.5" /> :
+                     s.type === 'add' ? <ImagePlus className="w-3.5 h-3.5" /> :
+                     s.type === 'split' ? <Scissors className="w-3.5 h-3.5" /> :
+                     <Lightbulb className="w-3.5 h-3.5" />}
+                  </span>
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] font-medium text-slate-800 leading-tight">{s.title}</div>
                     <div className="text-[10px] text-slate-500 leading-tight mt-0.5">{s.description}</div>

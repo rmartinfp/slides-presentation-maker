@@ -79,8 +79,8 @@ export default function BrandKitDialog({ onClose }: Props) {
       tokens: {
         palette: brandKit.palette,
         typography: brandKit.typography,
-        radii: brandKit.radii,
-        shadows: brandKit.shadows,
+        radii: brandKit.style?.radii || '16px',
+        shadows: brandKit.style?.shadows || 'lg',
       },
       previewColors: [
         brandKit.palette.primary,
@@ -194,13 +194,13 @@ export default function BrandKitDialog({ onClose }: Props) {
                 <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Style</p>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-xs text-indigo-700 font-medium">
-                    {brandKit.mood}
+                    {brandKit.style?.mood}
                   </span>
                   <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs text-slate-600">
-                    Radii: {brandKit.radii}
+                    Radii: {brandKit.style?.radii}
                   </span>
                   <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs text-slate-600">
-                    Shadows: {brandKit.shadows}
+                    Shadows: {brandKit.style?.shadows}
                   </span>
                 </div>
               </div>

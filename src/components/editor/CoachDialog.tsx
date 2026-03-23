@@ -12,7 +12,7 @@ interface Props {
 
 interface CoachIssue {
   severity: 'critical' | 'warning' | 'suggestion';
-  slideNumber: number;
+  slide: number;
   category: string;
   title: string;
   description: string;
@@ -172,14 +172,14 @@ export default function CoachDialog({ onClose }: Props) {
                     {result.issues.map((issue, i) => (
                       <button
                         key={i}
-                        onClick={() => handleIssueClick(issue.slideNumber)}
+                        onClick={() => handleIssueClick(issue.slide)}
                         className="w-full text-left p-3 rounded-xl border border-slate-200 hover:border-slate-300 hover:bg-slate-50 transition-colors group"
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded border ${getSeverityBadge(issue.severity)}`}>
                             {issue.severity}
                           </span>
-                          <span className="text-[10px] text-slate-400">Slide {issue.slideNumber}</span>
+                          <span className="text-[10px] text-slate-400">Slide {issue.slide}</span>
                           <span className="text-[10px] text-slate-400">&middot;</span>
                           <span className="text-[10px] text-slate-400">{issue.category}</span>
                           <ArrowRight className="w-3 h-3 text-slate-300 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />

@@ -127,7 +127,8 @@ export default function RedesignDialog({ onClose }: Props) {
       const { data, error } = await supabase.functions.invoke('redesign-slide', {
         body: {
           mode,
-          slide,
+          elements: slide.elements || [],
+          themeTokens: useEditorStore.getState().presentation.theme.tokens,
           instruction: mode === 'reorganize' ? instruction.trim() || undefined : undefined,
         },
       });
