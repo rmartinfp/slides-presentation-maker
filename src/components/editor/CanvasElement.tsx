@@ -451,10 +451,12 @@ export default function CanvasElement({
           ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
 
         // srcRect crop from PPTX import — show only a portion of the source image
-        const cropT = (s.srcRectTop as number) || 0;
-        const cropR = (s.srcRectRight as number) || 0;
-        const cropB = (s.srcRectBottom as number) || 0;
-        const cropL = (s.srcRectLeft as number) || 0;
+        // Only use crop if user hasn't explicitly changed objectFit from default
+        const userChangedFit = s.objectFit && s.objectFit !== 'cover';
+        const cropT = userChangedFit ? 0 : ((s.srcRectTop as number) || 0);
+        const cropR = userChangedFit ? 0 : ((s.srcRectRight as number) || 0);
+        const cropB = userChangedFit ? 0 : ((s.srcRectBottom as number) || 0);
+        const cropL = userChangedFit ? 0 : ((s.srcRectLeft as number) || 0);
         const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
 
         if (hasCrop) {
@@ -483,13 +485,13 @@ export default function CanvasElement({
         return (
           <div
             className="w-full h-full pointer-events-none"
-            style={{ borderRadius: br, overflow: br ? 'hidden' : undefined, border: imgBorder }}
+            style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}
           >
             <img
               src={element.content}
               alt=""
               className="w-full h-full"
-              style={{ objectFit: s.objectFit || 'cover' }}
+              style={{ objectFit: (s.objectFit as any) || 'cover' }}
               draggable={false}
             />
           </div>

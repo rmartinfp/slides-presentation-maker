@@ -343,11 +343,11 @@ function StaticElement({ element }: { element: SlideElement }) {
         const br = s.borderRadius ?? 0;
         const imgBorder = s.borderColor && s.borderWidth ? `${s.borderWidth}px solid ${s.borderColor}` : undefined;
 
-        // srcRect crop from PPTX import
-        const cropT = (s.srcRectTop as number) || 0;
-        const cropR = (s.srcRectRight as number) || 0;
-        const cropB = (s.srcRectBottom as number) || 0;
-        const cropL = (s.srcRectLeft as number) || 0;
+        const userChangedFit = s.objectFit && s.objectFit !== 'cover';
+        const cropT = userChangedFit ? 0 : ((s.srcRectTop as number) || 0);
+        const cropR = userChangedFit ? 0 : ((s.srcRectRight as number) || 0);
+        const cropB = userChangedFit ? 0 : ((s.srcRectBottom as number) || 0);
+        const cropL = userChangedFit ? 0 : ((s.srcRectLeft as number) || 0);
         const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
 
         if (hasCrop) {
@@ -355,23 +355,13 @@ function StaticElement({ element }: { element: SlideElement }) {
           const scaleY = 100 / (1 - cropT / 100 - cropB / 100);
           return (
             <div className="w-full h-full" style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}>
-              <img
-                src={element.content}
-                alt=""
-                style={{
-                  width: `${scaleX}%`,
-                  height: `${scaleY}%`,
-                  transform: `translate(-${cropL}%, -${cropT}%)`,
-                  objectFit: 'fill',
-                }}
-                draggable={false}
-              />
+              <img src={element.content} alt="" style={{ width: `${scaleX}%`, height: `${scaleY}%`, transform: `translate(-${cropL}%, -${cropT}%)`, objectFit: 'fill' }} draggable={false} />
             </div>
           );
         }
 
         return (
-          <div className="w-full h-full" style={{ borderRadius: br, overflow: br ? 'hidden' : undefined, border: imgBorder }}>
+          <div className="w-full h-full" style={{ borderRadius: br, overflow: 'hidden', border: imgBorder }}>
             <img
               src={element.content}
               alt=""

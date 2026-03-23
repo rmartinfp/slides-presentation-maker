@@ -104,11 +104,11 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
           img.src = el.content;
           img.crossOrigin = 'anonymous';
 
-          // srcRect crop from PPTX import
-          const cropT = (el.style.srcRectTop as number) || 0;
-          const cropR = (el.style.srcRectRight as number) || 0;
-          const cropB = (el.style.srcRectBottom as number) || 0;
-          const cropL = (el.style.srcRectLeft as number) || 0;
+          const userChangedFit = el.style.objectFit && el.style.objectFit !== 'cover';
+          const cropT = userChangedFit ? 0 : ((el.style.srcRectTop as number) || 0);
+          const cropR = userChangedFit ? 0 : ((el.style.srcRectRight as number) || 0);
+          const cropB = userChangedFit ? 0 : ((el.style.srcRectBottom as number) || 0);
+          const cropL = userChangedFit ? 0 : ((el.style.srcRectLeft as number) || 0);
           const hasCrop = cropT > 0 || cropR > 0 || cropB > 0 || cropL > 0;
 
           if (hasCrop) {
