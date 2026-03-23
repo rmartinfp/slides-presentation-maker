@@ -386,21 +386,9 @@ export default function EditorPage() {
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
               <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative">
-                {/* Nav arrows */}
-                {activeSlideIndex > 0 && (
-                  <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                )}
-                {activeSlideIndex < presentation.slides.length - 1 && (
-                  <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/60 hover:bg-white/80 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
-                    <ChevronRight className="w-4 h-4" />
-                  </button>
-                )}
-
                 {activeSlide && (
                   <ErrorBoundary>
-                    <div style={{
+                    <div className="relative" style={{
                       width: 1920 * scale,
                       height: 1080 * scale,
                       margin: '0 auto',
@@ -408,6 +396,17 @@ export default function EditorPage() {
                       boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
                       borderRadius: 4,
                     }}>
+                      {/* Nav arrows — pinned to slide edges */}
+                      {activeSlideIndex > 0 && (
+                        <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute -left-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
+                          <ChevronLeft className="w-4 h-4" />
+                        </button>
+                      )}
+                      {activeSlideIndex < presentation.slides.length - 1 && (
+                        <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute -right-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
+                          <ChevronRight className="w-4 h-4" />
+                        </button>
+                      )}
                       <SlideCanvas slide={activeSlide} theme={presentation.theme} scale={scale} isEditing={true} />
                     </div>
                   </ErrorBoundary>
