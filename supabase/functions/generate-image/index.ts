@@ -32,10 +32,12 @@ serve(async (req) => {
 
     const enhancedPrompt = `Professional presentation graphic: ${prompt}. Clean, modern, high quality, suitable for a business presentation slide.`;
 
-    // Try Imagen 3 first
+    // Try Imagen 4 Fast first (then Imagen 3 as fallback)
+    const imagenModels = ["imagen-4.0-fast-generate-001", "imagen-3.0-generate-002"];
+    for (const imagenModel of imagenModels) {
     try {
       const imagenRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/${imagenModel}:predict?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -58,10 +60,11 @@ serve(async (req) => {
           );
         }
       }
-      console.log("Imagen 3 failed, trying Gemini fallback...");
+      console.log(`${imagenModel} failed, trying next...`);
     } catch (e) {
-      console.log("Imagen 3 error:", e.message);
+      console.log(`${imagenModel} error:`, e.message);
     }
+    } // end imagenModels loop
 
     // Fallback: Gemini 2.5 Flash Image (supports image generation)
     const imageModels = [
