@@ -63,82 +63,57 @@ serve(async (req) => {
       console.log("Imagen 3 error:", e.message);
     }
 
-    // Fallback: Gemini 2.0 Flash with image generation
-    const geminiRes = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { text: `Generate an image: ${enhancedPrompt}` },
-              ],
-            },
-          ],
-          generationConfig: {
-            responseModalities: ["IMAGE", "TEXT"],
+    // Fallback: Gemini 2.5 Flash Image (supports image generation)
+    const imageModels = [
+      "gemini-2.5-flash-image",
+      "gemini-2.0-flash",
+    ];
+
+    for (const model of imageModels) {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `Generate an image: ${enhancedPrompt}` }] }],
+              generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+            }),
           },
-        }),
-      },
-    );
+        );
 
-    if (!geminiRes.ok) {
-      const errorText = await geminiRes.text();
-      console.error("Gemini error:", errorText);
+        if (!geminiRes.ok) {
+          console.log(`${model} failed:`, (await geminiRes.text()).substring(0, 100));
+          continue;
+        }
 
-      // Last resort: try gemini-2.0-flash-preview-image-generation
-      const imgGenRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: `Generate an image: ${enhancedPrompt}` }] }],
-            generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
-          }),
-        },
-      );
+        const geminiData = await geminiRes.json();
+        const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
+          (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
+        );
 
-      if (!imgGenRes.ok) {
-        const err2 = await imgGenRes.text();
-        throw new Error(`All models failed. Last error: ${err2.substring(0, 200)}`);
+        if (!imagePart?.inlineData?.data) {
+          console.log(`${model} returned no image data`);
+          continue;
+        }
+
+        const imageBytes = Uint8Array.from(
+          atob(imagePart.inlineData.data),
+          (c) => c.charCodeAt(0),
+        );
+
+        const url = await uploadToStorage(imageBytes, imagePart.inlineData.mimeType || "image/png");
+        return new Response(
+          JSON.stringify({ url }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } catch (e) {
+        console.log(`${model} error:`, e.message);
       }
-
-      const imgGenData = await imgGenRes.json();
-      const imgPart = imgGenData.candidates?.[0]?.content?.parts?.find(
-        (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
-      );
-      if (!imgPart?.inlineData?.data) throw new Error("No image in response");
-
-      const bytes = Uint8Array.from(atob(imgPart.inlineData.data), (c) => c.charCodeAt(0));
-      const url = await uploadToStorage(bytes, imgPart.inlineData.mimeType || "image/png");
-      return new Response(
-        JSON.stringify({ url }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
     }
 
-    const geminiData = await geminiRes.json();
-    const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
-      (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
-    );
-
-    if (!imagePart?.inlineData?.data) {
-      throw new Error("No image generated — model may not support image output");
-    }
-
-    const imageBytes = Uint8Array.from(
-      atob(imagePart.inlineData.data),
-      (c) => c.charCodeAt(0),
-    );
-
-    const url = await uploadToStorage(imageBytes, imagePart.inlineData.mimeType || "image/png");
-    return new Response(
-      JSON.stringify({ url }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    throw new Error("Image generation failed with all available models");
   } catch (error) {
     console.error("Error:", error);
     return new Response(

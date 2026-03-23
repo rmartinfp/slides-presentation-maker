@@ -201,6 +201,13 @@ export default function EditorPage() {
     return () => clearTimeout(t);
   }, [showRightPanel, updateScale]);
 
+  // Listen for AI image request from ElementContextBar
+  useEffect(() => {
+    const handler = () => setShowAIImage(true);
+    window.addEventListener('slideai-open-ai-image', handler);
+    return () => window.removeEventListener('slideai-open-ai-image', handler);
+  }, []);
+
   // Connector mode: when user clicks an element, capture it
   useEffect(() => {
     if (!connectorMode || connectorMode === 'pending') return;
