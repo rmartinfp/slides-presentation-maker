@@ -869,8 +869,11 @@ function parseGradientFill(gradXml: string, themeColors: ThemeColors): string | 
   if (stops.length < 2) return null;
 
   // Determine direction from <a:lin ang="..."/> (in 60000ths of degree)
+  // OOXML angles: 0°=left→right, 90°=top→bottom. CSS: 0°=bottom→top, 90°=left→right.
+  // Conversion: CSS = (OOXML + 90) % 360
   const linMatch = gradXml.match(/<a:lin\s+ang="(\d+)"/);
-  const angle = linMatch ? Math.round(parseInt(linMatch[1]) / 60000) : 180;
+  const ooAngle = linMatch ? Math.round(parseInt(linMatch[1]) / 60000) : 90; // default: top→bottom
+  const angle = (ooAngle + 90) % 360;
 
   const cssStops = stops.map(s => `${s.color} ${s.pos}%`).join(', ');
   return `linear-gradient(${angle}deg, ${cssStops})`;
