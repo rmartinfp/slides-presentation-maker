@@ -669,8 +669,13 @@ function parseShapeFromSpTree(
     zIndex: 0,
     style: {
       shapeType: svgPath ? 'custom' : (shapeMap[geomType] || 'rectangle'),
-      // CustGeom shapes without explicit fill inherit dk1 (dark/black) from theme
-      shapeFill: noFill ? (custGeom ? themeColors.dk1 : 'transparent') : (fill || themeColors.accent1),
+      // CustGeom fill logic:
+      // - Has explicit fill → use it
+      // - No fill + has outline → transparent (stroke-only shape like hand-drawn ovals)
+      // - No fill + no outline → inherit dk1 from theme (icon parts that inherit from group)
+      shapeFill: noFill
+        ? (custGeom && !hasOutline ? themeColors.dk1 : 'transparent')
+        : (fill || themeColors.accent1),
       shapeGradient: gradientFill || undefined,
       shapeStroke: stroke || 'transparent',
       shapeStrokeWidth: strokeWidth,
