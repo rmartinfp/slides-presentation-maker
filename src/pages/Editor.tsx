@@ -602,12 +602,12 @@ export default function EditorPage() {
                 <DropdownMenuContent side="top" className="mb-2 w-56">
                   <DropdownMenuItem onClick={() => setShowAIRewrite(true)}><Sparkles className="w-4 h-4 mr-2" />Rewrite this slide</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowRedesign(true)}><Wand2 className="w-4 h-4 mr-2" />Redesign this slide</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowAIImage(true)}><ImagePlus className="w-4 h-4 mr-2" />Generate image</DropdownMenuItem>
                   {singleSelected?.type === 'image' && (
-                    <DropdownMenuItem onClick={() => setShowImageEdit(true)}><Palette className="w-4 h-4 mr-2" />Edit image with AI</DropdownMenuItem>
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setShowImageEdit(true)}><ImagePlus className="w-4 h-4 mr-2" />Edit image with AI</DropdownMenuItem>
+                    </>
                   )}
-                  {/* Chart moved to main toolbar */}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate presentation</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Extract Brand Kit</DropdownMenuItem>
