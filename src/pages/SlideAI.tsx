@@ -34,7 +34,7 @@ export default function SlideAIPage() {
     setStep('content');
   };
 
-  const handleSelectCinematic = (preset: CinematicPreset) => {
+  const handleSelectCinematic = (preset: CinematicPreset, templateData?: any) => {
     setCinematicPreset(preset);
     setSelectedTheme({
       id: preset.id,

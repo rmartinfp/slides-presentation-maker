@@ -5,8 +5,7 @@ import { cn } from '@/lib/utils';
 import { PresentationTheme, Slide } from '@/types/presentation';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
-import { CINEMATIC_PRESETS } from '@/lib/cinematic-presets';
-import { CINEMATIC_TEMPLATES, CinematicTemplate } from '@/lib/cinematic-templates';
+import { getPresetById } from '@/lib/cinematic-presets';
 import { CinematicPreset } from '@/types/cinematic';
 import StepIndicator from './StepIndicator';
 import { useNavigate } from 'react-router-dom';
@@ -275,7 +274,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
 
 interface Props {
   onSelect: (theme: PresentationTheme, slides?: Slide[]) => void;
-  onSelectCinematic?: (preset: CinematicPreset) => void;
+  onSelectCinematic?: (preset: CinematicPreset, templateData?: any) => void;
   selectedTheme?: PresentationTheme | null;
 }
 
@@ -285,12 +284,19 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
   const [activeCategory, setActiveCategory] = useState('All');
   const [activeTab, setActiveTab] = useState<'classic' | 'cinematic'>('classic');
   const [selectedTemplate, setSelectedTemplate] = useState<UnifiedTemplate | null>(null);
-  const [selectedCinematicPreset, setSelectedCinematicPreset] = useState<CinematicPreset | null>(null);
-  const [selectedCinematicTemplate, setSelectedCinematicTemplate] = useState<CinematicTemplate | null>(null);
-  const [cinematicStep, setCinematicStep] = useState<'template' | 'preset'>('template');
+  const [selectedCinematicId, setSelectedCinematicId] = useState<string | null>(null);
   const [previewTemplate, setPreviewTemplate] = useState<UnifiedTemplate | null>(null);
 
   const { data: dbTemplates, isLoading: loadingDb } = useDbTemplates();
+
+  const { data: cinematicTemplates, isLoading: loadingCinematic } = useQuery({
+    queryKey: ['cinematic-templates'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('cinematic_templates').select('*').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return data;
+    },
+  });
 
   const allTemplates = useMemo(() => {
     if (!dbTemplates) return [];
@@ -330,14 +336,17 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
     });
   }, [search, activeCategory, allTemplates]);
 
+  const selectedCinematicTemplate = cinematicTemplates?.find((t: any) => t.id === selectedCinematicId) || null;
+  const selectedCinematicPreset = selectedCinematicTemplate ? getPresetById(selectedCinematicTemplate.preset_id) : null;
+
   const handleSelect = (template: UnifiedTemplate) => {
     setSelectedTemplate(template);
-    setSelectedCinematicPreset(null);
+    setSelectedCinematicId(null);
   };
 
   const handleContinue = () => {
-    if (activeTab === 'cinematic' && selectedCinematicPreset) {
-      onSelectCinematic?.(selectedCinematicPreset);
+    if (activeTab === 'cinematic' && selectedCinematicPreset && selectedCinematicTemplate) {
+      onSelectCinematic?.(selectedCinematicPreset, selectedCinematicTemplate);
       return;
     }
     if (!selectedTemplate) return;
@@ -373,7 +382,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
         {/* Mode tabs + search in same row */}
         <div className="flex items-center gap-2 mb-6">
           <button
-            onClick={() => { setActiveTab('classic'); setSelectedCinematicPreset(null); }}
+            onClick={() => { setActiveTab('classic'); setSelectedCinematicId(null); }}
             className={cn(
               'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
               activeTab === 'classic'
@@ -385,7 +394,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             Templates
           </button>
           <button
-            onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); setCinematicStep('template'); }}
+            onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); }}
             className={cn(
               'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
               activeTab === 'cinematic'
@@ -466,182 +475,130 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
           </>
         ) : (
           <>
-            {/* Step indicator */}
-            <div className="flex items-center gap-3 mb-6">
-              <button
-                onClick={() => { setCinematicStep('template'); setSelectedCinematicPreset(null); }}
-                className={cn('text-sm font-medium transition-colors', cinematicStep === 'template' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600')}
-              >
-                1. Choose Template
-              </button>
-              <ChevronRight className="w-4 h-4 text-slate-300" />
-              <span className={cn('text-sm font-medium', cinematicStep === 'preset' ? 'text-slate-800' : 'text-slate-400')}>
-                2. Choose Style
-              </span>
-            </div>
+            <p className="text-slate-400 text-sm mb-4">Select a cinematic template to get started</p>
 
-            {/* Step 1: Template selection */}
-            {cinematicStep === 'template' && (
-              <>
-                <p className="text-slate-400 text-sm mb-4">Pick a structure for your presentation. The AI will fill it with your content.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-                  {CINEMATIC_TEMPLATES.map(tmpl => (
+            {loadingCinematic && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl overflow-hidden animate-pulse">
+                    <div className="aspect-video bg-slate-800/60" />
+                    <div className="p-4 bg-slate-900/40 space-y-2">
+                      <div className="h-4 bg-slate-700/50 rounded w-2/3" />
+                      <div className="h-3 bg-slate-700/30 rounded w-full" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!loadingCinematic && cinematicTemplates && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {cinematicTemplates.map((tmpl: any) => {
+                  const preset = getPresetById(tmpl.preset_id);
+                  const isSelected = selectedCinematicId === tmpl.id;
+                  const slides = tmpl.slides || [];
+                  const firstSlide = slides[0];
+
+                  return (
                     <motion.div
                       key={tmpl.id}
-                      whileHover={{ y: -3 }}
-                      onClick={() => { setSelectedCinematicTemplate(tmpl); setCinematicStep('preset'); }}
+                      whileHover={{ y: -4 }}
+                      onClick={() => { setSelectedCinematicId(tmpl.id); setSelectedTemplate(null); }}
                       className={cn(
-                        'rounded-xl border-2 p-4 cursor-pointer transition-all',
-                        selectedCinematicTemplate?.id === tmpl.id
-                          ? 'border-[#4F46E5] bg-indigo-50/50 shadow-md'
-                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                        'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
+                        isSelected
+                          ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white shadow-xl shadow-[#4F46E5]/15'
+                          : 'hover:ring-1 hover:ring-slate-300 shadow-sm'
                       )}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{tmpl.category}</span>
-                        <span className="text-[10px] text-slate-400">{tmpl.slideCount} slides</span>
+                      {/* Video preview area */}
+                      <div
+                        className="aspect-video relative overflow-hidden"
+                        style={{ backgroundColor: preset?.backgroundColor || '#0a0a0f' }}
+                      >
+                        {firstSlide?.videoUrl && (
+                          <video
+                            src={firstSlide.videoUrl}
+                            muted
+                            loop
+                            playsInline
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ opacity: firstSlide.videoOpacity || 0.3 }}
+                            onMouseEnter={e => (e.target as HTMLVideoElement).play()}
+                            onMouseLeave={e => { (e.target as HTMLVideoElement).pause(); (e.target as HTMLVideoElement).currentTime = 0; }}
+                          />
+                        )}
+
+                        {/* Gradient overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+
+                        {/* Template name overlay */}
+                        <div className="absolute inset-0 flex flex-col justify-end p-4">
+                          <h3
+                            className="text-lg font-bold leading-tight text-white mb-0.5"
+                            style={{ fontFamily: preset ? `'${preset.fontHeading}', sans-serif` : undefined }}
+                          >
+                            {tmpl.name}
+                          </h3>
+                          <p className="text-[11px] text-white/60 line-clamp-1">{tmpl.description}</p>
+                        </div>
+
+                        {/* Category badge */}
+                        <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-white/10 backdrop-blur text-white/80 font-medium">
+                          {tmpl.category}
+                        </span>
+
+                        {/* Slide count */}
+                        <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur text-white/70 font-medium">
+                          {slides.length} slides
+                        </span>
+
+                        {/* Selected check */}
+                        {isSelected && (
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg">
+                            <Check className="w-4 h-4 text-white" />
+                          </motion.div>
+                        )}
                       </div>
-                      <h3 className="text-sm font-semibold text-slate-800 mb-1">{tmpl.name}</h3>
-                      <p className="text-[11px] text-slate-400 mb-3">{tmpl.description}</p>
-                      {/* Mini slide type indicators */}
-                      <div className="flex gap-1 flex-wrap">
-                        {tmpl.slides.map((s, i) => (
-                          <span key={i} className={cn(
-                            'text-[8px] px-1.5 py-0.5 rounded font-medium',
-                            s.type === 'hero' ? 'bg-indigo-100 text-indigo-600' :
-                            s.type === 'stats' ? 'bg-amber-100 text-amber-600' :
-                            s.type === 'statement' ? 'bg-purple-100 text-purple-600' :
-                            s.type === 'closing' ? 'bg-emerald-100 text-emerald-600' :
-                            s.type === 'section' ? 'bg-slate-100 text-slate-500' :
-                            'bg-blue-50 text-blue-500'
-                          )}>
-                            {s.type}
-                          </span>
-                        ))}
+
+                      {/* Info bar */}
+                      <div className="p-3 bg-white/80 backdrop-blur-sm">
+                        {/* Slide type dots */}
+                        <div className="flex gap-1 flex-wrap">
+                          {slides.map((s: any, i: number) => (
+                            <span key={i} className={cn(
+                              'text-[8px] px-1.5 py-0.5 rounded font-medium',
+                              s.type === 'hero' ? 'bg-indigo-100 text-indigo-600' :
+                              s.type === 'stats' ? 'bg-amber-100 text-amber-600' :
+                              s.type === 'statement' ? 'bg-purple-100 text-purple-600' :
+                              s.type === 'closing' ? 'bg-emerald-100 text-emerald-600' :
+                              s.type === 'section' ? 'bg-slate-100 text-slate-500' :
+                              'bg-blue-50 text-blue-500'
+                            )}>
+                              {s.type}
+                            </span>
+                          ))}
+                        </div>
+                        {/* Preset color palette */}
+                        {preset && (
+                          <div className="flex gap-1 mt-2 items-center">
+                            <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.backgroundColor }} />
+                            <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.accentColor }} />
+                            <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.primaryTextColor }} />
+                            <span className="ml-auto text-[9px] text-slate-400">{preset.name}</span>
+                          </div>
+                        )}
                       </div>
                     </motion.div>
-                  ))}
-                </div>
-              </>
+                  );
+                })}
+              </div>
             )}
 
-            {/* Step 2: Preset selection */}
-            {cinematicStep === 'preset' && (
-              <>
-                <div className="flex items-center gap-2 mb-4">
-                  <button onClick={() => setCinematicStep('template')} className="text-[#4F46E5] hover:text-[#4338CA] text-sm font-medium flex items-center gap-1">
-                    <ArrowLeft className="w-3.5 h-3.5" /> Back
-                  </button>
-                  <span className="text-slate-300">|</span>
-                  <span className="text-sm text-slate-500">Template: <strong className="text-slate-800">{selectedCinematicTemplate?.name}</strong></span>
-                </div>
-                <p className="text-slate-400 text-sm mb-4">Now choose the visual style. Hover to preview.</p>
-              </>
-            )}
-
-            {cinematicStep === 'preset' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {CINEMATIC_PRESETS.map(preset => {
-                const isSelected = selectedCinematicPreset?.id === preset.id;
-                const transitionLabel = preset.transition.replace(/-/g, ' ');
-                const navLabel = preset.navStyle === 'dots' ? 'Dots' : preset.navStyle === 'progress-bar' ? 'Progress' : preset.navStyle === 'numbers' ? 'Numbers' : 'None';
-                return (
-                  <motion.div
-                    key={preset.id}
-                    whileHover={{ y: -4 }}
-                    onClick={() => { setSelectedCinematicPreset(preset); setSelectedTemplate(null); }}
-                    className={cn(
-                      'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
-                      isSelected
-                        ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white shadow-xl shadow-[#4F46E5]/15'
-                        : 'hover:ring-1 hover:ring-slate-300 shadow-sm'
-                    )}
-                  >
-                    {/* Preview card — simulates what a slide looks like */}
-                    <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: preset.backgroundColor }}>
-                      {/* Subtle gradient glow */}
-                      <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(ellipse at 70% 30%, ${preset.accentColor}40, transparent 60%)` }} />
-
-                      {/* Simulated divider line */}
-                      <div className="absolute top-[14%] left-[8%] right-[8%] h-px" style={{ backgroundColor: `${preset.primaryTextColor}15` }} />
-
-                      {/* Simulated slide number */}
-                      <div className="absolute top-[6%] right-[8%] text-[8px] font-mono" style={{ color: preset.secondaryTextColor, opacity: 0.5 }}>01</div>
-
-                      {/* Main content — animates on hover */}
-                      <div className="absolute inset-0 flex flex-col justify-end p-[8%]">
-                        {/* Accent line */}
-                        <div className="w-[3px] h-6 rounded-full mb-2" style={{ backgroundColor: preset.accentColor }} />
-
-                        {/* Title with simulated animation */}
-                        <motion.div
-                          className="overflow-hidden"
-                          initial={false}
-                        >
-                          <div
-                            className="text-xl font-bold leading-tight mb-1.5 group-hover:translate-y-0 translate-y-[2px] transition-transform duration-500"
-                            style={{ color: preset.primaryTextColor, fontFamily: `'${preset.fontHeading}', sans-serif` }}
-                          >
-                            {preset.name}
-                          </div>
-                        </motion.div>
-
-                        {/* Subtitle */}
-                        <div
-                          className="text-[10px] leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200 line-clamp-2"
-                          style={{ color: preset.secondaryTextColor }}
-                        >
-                          {preset.description}
-                        </div>
-                      </div>
-
-                      {/* Simulated nav dots at bottom */}
-                      {preset.showProgressDots && (
-                        <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 flex gap-1">
-                          <div className="w-4 h-1 rounded-full" style={{ backgroundColor: preset.primaryTextColor }} />
-                          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: `${preset.primaryTextColor}40` }} />
-                          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: `${preset.primaryTextColor}40` }} />
-                          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: `${preset.primaryTextColor}40` }} />
-                        </div>
-                      )}
-
-                      {/* Selected check */}
-                      {isSelected && (
-                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg">
-                          <Check className="w-4 h-4 text-white" />
-                        </motion.div>
-                      )}
-                    </div>
-
-                    {/* Info bar */}
-                    <div className="p-3 bg-white/80 backdrop-blur-sm">
-                      <div className="flex items-center justify-between mb-1.5">
-                        <h3 className="text-sm font-semibold text-slate-800">{preset.name}</h3>
-                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{preset.baseTheme}</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                        <span>{preset.fontHeading}</span>
-                        <span className="text-slate-300">/</span>
-                        <span>{preset.fontBody}</span>
-                        <span className="ml-auto flex items-center gap-1">
-                          <span className="capitalize">{transitionLabel}</span>
-                          <span className="text-slate-300">·</span>
-                          <span>{navLabel}</span>
-                        </span>
-                      </div>
-                      {/* Color palette dots */}
-                      <div className="flex gap-1 mt-2">
-                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.backgroundColor }} title="Background" />
-                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.primaryTextColor }} title="Text" />
-                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.accentColor }} title="Accent" />
-                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.secondaryTextColor }} title="Secondary" />
-                        <span className="ml-auto text-[9px] text-slate-400 self-center">{preset.videoCategory}</span>
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
+            {!loadingCinematic && (!cinematicTemplates || cinematicTemplates.length === 0) && (
+              <div className="text-center py-16">
+                <p className="text-slate-500">No cinematic templates available</p>
+              </div>
             )}
           </>
         )}
@@ -664,8 +621,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                       <Play className="w-5 h-5" style={{ color: selectedCinematicPreset.accentColor }} />
                     </div>
                     <div>
-                      <p className="font-medium text-slate-800 text-sm">{selectedCinematicPreset.name}</p>
-                      <p className="text-xs text-slate-500">Cinematic presentation</p>
+                      <p className="font-medium text-slate-800 text-sm">{selectedCinematicTemplate?.name || selectedCinematicPreset.name}</p>
+                      <p className="text-xs text-slate-500">Cinematic · {selectedCinematicPreset.name}</p>
                     </div>
                   </>
                 ) : selectedTemplate ? (
