@@ -1,10 +1,11 @@
 import PptxGenJS from 'pptxgenjs';
 import { Presentation, Slide, SlideElement, PresentationTheme, ChartData, TableData } from '@/types/presentation';
 
-// Conversion constants: 1920px canvas → 10 inches (PPTX LAYOUT_WIDE)
-const PX_TO_INCH = 10 / 1920;
-const PX_TO_INCH_Y = 7.5 / 1080;
-const PT_TO_PX = 2.666;
+// Conversion constants: 1920px canvas → LAYOUT_WIDE (13.33" × 7.5")
+const SLIDE_W = 13.33;
+const SLIDE_H = 7.5;
+const PX_TO_INCH = SLIDE_W / 1920;   // ~0.00694
+const PX_TO_INCH_Y = SLIDE_H / 1080; // ~0.00694
 
 export async function exportToPptx(presentation: Presentation): Promise<void> {
   const pptx = new PptxGenJS();
@@ -32,8 +33,15 @@ function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void
         s.background = { color: hexClean(slide.background.value) };
         break;
       case 'gradient': {
-        // Try to parse CSS gradient to pptxgenjs format
-        s.background = { color: hexClean(palette.bg) };
+        // Try to parse CSS gradient colors for a basic 2-stop linear
+        const gradMatch = slide.background.value.match(/#([0-9A-Fa-f]{3,8})/g);
+        if (gradMatch && gradMatch.length >= 2) {
+          s.background = { color: hexClean(gradMatch[0]) };
+          // pptxgenjs doesn't support true gradients on background,
+          // use first color as best approximation
+        } else {
+          s.background = { color: hexClean(palette.bg) };
+        }
         break;
       }
       case 'image':
@@ -99,6 +107,7 @@ function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationThe
         align: st.textAlign || 'left',
         valign: 'top',
         lineSpacingMultiple: st.lineHeight || 1.2,
+        margin: [0.04, 0.06, 0.04, 0.06], // ~8px padding at LAYOUT_WIDE scale
         rotate,
         transparency: el.opacity < 1 ? Math.round((1 - el.opacity) * 100) : undefined,
       };
