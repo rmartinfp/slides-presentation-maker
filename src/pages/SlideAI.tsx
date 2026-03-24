@@ -393,6 +393,8 @@ export default function SlideAIPage() {
                 theme={selectedTheme!}
                 generatedSlides={generatedPresentation?.slides || null}
                 generatedTitle={generatedPresentation?.title || null}
+                userPrompt={contentText}
+                templateSlides={templateSlides}
                 onComplete={() => navigate('/editor')}
               />
             </motion.div>

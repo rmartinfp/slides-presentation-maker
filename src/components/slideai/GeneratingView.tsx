@@ -8,21 +8,46 @@ interface Props {
   theme: PresentationTheme;
   generatedSlides: Slide[] | null;
   generatedTitle: string | null;
+  userPrompt?: string;
+  templateSlides?: Slide[] | null;
   onComplete: () => void;
 }
 
-const FAKE_SLIDES = [
-  { title: 'Introduction & Overview', body: 'An executive summary of our strategic vision and key objectives for the coming year.' },
-  { title: 'Market Analysis', body: 'Current market trends show a 34% growth in our target segment, driven by digital transformation.' },
-  { title: 'Our Solution', body: 'A unified platform that combines AI-powered analytics with intuitive workflow automation.' },
-  { title: 'Key Metrics & Results', body: 'Revenue grew 127% year-over-year while customer acquisition costs decreased by 40%.' },
-  { title: 'Competitive Landscape', body: 'We maintain a strong position with 3 key differentiators that set us apart.' },
-  { title: 'Product Roadmap', body: 'Our development pipeline includes 12 major features planned across four quarterly releases.' },
-  { title: 'Business Model', body: 'SaaS subscription model with three tiers, targeting SMB through enterprise segments.' },
-  { title: 'Team & Leadership', body: 'A diverse team of 45 professionals with deep expertise in AI, design and enterprise.' },
-  { title: 'Financial Projections', body: 'Projecting $8.5M ARR by end of year with a clear path to profitability.' },
-  { title: 'Next Steps', body: 'Three immediate priorities to accelerate growth and strengthen market position.' },
-];
+/**
+ * Build contextual placeholder text from the user's prompt and template.
+ * If template slides exist, use their actual titles.
+ * Otherwise, derive plausible slide titles from the topic.
+ */
+function buildPlaceholderSlides(prompt: string, templateSlides?: Slide[] | null, count = 8): { title: string; body: string }[] {
+  // If we have template slides with real text, use those titles
+  if (templateSlides && templateSlides.length > 0) {
+    return templateSlides.slice(0, count).map(slide => {
+      const texts = (slide.elements || [])
+        .filter(e => e.type === 'text')
+        .sort((a, b) => (b.style.fontSize || 0) - (a.style.fontSize || 0));
+      const title = texts[0]?.content?.replace(/<[^>]+>/g, '').slice(0, 60) || 'Slide';
+      const body = texts[1]?.content?.replace(/<[^>]+>/g, '').slice(0, 120) || '';
+      return { title, body: body || `Content about ${prompt.slice(0, 40)}...` };
+    });
+  }
+
+  // No template — generate contextual placeholders from prompt topic
+  const topic = prompt.slice(0, 50).trim() || 'your topic';
+  const topicShort = prompt.split(/[.,\n]/)[0]?.trim().slice(0, 30) || topic;
+
+  return [
+    { title: topicShort, body: `An overview of ${topic} and why it matters today.` },
+    { title: 'The Challenge', body: `Understanding the key problems and pain points around ${topicShort}.` },
+    { title: 'Our Approach', body: `How we address the core challenges with a proven methodology.` },
+    { title: 'Key Results', body: `Measurable outcomes and impact metrics that demonstrate success.` },
+    { title: 'Market Context', body: `The broader landscape and opportunities for ${topicShort}.` },
+    { title: 'How It Works', body: `A step-by-step breakdown of the process and implementation.` },
+    { title: 'What Sets Us Apart', body: `Unique differentiators and competitive advantages.` },
+    { title: 'Next Steps', body: `Immediate priorities and the path forward for ${topicShort}.` },
+    { title: 'The Team', body: `The people and expertise behind this initiative.` },
+    { title: 'Thank You', body: `Let's discuss how to move forward together.` },
+  ].slice(0, count);
+}
 
 interface SlideTypingState {
   titleChars: number;
@@ -31,23 +56,25 @@ interface SlideTypingState {
   isDone: boolean;
 }
 
-export default function GeneratingView({ theme, generatedSlides, generatedTitle, onComplete }: Props) {
-  // Lock slide count at mount — never changes, so grid never shifts
+export default function GeneratingView({ theme, generatedSlides, generatedTitle, userPrompt, templateSlides, onComplete }: Props) {
   const [slideCount] = useState(8);
   const cols = slideCount <= 4 ? 2 : slideCount <= 6 ? 3 : 3;
   const palette = theme.tokens.palette;
   const isGenerated = !!generatedSlides && generatedSlides.length > 0;
 
+  // Build contextual placeholder text once
+  const [fakeSlidesRef] = useState(() => buildPlaceholderSlides(userPrompt || '', templateSlides, slideCount));
+
   const [states, setStates] = useState<SlideTypingState[]>(() =>
     Array.from({ length: slideCount }, () => ({ titleChars: 0, bodyChars: 0, isTyping: false, isDone: false }))
   );
   const [activeIdx, setActiveIdx] = useState(0);
-  const [realOpacity, setRealOpacity] = useState(0); // 0→1 crossfade
+  const [realOpacity, setRealOpacity] = useState(0);
   const [morphing, setMorphing] = useState(false);
-  const rafRef = useRef<number>();
   const stoppedRef = useRef(false);
+  const rafRef = useRef<number>();
 
-  // ── Phase 1: Type slides one by one. NEVER erase. Stop when all done. ──
+  // Phase 1: Type contextual text on each slide
   useEffect(() => {
     if (isGenerated) { stoppedRef.current = true; return; }
 
@@ -60,12 +87,9 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
 
     const tick = (time: number) => {
       if (stoppedRef.current) return;
-      if (current >= slideCount) {
-        // All typed — just wait, don't erase
-        return;
-      }
+      if (current >= slideCount) return; // All done, wait
 
-      const fake = FAKE_SLIDES[current % FAKE_SLIDES.length];
+      const fake = fakeSlidesRef[current] || { title: 'Slide', body: '' };
       const speed = phase === 'title' ? TITLE_SPEED : phase === 'body' ? BODY_SPEED : 300;
 
       if (time - lastTime >= speed) {
@@ -75,62 +99,44 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
           charIdx++;
           setActiveIdx(current);
           const chars = Math.min(charIdx, fake.title.length);
-          setStates(p => {
-            const n = [...p];
-            n[current] = { ...n[current], titleChars: chars, isTyping: true };
-            return n;
-          });
-          if (charIdx >= fake.title.length) {
-            phase = 'pause';
-            charIdx = 0;
-          }
+          setStates(p => { const n = [...p]; n[current] = { ...n[current], titleChars: chars, isTyping: true }; return n; });
+          if (charIdx >= fake.title.length) { phase = 'pause'; charIdx = 0; }
         } else if (phase === 'pause') {
           phase = 'body';
         } else {
           charIdx++;
           const chars = Math.min(charIdx, fake.body.length);
-          setStates(p => {
-            const n = [...p];
-            n[current] = { ...n[current], bodyChars: chars };
-            return n;
-          });
+          setStates(p => { const n = [...p]; n[current] = { ...n[current], bodyChars: chars }; return n; });
           if (charIdx >= fake.body.length) {
-            // Mark done — text STAYS
-            setStates(p => {
-              const n = [...p];
-              n[current] = { ...n[current], isDone: true, isTyping: false };
-              return n;
-            });
+            setStates(p => { const n = [...p]; n[current] = { ...n[current], isDone: true, isTyping: false }; return n; });
             current++;
             phase = 'title';
             charIdx = 0;
           }
         }
       }
-
       rafRef.current = requestAnimationFrame(tick);
     };
 
     rafRef.current = requestAnimationFrame(tick);
     return () => { stoppedRef.current = true; if (rafRef.current) cancelAnimationFrame(rafRef.current); };
-  }, [isGenerated, slideCount]);
+  }, [isGenerated, slideCount, fakeSlidesRef]);
 
-  // ── Phase 2: Crossfade to real content (no layout change) ──
+  // Phase 2: Crossfade to real
   useEffect(() => {
     if (!isGenerated) return;
     stoppedRef.current = true;
-    // Smooth crossfade over 600ms
     const start = performance.now();
-    const duration = 600;
-    const animate = (now: number) => {
-      const t = Math.min((now - start) / duration, 1);
+    const dur = 600;
+    const anim = (now: number) => {
+      const t = Math.min((now - start) / dur, 1);
       setRealOpacity(t);
-      if (t < 1) requestAnimationFrame(animate);
+      if (t < 1) requestAnimationFrame(anim);
     };
-    requestAnimationFrame(animate);
+    requestAnimationFrame(anim);
   }, [isGenerated]);
 
-  // ── Phase 3: Morph → navigate ──
+  // Phase 3: Morph
   useEffect(() => {
     if (!isGenerated || realOpacity < 1) return;
     const t = setTimeout(() => setMorphing(true), 1200);
@@ -143,29 +149,19 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
     return () => clearTimeout(t);
   }, [morphing, onComplete]);
 
-  // Use actual slide count for rendering real slides, but keep grid at slideCount
   const realSlides = generatedSlides || [];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 mesh-gradient overflow-hidden flex flex-col"
-    >
-      <motion.div
-        animate={{ scale: [1, 1.15, 1], opacity: [0.06, 0.12, 0.06] }}
-        transition={{ duration: 6, repeat: Infinity }}
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[#4F46E5]/10 blur-[150px] pointer-events-none"
-      />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      className="fixed inset-0 mesh-gradient overflow-hidden flex flex-col">
+
+      <motion.div animate={{ scale: [1, 1.15, 1], opacity: [0.06, 0.12, 0.06] }} transition={{ duration: 6, repeat: Infinity }}
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[#4F46E5]/10 blur-[150px] pointer-events-none" />
 
       <div className="relative z-20 pt-6 shrink-0">
-        <div className="max-w-5xl mx-auto px-6">
-          <StepIndicator currentStep={3} />
-        </div>
+        <div className="max-w-5xl mx-auto px-6"><StepIndicator currentStep={3} /></div>
       </div>
 
-      {/* Status */}
       <div className="relative z-10 text-center pt-6 pb-4 shrink-0">
         <div className="flex items-center gap-2 justify-center mb-1">
           {realOpacity < 1 && (
@@ -177,12 +173,9 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
             {realOpacity >= 1 ? (generatedTitle || 'Your Presentation') : `Writing slide ${Math.min(activeIdx + 1, slideCount)} of ${slideCount}...`}
           </h2>
         </div>
-        {realOpacity >= 1 && (
-          <p className="text-sm text-slate-400">{realSlides.length} slides ready</p>
-        )}
+        {realOpacity >= 1 && <p className="text-sm text-slate-400">{realSlides.length} slides ready</p>}
       </div>
 
-      {/* Slide grid — FIXED dimensions, never changes */}
       <div className="relative z-10 flex-1 flex items-start justify-center overflow-hidden px-6 pb-8">
         <motion.div
           className="grid gap-3 w-full max-w-5xl"
@@ -192,11 +185,10 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
         >
           {Array.from({ length: slideCount }).map((_, i) => {
             const st = states[i];
-            const fake = FAKE_SLIDES[i % FAKE_SLIDES.length];
-            const isActive = activeIdx === i && !stoppedRef.current && !st.isDone;
+            const fake = fakeSlidesRef[i] || { title: '', body: '' };
+            const isActive = activeIdx === i && !isGenerated;
             const real = realSlides[i];
 
-            // Real slide display data
             let realTitle = '', realBody = '', realBg = palette.bg, realTitleColor = palette.text;
             if (real) {
               const texts = (real.elements || []).filter(e => e.type === 'text').sort((a, b) => (b.style.fontSize || 0) - (a.style.fontSize || 0));
@@ -214,21 +206,18 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
                 }`}
                 style={{ background: palette.bg }}
               >
-                {/* Slide number — always visible */}
                 <div className="absolute top-[5%] right-[5%] text-[9px] font-mono opacity-20 z-20" style={{ color: palette.text }}>
                   {String(i + 1).padStart(2, '0')}
                 </div>
 
-                {/* Layer 1: Fake typed content — always stays, never removed */}
+                {/* Fake typed content — stays visible, never removed */}
                 <div className="absolute inset-0 p-[7%] flex flex-col justify-end z-10" style={{ opacity: 1 - realOpacity }}>
-                  {/* Title */}
                   <p className="font-bold leading-snug mb-1" style={{ color: palette.text, fontSize: 'clamp(9px, 1.6vw, 15px)', minHeight: '1.3em' }}>
                     {fake.title.slice(0, st.titleChars)}
                     {st.isTyping && st.bodyChars === 0 && (
                       <span className="inline-block w-[2px] h-[1em] ml-[1px] align-text-bottom animate-pulse" style={{ backgroundColor: '#4F46E5' }} />
                     )}
                   </p>
-                  {/* Body */}
                   {st.bodyChars > 0 && (
                     <p className="leading-snug opacity-45" style={{ color: palette.text, fontSize: 'clamp(6px, 0.9vw, 10px)', minHeight: '0.9em' }}>
                       {fake.body.slice(0, st.bodyChars)}
@@ -237,8 +226,6 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
                       )}
                     </p>
                   )}
-
-                  {/* Done check */}
                   {st.isDone && (
                     <div className="absolute top-[5%] left-[5%] w-4 h-4 rounded-full bg-emerald-500/90 flex items-center justify-center">
                       <svg className="w-2.5 h-2.5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 13l4 4L19 7" /></svg>
@@ -246,18 +233,12 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
                   )}
                 </div>
 
-                {/* Layer 2: Real content — fades in OVER the fake, same position */}
+                {/* Real content — fades over fake */}
                 {real && realOpacity > 0 && (
                   <div className="absolute inset-0 z-10" style={{ opacity: realOpacity, background: realBg }}>
                     <div className="absolute inset-0 p-[7%] flex flex-col justify-end">
-                      <p className="font-bold leading-snug line-clamp-2 mb-1" style={{ color: realTitleColor, fontSize: 'clamp(9px, 1.6vw, 15px)' }}>
-                        {realTitle}
-                      </p>
-                      {realBody && (
-                        <p className="leading-snug line-clamp-2 opacity-45" style={{ color: palette.text, fontSize: 'clamp(6px, 0.9vw, 10px)' }}>
-                          {realBody}
-                        </p>
-                      )}
+                      <p className="font-bold leading-snug line-clamp-2 mb-1" style={{ color: realTitleColor, fontSize: 'clamp(9px, 1.6vw, 15px)' }}>{realTitle}</p>
+                      {realBody && <p className="leading-snug line-clamp-2 opacity-45" style={{ color: palette.text, fontSize: 'clamp(6px, 0.9vw, 10px)' }}>{realBody}</p>}
                     </div>
                   </div>
                 )}
