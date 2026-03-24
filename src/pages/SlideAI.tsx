@@ -22,6 +22,7 @@ export default function SlideAIPage() {
   const [selectedTheme, setSelectedTheme] = useState<PresentationTheme | null>(null);
   const [templateSlides, setTemplateSlides] = useState<Slide[] | null>(null);
   const [contentText, setContentText] = useState('');
+  const [generatedPresentation, setGeneratedPresentation] = useState<{ title: string; slides: Slide[]; theme: PresentationTheme } | null>(null);
 
   const handleSelectTheme = (theme: PresentationTheme, slides?: Slide[]) => {
     setSelectedTheme(theme);
@@ -256,23 +257,17 @@ export default function SlideAIPage() {
           return newSlide;
         });
 
-        // Store presentation
-        sessionStorage.setItem('presentation', JSON.stringify({
+        // Store & show reveal animation
+        const pres = {
           id: Math.random().toString(36).substring(2, 11),
-          title: result.title,
-          slides,
-          theme,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-
-        if (cinematicPreset) {
-          sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
-        }
-        // Preload fonts before navigating so they render immediately
+          title: result.title, slides, theme,
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        };
+        sessionStorage.setItem('presentation', JSON.stringify(pres));
+        if (cinematicPreset) sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
         loadFontsFromSlides(slides);
         loadFontsFromTheme(theme.tokens);
-        navigate('/editor');
+        setGeneratedPresentation({ title: result.title, slides, theme });
         return;
       }
 
@@ -333,13 +328,10 @@ export default function SlideAIPage() {
         updatedAt: new Date().toISOString(),
       }));
 
-      if (cinematicPreset) {
-        sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
-      }
-      // Preload fonts before navigating
+      if (cinematicPreset) sessionStorage.setItem('cinematicPreset', JSON.stringify(cinematicPreset));
       loadFontsFromSlides(slides);
       loadFontsFromTheme(theme.tokens);
-      navigate('/editor');
+      setGeneratedPresentation({ title: result.title, slides, theme });
     } catch (error) {
       console.error('Generation failed:', error);
       toast.error('Failed to generate presentation. Please try again.');
@@ -397,7 +389,12 @@ export default function SlideAIPage() {
               exit={{ opacity: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <GeneratingView theme={selectedTheme!} />
+              <GeneratingView
+                theme={selectedTheme!}
+                generatedSlides={generatedPresentation?.slides || null}
+                generatedTitle={generatedPresentation?.title || null}
+                onComplete={() => navigate('/editor')}
+              />
             </motion.div>
           )}
         </AnimatePresence>
