@@ -464,47 +464,109 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
         ) : (
           <>
             <p className="text-slate-400 text-sm mb-6">
-              Modern, animated presentations with cinematic text reveals. Perfect for pitches, keynotes, and storytelling.
+              Cinematic presentations with video backgrounds, animated text reveals, and premium transitions. Hover to preview.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {CINEMATIC_PRESETS.map(preset => (
-                <motion.div
-                  key={preset.id}
-                  whileHover={{ y: -6 }}
-                  onClick={() => { setSelectedCinematicPreset(preset); setSelectedTemplate(null); }}
-                  className={cn(
-                    'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
-                    selectedCinematicPreset?.id === preset.id
-                      ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white'
-                      : 'hover:ring-1 hover:ring-slate-300'
-                  )}
-                >
-                  <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: preset.backgroundColor }}>
-                    <div className="absolute inset-0 flex flex-col justify-end p-6">
-                      <div className="w-px h-8 mb-3" style={{ backgroundColor: preset.accentColor }} />
-                      <div className="text-2xl font-bold leading-tight mb-2" style={{ color: preset.primaryTextColor, fontFamily: `'${preset.fontHeading}', sans-serif` }}>
-                        {preset.name}
-                      </div>
-                      <div className="text-xs" style={{ color: preset.secondaryTextColor }}>{preset.description}</div>
-                    </div>
-                    <div className="absolute top-0 right-0 w-1/2 h-full opacity-20 blur-3xl" style={{ background: `radial-gradient(circle at top right, ${preset.accentColor}, transparent)` }} />
-                    {selectedCinematicPreset?.id === preset.id && (
-                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white" />
-                      </motion.div>
+              {CINEMATIC_PRESETS.map(preset => {
+                const isSelected = selectedCinematicPreset?.id === preset.id;
+                const transitionLabel = preset.transition.replace(/-/g, ' ');
+                const navLabel = preset.navStyle === 'dots' ? 'Dots' : preset.navStyle === 'progress-bar' ? 'Progress' : preset.navStyle === 'numbers' ? 'Numbers' : 'None';
+                return (
+                  <motion.div
+                    key={preset.id}
+                    whileHover={{ y: -4 }}
+                    onClick={() => { setSelectedCinematicPreset(preset); setSelectedTemplate(null); }}
+                    className={cn(
+                      'relative group rounded-xl overflow-hidden cursor-pointer transition-all',
+                      isSelected
+                        ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white shadow-xl shadow-[#4F46E5]/15'
+                        : 'hover:ring-1 hover:ring-slate-300 shadow-sm'
                     )}
-                  </div>
-                  <div className="p-3 bg-white/80 backdrop-blur-sm flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-slate-800">{preset.name}</h3>
-                      <p className="text-[11px] text-slate-500 mt-0.5">{preset.fontHeading} / {preset.fontBody}</p>
+                  >
+                    {/* Preview card — simulates what a slide looks like */}
+                    <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: preset.backgroundColor }}>
+                      {/* Subtle gradient glow */}
+                      <div className="absolute inset-0 opacity-30" style={{ background: `radial-gradient(ellipse at 70% 30%, ${preset.accentColor}40, transparent 60%)` }} />
+
+                      {/* Simulated divider line */}
+                      <div className="absolute top-[14%] left-[8%] right-[8%] h-px" style={{ backgroundColor: `${preset.primaryTextColor}15` }} />
+
+                      {/* Simulated slide number */}
+                      <div className="absolute top-[6%] right-[8%] text-[8px] font-mono" style={{ color: preset.secondaryTextColor, opacity: 0.5 }}>01</div>
+
+                      {/* Main content — animates on hover */}
+                      <div className="absolute inset-0 flex flex-col justify-end p-[8%]">
+                        {/* Accent line */}
+                        <div className="w-[3px] h-6 rounded-full mb-2" style={{ backgroundColor: preset.accentColor }} />
+
+                        {/* Title with simulated animation */}
+                        <motion.div
+                          className="overflow-hidden"
+                          initial={false}
+                        >
+                          <div
+                            className="text-xl font-bold leading-tight mb-1.5 group-hover:translate-y-0 translate-y-[2px] transition-transform duration-500"
+                            style={{ color: preset.primaryTextColor, fontFamily: `'${preset.fontHeading}', sans-serif` }}
+                          >
+                            {preset.name}
+                          </div>
+                        </motion.div>
+
+                        {/* Subtitle */}
+                        <div
+                          className="text-[10px] leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity duration-700 delay-200 line-clamp-2"
+                          style={{ color: preset.secondaryTextColor }}
+                        >
+                          {preset.description}
+                        </div>
+                      </div>
+
+                      {/* Simulated nav dots at bottom */}
+                      {preset.showProgressDots && (
+                        <div className="absolute bottom-[5%] left-1/2 -translate-x-1/2 flex gap-1">
+                          <div className="w-4 h-1 rounded-full" style={{ backgroundColor: preset.primaryTextColor }} />
+                          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: `${preset.primaryTextColor}40` }} />
+                          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: `${preset.primaryTextColor}40` }} />
+                          <div className="w-1 h-1 rounded-full" style={{ backgroundColor: `${preset.primaryTextColor}40` }} />
+                        </div>
+                      )}
+
+                      {/* Selected check */}
+                      {isSelected && (
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg">
+                          <Check className="w-4 h-4 text-white" />
+                        </motion.div>
+                      )}
                     </div>
-                    <div className="flex gap-1">
-                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: preset.accentColor }} />
+
+                    {/* Info bar */}
+                    <div className="p-3 bg-white/80 backdrop-blur-sm">
+                      <div className="flex items-center justify-between mb-1.5">
+                        <h3 className="text-sm font-semibold text-slate-800">{preset.name}</h3>
+                        <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{preset.baseTheme}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                        <span>{preset.fontHeading}</span>
+                        <span className="text-slate-300">/</span>
+                        <span>{preset.fontBody}</span>
+                        <span className="ml-auto flex items-center gap-1">
+                          <span className="capitalize">{transitionLabel}</span>
+                          <span className="text-slate-300">·</span>
+                          <span>{navLabel}</span>
+                        </span>
+                      </div>
+                      {/* Color palette dots */}
+                      <div className="flex gap-1 mt-2">
+                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.backgroundColor }} title="Background" />
+                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.primaryTextColor }} title="Text" />
+                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.accentColor }} title="Accent" />
+                        <div className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.secondaryTextColor }} title="Secondary" />
+                        <span className="ml-auto text-[9px] text-slate-400 self-center">{preset.videoCategory}</span>
+                      </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </>
         )}

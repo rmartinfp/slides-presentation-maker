@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useEffect } from 'react';
+import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 const DEFAULT_EASING = [0.25, 0.1, 0.25, 1];
 
@@ -133,32 +133,21 @@ interface CounterProps {
   style?: React.CSSProperties;
 }
 
-/** Animated number counter */
+/** Animated number counter — actually counts up from 0 to value */
 export function Counter({ value, suffix = '', prefix = '', delay = 0, duration = 1.5, className, style }: CounterProps) {
-  return (
-    <motion.span
-      className={className}
-      style={style}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ delay }}
-    >
-      {prefix}
-      <motion.span
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: delay + 0.1 }}
-      >
-        {/* Simple approach: animate from 0 to value using CSS counter or just show value with fade */}
-        <motion.span
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: delay + 0.2, ease: DEFAULT_EASING }}
-        >
-          {value}
-        </motion.span>
-      </motion.span>
-      {suffix}
-    </motion.span>
-  );
+  const [displayValue, setDisplayValue] = useState(0);
+  const motionValue = useMotionValue(0);
+  const springValue = useSpring(motionValue, { duration: duration * 1000 });
+
+  useEffect(() => {
+    const timeout = setTimeout(() => motionValue.set(value), delay * 1000);
+    return () => clearTimeout(timeout);
+  }, [value, delay, motionValue]);
+
+  useEffect(() => {
+    const unsubscribe = springValue.on('change', (v) => setDisplayValue(Math.round(v)));
+    return unsubscribe;
+  }, [springValue]);
+
+  return <span className={className} style={style}>{prefix}{displayValue.toLocaleString()}{suffix}</span>;
 }
