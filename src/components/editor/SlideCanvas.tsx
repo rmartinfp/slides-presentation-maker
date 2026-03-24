@@ -1,6 +1,7 @@
 import React, { useCallback, useState, useRef } from 'react';
 import { Slide, PresentationTheme, SlideElement, ChartData } from '@/types/presentation';
 import ChartRenderer from './ChartRenderer';
+import EditorVideoBackground from './EditorVideoBackground';
 import { useEditorStore } from '@/stores/editor-store';
 import CanvasElement from './CanvasElement';
 import AlignmentGuides from './AlignmentGuides';
@@ -171,6 +172,11 @@ export default function SlideCanvas({
       onClick={isEditing ? handleCanvasClick : undefined}
       onMouseDown={isEditing ? handleMouseDown : undefined}
     >
+      {/* Video background (cinematic) */}
+      {slide.videoBackground && (
+        <EditorVideoBackground video={slide.videoBackground} scale={scale} />
+      )}
+
       {isEditing && (
         <AlignmentGuides
           elements={slide.elements || []}

@@ -118,10 +118,19 @@ export interface SlideBackground {
   value: string; // color hex, CSS gradient, or image URL
 }
 
+export interface SlideVideoBackground {
+  url: string;
+  type: 'mp4' | 'hls';
+  opacity: number;
+  filter?: string;
+  transform?: string;
+}
+
 export interface Slide {
   id: string;
   elements: SlideElement[];
   background: SlideBackground;
+  videoBackground?: SlideVideoBackground;
   notes?: string;
 
   // Legacy fields — kept for backward compatibility during migration

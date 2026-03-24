@@ -41,6 +41,7 @@ export interface EditorState {
   duplicateSlide: (index?: number) => void;
   updateSlideNotes: (notes: string) => void;
   setSlideBackground: (bg: SlideBackground) => void;
+  setSlideVideoBackground: (video: import('@/types/presentation').SlideVideoBackground | undefined) => void;
 
   reorderSlides: (startIndex: number, endIndex: number) => void;
 
@@ -372,6 +373,17 @@ export const useEditorStore = create<EditorState>()((set, get) => {
           const slide = state.presentation.slides[state.activeSlideIndex];
           if (slide) {
             slide.background = bg;
+            state.presentation.updatedAt = new Date().toISOString();
+          }
+        }),
+      ),
+
+    setSlideVideoBackground: (video) =>
+      trackedSet(
+        produce((state: EditorState) => {
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          if (slide) {
+            slide.videoBackground = video;
             state.presentation.updatedAt = new Date().toISOString();
           }
         }),

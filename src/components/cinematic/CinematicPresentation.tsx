@@ -230,10 +230,18 @@ export default function CinematicPresentation({
     slides.map((_, i) => (i === startIndex ? 1 : 0))
   );
 
-  // Assign videos from pool (one per slide, stable across re-renders)
-  const slideVideos = useMemo(
+  // Assign videos: use stored videoBackground per slide if available, otherwise from pool
+  const poolVideos = useMemo(
     () => getVideosForSlides(preset.videoCategory, slides.length),
     [preset.videoCategory, slides.length]
+  );
+  const slideVideos = useMemo(
+    () => poolVideos.map((poolVideo, i) => {
+      const stored = slides[i]?.videoBackground;
+      if (stored) return { url: stored.url, type: stored.type, opacity: stored.opacity, filter: stored.filter, transform: stored.transform };
+      return poolVideo ? { url: poolVideo.url, type: poolVideo.url.includes('.m3u8') ? 'hls' as const : 'mp4' as const, opacity: preset.videoOpacity, filter: preset.videoFilter } : null;
+    }),
+    [poolVideos, slides, preset.videoOpacity, preset.videoFilter]
   );
 
   // Load preset fonts
@@ -315,9 +323,10 @@ export default function CinematicPresentation({
             <VideoBackground
               config={{
                 url: video.url,
-                type: 'mp4',
-                opacity: preset.videoOpacity,
-                filter: preset.videoFilter,
+                type: video.type || 'mp4',
+                opacity: video.opacity ?? preset.videoOpacity,
+                filter: video.filter || preset.videoFilter,
+                transform: video.transform,
                 objectFit: 'cover',
               }}
             />

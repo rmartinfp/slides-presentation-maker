@@ -1,12 +1,13 @@
 import React, { useState, useMemo } from 'react';
 import { useEditorStore } from '@/stores/editor-store';
-import { SlideElement, TableData } from '@/types/presentation';
+import { SlideElement, TableData, Slide, SlideVideoBackground } from '@/types/presentation';
+import { VIDEO_POOL } from '@/lib/video-pool';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import {
   RotateCw, Move, Maximize2, Eye, Palette, Type,
   Lock, Unlock, Trash2, Copy, ArrowUpToLine, ArrowDownToLine,
-  BoxSelect, ImageIcon,
+  BoxSelect, ImageIcon, Video, X, Play,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -98,11 +99,7 @@ export default function PropertiesPanel() {
 
   if (!el) {
     return (
-      <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
-        <p className="text-[11px] text-slate-500">{slide?.elements?.length || 0} elements</p>
-        <p className="text-[10px] text-slate-400 mt-1">Select an element to edit</p>
-      </div>
+      <SlidePropertiesPanel slide={slide} />
     );
   }
 
@@ -545,6 +542,148 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
             className="w-7 h-7 rounded cursor-pointer border-0 p-0 shrink-0" />
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── Slide Properties (no element selected) ──
+function SlidePropertiesPanel({ slide }: { slide: Slide | undefined }) {
+  const { setSlideVideoBackground } = useEditorStore();
+  const [showVideoPicker, setShowVideoPicker] = useState(false);
+  const video = slide?.videoBackground;
+
+  const categories = [...new Set(VIDEO_POOL.map(v => v.category))];
+
+  return (
+    <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
+      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
+      <p className="text-[11px] text-slate-500 mb-4">{slide?.elements?.length || 0} elements</p>
+
+      {/* Video Background Section */}
+      <Section icon={<Video className="w-3 h-3" />} title="Video Background">
+        {video ? (
+          <div className="space-y-2">
+            {/* Current video preview */}
+            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
+              <video
+                src={video.url}
+                autoPlay muted loop playsInline
+                className="w-full h-full object-cover"
+                style={{ opacity: video.opacity, filter: video.filter || undefined }}
+              />
+              <button
+                onClick={() => setSlideVideoBackground(undefined)}
+                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+              >
+                <X className="w-3 h-3 text-white" />
+              </button>
+            </div>
+            {/* Opacity */}
+            <div>
+              <label className="text-[10px] text-slate-500 mb-1 block">Opacity</label>
+              <Slider
+                value={[video.opacity * 100]}
+                onValueChange={([v]) => setSlideVideoBackground({ ...video, opacity: v / 100 })}
+                min={5} max={100} step={5}
+              />
+              <span className="text-[9px] text-slate-400">{Math.round(video.opacity * 100)}%</span>
+            </div>
+            {/* Filter */}
+            <div>
+              <label className="text-[10px] text-slate-500 mb-1 block">Filter</label>
+              <div className="flex flex-wrap gap-1">
+                {[
+                  { label: 'None', value: '' },
+                  { label: 'Dark', value: 'brightness(0.4)' },
+                  { label: 'Dim', value: 'brightness(0.6)' },
+                  { label: 'B&W', value: 'grayscale(100%) brightness(0.5)' },
+                  { label: 'Warm', value: 'brightness(0.5) sepia(30%)' },
+                  { label: 'Cool', value: 'brightness(0.5) hue-rotate(30deg)' },
+                ].map(f => (
+                  <button
+                    key={f.label}
+                    onClick={() => setSlideVideoBackground({ ...video, filter: f.value || undefined })}
+                    className={cn(
+                      'px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors',
+                      (video.filter || '') === f.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+                    )}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {/* Change video */}
+            <button
+              onClick={() => setShowVideoPicker(!showVideoPicker)}
+              className="w-full text-[10px] text-[#4F46E5] hover:text-[#4338CA] font-medium py-1 rounded hover:bg-indigo-50 transition-colors"
+            >
+              Change video
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowVideoPicker(!showVideoPicker)}
+            className="w-full py-6 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center gap-2 text-slate-400 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-colors"
+          >
+            <Video className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Add Video Background</span>
+          </button>
+        )}
+
+        {/* Video picker */}
+        {showVideoPicker && (
+          <div className="mt-2 space-y-2">
+            {categories.map(cat => {
+              const vids = VIDEO_POOL.filter(v => v.category === cat);
+              return (
+                <div key={cat}>
+                  <label className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">{cat}</label>
+                  <div className="grid grid-cols-2 gap-1 mt-1">
+                    {vids.slice(0, 4).map(v => (
+                      <button
+                        key={v.id}
+                        onClick={() => {
+                          setSlideVideoBackground({ url: v.url, type: v.url.includes('.m3u8') ? 'hls' : 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
+                          setShowVideoPicker(false);
+                        }}
+                        className={cn(
+                          'relative rounded overflow-hidden aspect-video bg-black border-2 transition-all',
+                          video?.url === v.url ? 'border-[#4F46E5]' : 'border-transparent hover:border-slate-300'
+                        )}
+                      >
+                        <video src={v.url} muted playsInline className="w-full h-full object-cover opacity-70" onMouseEnter={e => (e.target as HTMLVideoElement).play()} onMouseLeave={e => (e.target as HTMLVideoElement).pause()} />
+                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-1 py-0.5">
+                          <span className="text-[8px] text-white/80">{v.id}</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {/* Custom URL */}
+            <div>
+              <label className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">Custom URL</label>
+              <input
+                placeholder="Paste MP4 URL..."
+                className="w-full mt-1 px-2 py-1 text-[10px] rounded border border-slate-200 focus:border-[#4F46E5] focus:outline-none"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const url = (e.target as HTMLInputElement).value.trim();
+                    if (url) {
+                      setSlideVideoBackground({ url, type: url.includes('.m3u8') ? 'hls' : 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
+                      setShowVideoPicker(false);
+                    }
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </Section>
+
+      <p className="text-[10px] text-slate-400 mt-4">Select an element to edit its properties</p>
     </div>
   );
 }
