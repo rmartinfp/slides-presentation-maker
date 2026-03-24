@@ -6,6 +6,7 @@ import { PresentationTheme, Slide } from '@/types/presentation';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import { CINEMATIC_PRESETS } from '@/lib/cinematic-presets';
+import { CINEMATIC_TEMPLATES, CinematicTemplate } from '@/lib/cinematic-templates';
 import { CinematicPreset } from '@/types/cinematic';
 import StepIndicator from './StepIndicator';
 import { useNavigate } from 'react-router-dom';
@@ -285,6 +286,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
   const [activeTab, setActiveTab] = useState<'classic' | 'cinematic'>('classic');
   const [selectedTemplate, setSelectedTemplate] = useState<UnifiedTemplate | null>(null);
   const [selectedCinematicPreset, setSelectedCinematicPreset] = useState<CinematicPreset | null>(null);
+  const [selectedCinematicTemplate, setSelectedCinematicTemplate] = useState<CinematicTemplate | null>(null);
+  const [cinematicStep, setCinematicStep] = useState<'template' | 'preset'>('template');
   const [previewTemplate, setPreviewTemplate] = useState<UnifiedTemplate | null>(null);
 
   const { data: dbTemplates, isLoading: loadingDb } = useDbTemplates();
@@ -382,7 +385,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
             Templates
           </button>
           <button
-            onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); }}
+            onClick={() => { setActiveTab('cinematic'); setSelectedTemplate(null); setCinematicStep('template'); }}
             className={cn(
               'flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all border',
               activeTab === 'cinematic'
@@ -463,9 +466,80 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
           </>
         ) : (
           <>
-            <p className="text-slate-400 text-sm mb-6">
-              Cinematic presentations with video backgrounds, animated text reveals, and premium transitions. Hover to preview.
-            </p>
+            {/* Step indicator */}
+            <div className="flex items-center gap-3 mb-6">
+              <button
+                onClick={() => { setCinematicStep('template'); setSelectedCinematicPreset(null); }}
+                className={cn('text-sm font-medium transition-colors', cinematicStep === 'template' ? 'text-slate-800' : 'text-slate-400 hover:text-slate-600')}
+              >
+                1. Choose Template
+              </button>
+              <ChevronRight className="w-4 h-4 text-slate-300" />
+              <span className={cn('text-sm font-medium', cinematicStep === 'preset' ? 'text-slate-800' : 'text-slate-400')}>
+                2. Choose Style
+              </span>
+            </div>
+
+            {/* Step 1: Template selection */}
+            {cinematicStep === 'template' && (
+              <>
+                <p className="text-slate-400 text-sm mb-4">Pick a structure for your presentation. The AI will fill it with your content.</p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+                  {CINEMATIC_TEMPLATES.map(tmpl => (
+                    <motion.div
+                      key={tmpl.id}
+                      whileHover={{ y: -3 }}
+                      onClick={() => { setSelectedCinematicTemplate(tmpl); setCinematicStep('preset'); }}
+                      className={cn(
+                        'rounded-xl border-2 p-4 cursor-pointer transition-all',
+                        selectedCinematicTemplate?.id === tmpl.id
+                          ? 'border-[#4F46E5] bg-indigo-50/50 shadow-md'
+                          : 'border-slate-200 hover:border-slate-300 bg-white'
+                      )}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 font-medium">{tmpl.category}</span>
+                        <span className="text-[10px] text-slate-400">{tmpl.slideCount} slides</span>
+                      </div>
+                      <h3 className="text-sm font-semibold text-slate-800 mb-1">{tmpl.name}</h3>
+                      <p className="text-[11px] text-slate-400 mb-3">{tmpl.description}</p>
+                      {/* Mini slide type indicators */}
+                      <div className="flex gap-1 flex-wrap">
+                        {tmpl.slides.map((s, i) => (
+                          <span key={i} className={cn(
+                            'text-[8px] px-1.5 py-0.5 rounded font-medium',
+                            s.type === 'hero' ? 'bg-indigo-100 text-indigo-600' :
+                            s.type === 'stats' ? 'bg-amber-100 text-amber-600' :
+                            s.type === 'statement' ? 'bg-purple-100 text-purple-600' :
+                            s.type === 'closing' ? 'bg-emerald-100 text-emerald-600' :
+                            s.type === 'section' ? 'bg-slate-100 text-slate-500' :
+                            'bg-blue-50 text-blue-500'
+                          )}>
+                            {s.type}
+                          </span>
+                        ))}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Step 2: Preset selection */}
+            {cinematicStep === 'preset' && (
+              <>
+                <div className="flex items-center gap-2 mb-4">
+                  <button onClick={() => setCinematicStep('template')} className="text-[#4F46E5] hover:text-[#4338CA] text-sm font-medium flex items-center gap-1">
+                    <ArrowLeft className="w-3.5 h-3.5" /> Back
+                  </button>
+                  <span className="text-slate-300">|</span>
+                  <span className="text-sm text-slate-500">Template: <strong className="text-slate-800">{selectedCinematicTemplate?.name}</strong></span>
+                </div>
+                <p className="text-slate-400 text-sm mb-4">Now choose the visual style. Hover to preview.</p>
+              </>
+            )}
+
+            {cinematicStep === 'preset' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {CINEMATIC_PRESETS.map(preset => {
                 const isSelected = selectedCinematicPreset?.id === preset.id;
@@ -568,6 +642,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                 );
               })}
             </div>
+            )}
           </>
         )}
       </div>
