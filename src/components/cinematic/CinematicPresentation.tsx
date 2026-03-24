@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Slide } from '@/types/presentation';
 import { CinematicPreset, CinematicSlideType, AnimationRule } from '@/types/cinematic';
@@ -14,6 +14,7 @@ interface Props {
   slides: Slide[];
   preset: CinematicPreset;
   startIndex?: number;
+  presentationTitle?: string;
   metadata?: { type?: string; author?: string; date?: string; industry?: string };
   onExit: () => void;
 }
@@ -44,7 +45,7 @@ function parseStatText(text: string): { value: number; prefix: string; suffix: s
   return { prefix: match[1].trim(), value, suffix: match[3].trim(), label: match[4].trim() };
 }
 
-/** Determine slide type heuristically */
+/** Determine slide type heuristically — detects ALL types */
 function classifySlideType(
   slideIndex: number,
   totalSlides: number,
@@ -53,6 +54,9 @@ function classifySlideType(
   if (slideIndex === 0) return 'hero';
   if (slideIndex === totalSlides - 1) return 'closing';
   if (classified.stats.length >= 2) return 'stats';
+  if (classified.images.length > 0 && classified.body.length === 0) return 'image-full';
+  if (classified.images.length > 0 && classified.title) return 'split';
+  if (classified.body.length <= 1 && !classified.subtitle && classified.title) return 'statement';
   if (!classified.subtitle && classified.body.length === 0) return 'section';
   return 'content';
 }
@@ -220,15 +224,35 @@ function NumberNav({
   );
 }
 
+/** Fullscreen toast notification */
+function FullscreenToast({ message }: { message: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.4 }}
+      className="absolute top-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md text-white/70 text-xs tracking-wide"
+    >
+      {message}
+    </motion.div>
+  );
+}
+
 // ============ Main Component ============
 
 export default function CinematicPresentation({
-  slides, preset, startIndex = 0, metadata, onExit,
+  slides, preset, startIndex = 0, presentationTitle, metadata, onExit,
 }: Props) {
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [activationCounts, setActivationCounts] = useState<number[]>(() =>
     slides.map((_, i) => (i === startIndex ? 1 : 0))
   );
+  const [fullscreenToast, setFullscreenToast] = useState<string | null>(null);
+
+  // Font families with sans-serif fallback
+  const headingFont = `'${preset.fontHeading}', sans-serif`;
+  const bodyFont = `'${preset.fontBody}', sans-serif`;
 
   // Assign videos: use stored videoBackground per slide if available, otherwise from pool
   const poolVideos = useMemo(
@@ -250,9 +274,12 @@ export default function CinematicPresentation({
     loadGoogleFont(preset.fontBody);
   }, [preset]);
 
-  // Fullscreen
+  // Fullscreen with toast on failure
   useEffect(() => {
-    document.documentElement.requestFullscreen?.().catch(() => {});
+    document.documentElement.requestFullscreen?.().catch(() => {
+      setFullscreenToast('Press F11 for fullscreen');
+      setTimeout(() => setFullscreenToast(null), 3000);
+    });
     return () => { document.exitFullscreen?.().catch(() => {}); };
   }, []);
 
@@ -298,6 +325,9 @@ export default function CinematicPresentation({
     const activationKey = activationCounts[slideIndex] || 0;
     const video = slideVideos[slideIndex];
 
+    // Lazy video loading: only mount for current ± 1 slides
+    const shouldLoadVideo = Math.abs(slideIndex - currentIndex) <= 1;
+
     const titleText = classified.title?.content || '';
     const subtitleText = classified.subtitle?.content || '';
     const bodyText = classified.body.map(b => b.content).join(' ');
@@ -318,8 +348,8 @@ export default function CinematicPresentation({
       >
         {/* Background layer — stays mounted, never re-keyed */}
         <div className="absolute inset-0" style={{ backgroundColor: preset.backgroundColor }}>
-          {/* Video background */}
-          {video && (
+          {/* Video background — only mount for adjacent slides */}
+          {shouldLoadVideo && video && (
             <VideoBackground
               config={{
                 url: video.url,
@@ -351,7 +381,7 @@ export default function CinematicPresentation({
           <div
             key={activationKey}
             className="relative z-10 w-full h-full flex flex-col"
-            style={{ fontFamily: `'${preset.fontBody}', sans-serif` }}
+            style={{ fontFamily: bodyFont }}
           >
             {/* ---- Top bar ---- */}
             <BlurReveal delay={0.05} className="px-[5%] pt-[3.5%] flex items-center justify-between">
@@ -359,7 +389,7 @@ export default function CinematicPresentation({
                 className="text-sm font-medium tracking-widest uppercase"
                 style={{
                   color: preset.secondaryTextColor,
-                  fontFamily: `'${preset.fontHeading}', sans-serif`,
+                  fontFamily: headingFont,
                   fontSize: 'clamp(10px, 0.9vw, 14px)',
                 }}
               >
@@ -395,7 +425,7 @@ export default function CinematicPresentation({
                     className="leading-[0.9] tracking-tight"
                     style={{
                       color: preset.primaryTextColor,
-                      fontFamily: `'${preset.fontHeading}', sans-serif`,
+                      fontFamily: headingFont,
                       fontSize: 'clamp(48px, 10vw, 140px)',
                       fontWeight: 700,
                     }}
@@ -438,7 +468,7 @@ export default function CinematicPresentation({
                         className="leading-[1.04] tracking-tight"
                         style={{
                           color: preset.primaryTextColor,
-                          fontFamily: `'${preset.fontHeading}', sans-serif`,
+                          fontFamily: headingFont,
                           fontSize: 'clamp(24px, 3.8vw, 60px)',
                           fontWeight: 600,
                         }}
@@ -462,6 +492,125 @@ export default function CinematicPresentation({
               </div>
             )}
 
+            {slideType === 'statement' && (
+              <div className="flex-1 flex items-center px-[8%]">
+                <div className="max-w-[90%]">
+                  <h1
+                    className="leading-[1.1] tracking-tight"
+                    style={{
+                      color: preset.primaryTextColor,
+                      fontFamily: headingFont,
+                      fontSize: 'clamp(32px, 5.5vw, 80px)',
+                      fontWeight: 600,
+                      fontStyle: 'italic',
+                    }}
+                  >
+                    {renderTitle(titleText, titleRule)}
+                  </h1>
+                  {classified.body[0]?.content && (
+                    <BlurReveal delay={0.7} className="mt-6">
+                      <p style={{
+                        color: preset.secondaryTextColor,
+                        fontSize: 'clamp(13px, 1.2vw, 18px)',
+                        lineHeight: 1.6,
+                      }}>
+                        {classified.body[0].content}
+                      </p>
+                    </BlurReveal>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {slideType === 'split' && (
+              <div className="flex-1 flex px-[5%] pt-[4%] pb-[5%] gap-[4%]">
+                {/* Text side */}
+                <div className="flex-1 flex flex-col justify-center">
+                  {titleText && (
+                    <h2
+                      className="leading-[1.04] tracking-tight"
+                      style={{
+                        color: preset.primaryTextColor,
+                        fontFamily: headingFont,
+                        fontSize: 'clamp(24px, 3.5vw, 56px)',
+                        fontWeight: 600,
+                      }}
+                    >
+                      {renderTitle(titleText, titleRule)}
+                    </h2>
+                  )}
+                  {subtitleText && (
+                    <BlurReveal delay={0.5} className="mt-4">
+                      <p style={{
+                        color: preset.secondaryTextColor,
+                        fontSize: 'clamp(13px, 1.15vw, 18px)',
+                        lineHeight: 1.6,
+                      }}>
+                        {subtitleText}
+                      </p>
+                    </BlurReveal>
+                  )}
+                  {bodyText && (
+                    <BlurReveal delay={0.7} className="mt-4">
+                      <p style={{
+                        color: preset.secondaryTextColor,
+                        fontSize: 'clamp(12px, 1vw, 16px)',
+                        lineHeight: 1.7,
+                      }}>
+                        {bodyText}
+                      </p>
+                    </BlurReveal>
+                  )}
+                </div>
+                {/* Image side */}
+                <div className="flex-1 flex items-center justify-center">
+                  {classified.images[0] && (
+                    <motion.img
+                      src={classified.images[0]}
+                      alt=""
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ duration: 0.8, delay: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+                      className="max-w-full max-h-full rounded-lg object-contain"
+                      style={{ boxShadow: '0 20px 60px rgba(0,0,0,0.4)' }}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {slideType === 'image-full' && (
+              <div className="flex-1 relative flex items-end px-[5%] pb-[8%]">
+                {/* Full image behind content */}
+                {classified.images[0] && (
+                  <motion.img
+                    src={classified.images[0]}
+                    alt=""
+                    initial={{ opacity: 0, scale: 1.05 }}
+                    animate={{ opacity: 0.6, scale: 1 }}
+                    transition={{ duration: 1.2, ease: [0.25, 0.1, 0.25, 1] }}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )}
+                <div className="relative z-10 max-w-[80%]">
+                  {titleText && (
+                    <h2
+                      className="leading-[1.04] tracking-tight"
+                      style={{
+                        color: preset.primaryTextColor,
+                        fontFamily: headingFont,
+                        fontSize: 'clamp(28px, 4.5vw, 64px)',
+                        fontWeight: 700,
+                        textShadow: '0 2px 20px rgba(0,0,0,0.5)',
+                      }}
+                    >
+                      {renderTitle(titleText, titleRule)}
+                    </h2>
+                  )}
+                </div>
+              </div>
+            )}
+
             {slideType === 'stats' && (
               <div className="flex-1 flex flex-col px-[5%] pt-[4%] pb-[5%]">
                 {titleText && (
@@ -470,7 +619,7 @@ export default function CinematicPresentation({
                       className="leading-[1.04] tracking-tight"
                       style={{
                         color: preset.primaryTextColor,
-                        fontFamily: `'${preset.fontHeading}', sans-serif`,
+                        fontFamily: headingFont,
                         fontSize: 'clamp(22px, 3.2vw, 48px)',
                         fontWeight: 600,
                       }}
@@ -504,7 +653,7 @@ export default function CinematicPresentation({
                   className="text-center leading-[0.95] tracking-tight"
                   style={{
                     color: preset.primaryTextColor,
-                    fontFamily: `'${preset.fontHeading}', sans-serif`,
+                    fontFamily: headingFont,
                     fontSize: 'clamp(36px, 8vw, 120px)',
                     fontWeight: 700,
                   }}
@@ -520,7 +669,7 @@ export default function CinematicPresentation({
                   className="text-center leading-[0.95] tracking-tight"
                   style={{
                     color: preset.primaryTextColor,
-                    fontFamily: `'${preset.fontHeading}', sans-serif`,
+                    fontFamily: headingFont,
                     fontSize: 'clamp(36px, 8vw, 120px)',
                     fontWeight: 700,
                   }}
@@ -620,16 +769,37 @@ export default function CinematicPresentation({
       className="fixed inset-0 z-[9999] overflow-hidden cursor-none"
       style={{
         backgroundColor: preset.backgroundColor,
-        fontFamily: `'${preset.fontBody}', sans-serif`,
+        fontFamily: bodyFont,
       }}
     >
-      {/* Exit button — visible on hover */}
-      <button
-        onClick={onExit}
-        className="absolute top-4 right-4 z-50 w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all opacity-0 hover:opacity-100 cursor-pointer"
-      >
-        <X className="w-5 h-5" />
-      </button>
+      {/* Fullscreen toast */}
+      <AnimatePresence>
+        {fullscreenToast && <FullscreenToast message={fullscreenToast} />}
+      </AnimatePresence>
+
+      {/* Top-right UI: title + slide counter + exit */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-3 opacity-0 hover:opacity-100 transition-opacity duration-300">
+        {/* Presentation title */}
+        {presentationTitle && (
+          <span
+            className="text-white/40 text-xs tracking-wide truncate max-w-[200px]"
+            style={{ fontFamily: bodyFont }}
+          >
+            {presentationTitle}
+          </span>
+        )}
+        {/* Slide counter */}
+        <span className="text-white/40 text-xs tabular-nums">
+          {currentIndex + 1}/{slides.length}
+        </span>
+        {/* Exit button */}
+        <button
+          onClick={onExit}
+          className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm flex items-center justify-center text-white/50 hover:text-white hover:bg-white/20 transition-all cursor-pointer"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
 
       {/* All slides mounted simultaneously — only opacity changes */}
       {slides.map((_, i) => renderSlide(i))}

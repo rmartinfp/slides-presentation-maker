@@ -10,11 +10,13 @@ interface Props {
 /**
  * Renders a fullscreen video background with HLS/MP4 support.
  * Handles hls.js lifecycle, Safari native HLS fallback, and error states.
+ * Falls back to black background on 404 or any load failure.
  */
 export default function VideoBackground({ config, className = '' }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const [hasError, setHasError] = useState(false);
+  const loadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -27,6 +29,18 @@ export default function VideoBackground({ config, className = '' }: Props) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
+
+    // Clear any pending load timeout
+    if (loadTimeoutRef.current) {
+      clearTimeout(loadTimeoutRef.current);
+    }
+
+    // Set a load timeout — if video doesn't start within 8s, show black
+    loadTimeoutRef.current = setTimeout(() => {
+      if (video.readyState < 2) {
+        setHasError(true);
+      }
+    }, 8000);
 
     if (config.type === 'hls') {
       if (Hls.isSupported()) {
@@ -46,20 +60,25 @@ export default function VideoBackground({ config, className = '' }: Props) {
         hls.loadSource(config.url);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
           video.play().catch(() => {});
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
         // Safari native HLS
         video.src = config.url;
         video.addEventListener('loadedmetadata', () => {
+          if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
           video.play().catch(() => {});
         });
       } else {
         setHasError(true);
       }
     } else {
-      // MP4 direct
+      // MP4 direct — preflight check for 404
       video.src = config.url;
+      video.addEventListener('canplay', () => {
+        if (loadTimeoutRef.current) clearTimeout(loadTimeoutRef.current);
+      }, { once: true });
       video.play().catch(() => {});
     }
 
@@ -72,6 +91,10 @@ export default function VideoBackground({ config, className = '' }: Props) {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
+      }
+      if (loadTimeoutRef.current) {
+        clearTimeout(loadTimeoutRef.current);
+        loadTimeoutRef.current = null;
       }
     };
   }, [config.url, config.type, config.playbackRate]);
@@ -90,6 +113,15 @@ export default function VideoBackground({ config, className = '' }: Props) {
       loop
       playsInline
       onError={() => setHasError(true)}
+      onStalled={() => {
+        // If stalled for too long, give up
+        setTimeout(() => {
+          const video = videoRef.current;
+          if (video && video.readyState < 2) {
+            setHasError(true);
+          }
+        }, 5000);
+      }}
       style={{
         objectFit: config.objectFit || 'cover',
         opacity: config.opacity ?? 1,

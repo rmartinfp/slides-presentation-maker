@@ -352,9 +352,9 @@ export default function EditorPage() {
       {cinematicPreset && isPresentationMode && (
         <CinematicPresentation
           slides={presentation.slides}
-          theme={presentation.theme}
           preset={cinematicPreset}
           startIndex={activeSlideIndex}
+          presentationTitle={presentation.title}
           onExit={() => setIsPresentationMode(false)}
         />
       )}
