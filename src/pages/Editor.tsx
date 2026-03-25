@@ -10,6 +10,9 @@ import SlideCanvas from '@/components/editor/SlideCanvas';
 import SlideList from '@/components/editor/SlideList';
 import SpeakerNotes from '@/components/editor/SpeakerNotes';
 import PresentationMode from '@/components/editor/PresentationMode';
+import CinematicPresentation from '@/components/cinematic/CinematicPresentation';
+import { getPresetById } from '@/lib/cinematic-presets';
+import { CinematicPreset } from '@/types/cinematic';
 import PresenterView from '@/components/editor/PresenterView';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import AIImageDialog from '@/components/editor/AIImageDialog';
@@ -59,6 +62,22 @@ export default function EditorPage() {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const initializedRef = useRef(false);
+
+  // Cinematic preset: loaded from sessionStorage if this presentation was created from cinematic template
+  const [cinematicPreset, setCinematicPreset] = useState<CinematicPreset | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('cinematicPreset');
+      if (stored) return JSON.parse(stored);
+      return null;
+    } catch { return null; }
+  });
+  // Also check presentation.cinematicPresetId
+  useEffect(() => {
+    if (!cinematicPreset && presentation.cinematicPresetId) {
+      const found = getPresetById(presentation.cinematicPresetId);
+      if (found) setCinematicPreset(found);
+    }
+  }, [presentation.cinematicPresetId, cinematicPreset]);
 
   const {
     presentation, activeSlideIndex, selectedElementIds,
@@ -341,7 +360,17 @@ export default function EditorPage() {
   return (
     <>
       {isPresentationMode && !isPresenterView && (
-        <PresentationMode slides={presentation.slides} theme={presentation.theme} startIndex={activeSlideIndex} onExit={() => setIsPresentationMode(false)} />
+        cinematicPreset ? (
+          <CinematicPresentation
+            slides={presentation.slides}
+            preset={cinematicPreset}
+            startIndex={activeSlideIndex}
+            presentationTitle={presentation.title}
+            onExit={() => setIsPresentationMode(false)}
+          />
+        ) : (
+          <PresentationMode slides={presentation.slides} theme={presentation.theme} startIndex={activeSlideIndex} onExit={() => setIsPresentationMode(false)} />
+        )
       )}
       {isPresenterView && (
         <PresenterView slides={presentation.slides} theme={presentation.theme} startIndex={activeSlideIndex} onExit={() => setIsPresenterView(false)} />
@@ -406,9 +435,19 @@ export default function EditorPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setIsPresentationMode(true)}>
-                  <Play className="w-4 h-4 mr-2" />Present
+                <DropdownMenuItem onClick={() => { if (cinematicPreset) setCinematicPreset(null); setIsPresentationMode(true); }}>
+                  <Play className="w-4 h-4 mr-2" />Classic
                 </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {
+                  if (!cinematicPreset) {
+                    const fallback = getPresetById('midnight');
+                    if (fallback) setCinematicPreset(fallback);
+                  }
+                  setIsPresentationMode(true);
+                }}>
+                  <Star className="w-4 h-4 mr-2" />Cinematic
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsPresenterView(true)}>
                   <Monitor className="w-4 h-4 mr-2" />Presenter View
                 </DropdownMenuItem>

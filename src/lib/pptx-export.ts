@@ -52,6 +52,19 @@ function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void
     s.background = { color: hexClean(palette.bg) };
   }
 
+  // ── Video Background (as full-slide media element — PPTX doesn't support native video bg) ──
+  if (slide.videoBackground?.url && slide.videoBackground.type === 'mp4') {
+    try {
+      s.addMedia({
+        type: 'video',
+        path: slide.videoBackground.url,
+        x: 0, y: 0, w: '100%', h: '100%',
+      });
+    } catch (e) {
+      console.warn('Failed to add video to PPTX slide:', e);
+    }
+  }
+
   // ── Speaker Notes ──
   if (slide.notes) {
     s.addNotes(slide.notes);

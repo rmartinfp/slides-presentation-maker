@@ -323,6 +323,8 @@ export default function SlideAIPage() {
         const pres = {
           id: Math.random().toString(36).substring(2, 11),
           title: result.title, slides, theme,
+          templateType: cinematicPreset ? 'cinematic' as const : 'classic' as const,
+          cinematicPresetId: cinematicPreset?.id || undefined,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
         };
         sessionStorage.setItem('presentation', JSON.stringify(pres));
@@ -386,6 +388,8 @@ export default function SlideAIPage() {
         title: result.title,
         slides,
         theme,
+        templateType: cinematicPreset ? 'cinematic' as const : 'classic' as const,
+        cinematicPresetId: cinematicPreset?.id || undefined,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       }));

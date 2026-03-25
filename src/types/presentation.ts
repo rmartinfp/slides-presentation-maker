@@ -135,6 +135,7 @@ export interface Slide {
   elements: SlideElement[];
   background: SlideBackground;
   videoBackground?: SlideVideoBackground;
+  animationConfig?: import('@/types/cinematic').SlideAnimationConfig;
   notes?: string;
 
   // Legacy fields — kept for backward compatibility during migration
@@ -178,6 +179,8 @@ export interface Presentation {
   title: string;
   slides: Slide[];
   theme: PresentationTheme;
+  templateType?: 'classic' | 'cinematic';
+  cinematicPresetId?: string;
   createdAt: string;
   updatedAt: string;
 }
