@@ -599,8 +599,7 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => setShowVoiceToSlides(true)}><Mic className="w-4 h-4 mr-2" />Voice to Slides</DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => setShowAIInfographic(true)}><Sparkles className="w-4 h-4 mr-2" />AI Infographic</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowSuggest(true)}><Lightbulb className="w-4 h-4 mr-2" />Smart Suggestions</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Presentation Coach</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Analyze Presentation</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               {connectorMode && (
