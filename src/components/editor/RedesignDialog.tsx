@@ -129,7 +129,7 @@ export default function RedesignDialog({ onClose }: Props) {
           mode,
           elements: slide.elements || [],
           themeTokens: useEditorStore.getState().presentation.theme.tokens,
-          instruction: mode === 'reorganize' ? instruction.trim() || undefined : undefined,
+          instruction: instruction.trim() || undefined,
         },
       });
 
@@ -208,51 +208,21 @@ export default function RedesignDialog({ onClose }: Props) {
           </button>
         </div>
 
-        {/* Tabs */}
-        <div className="px-6 pt-4 flex gap-2">
-          <button
-            onClick={() => { setMode('redesign'); setVariants([]); setAppliedIndex(null); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'redesign'
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-            }`}
-          >
-            <LayoutGrid className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
-            Redesign
-          </button>
-          <button
-            onClick={() => { setMode('reorganize'); setVariants([]); setAppliedIndex(null); }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-              mode === 'reorganize'
-                ? 'bg-indigo-100 text-indigo-700'
-                : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-            }`}
-          >
-            <Wand2 className="w-3.5 h-3.5 inline-block mr-1.5 -mt-0.5" />
-            Reorganize
-          </button>
-        </div>
-
-        {/* Description + optional input */}
-        <div className="px-6 pt-3">
+        {/* Description + optional instruction */}
+        <div className="px-6 pt-4">
           <p className="text-xs text-slate-400 mb-3">
-            {mode === 'redesign'
-              ? 'Generate 3 different layout variants for this slide.'
-              : 'Optimize the current layout. Optionally add instructions below.'}
+            Generates 3 different layout variants. Your content stays the same — only positions change.
           </p>
 
-          {mode === 'reorganize' && (
-            <input
-              type="text"
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !loading && handleGenerate()}
-              placeholder="e.g. Make the title bigger, center the image..."
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20 mb-3"
-              disabled={loading}
-            />
-          )}
+          <input
+            type="text"
+            value={instruction}
+            onChange={(e) => setInstruction(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && !loading && handleGenerate()}
+            placeholder="Optional: e.g. Make the title bigger, center the image, more whitespace..."
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20 mb-3"
+            disabled={loading}
+          />
 
           <Button
             onClick={handleGenerate}
