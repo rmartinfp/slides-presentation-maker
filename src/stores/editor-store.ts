@@ -295,20 +295,25 @@ export const useEditorStore = create<EditorState>()((set, get) => {
     addSlide: () => {
       const { presentation, activeSlideIndex } = get();
       const theme = presentation.theme.tokens;
-      const newSlide: Slide = migrateSlideToElements(
-        {
-          id: generateId(),
-          layout: 'content',
-          title: 'New Slide',
-          elements: [],
-          background: { type: 'solid', value: theme.palette.bg },
-        },
-        theme,
-      );
+      const currentSlide = presentation.slides[activeSlideIndex];
+
+      // Copy locked decorations (layout/master shapes) + background + videoBackground from current slide
+      const decorations = (currentSlide?.elements || [])
+        .filter(e => e.locked)
+        .map(e => ({ ...e, id: generateId() }));
+
+      const newSlide: Slide = {
+        id: generateId(),
+        elements: decorations,
+        background: currentSlide?.background || { type: 'solid' as const, value: theme.palette.bg },
+        videoBackground: currentSlide?.videoBackground,
+        layout: 'content',
+      };
+
       trackedSet(
         produce((state: EditorState) => {
-          state.presentation.slides.push(newSlide);
-          state.activeSlideIndex = state.presentation.slides.length - 1;
+          state.presentation.slides.splice(state.activeSlideIndex + 1, 0, newSlide);
+          state.activeSlideIndex = state.activeSlideIndex + 1;
           state.selectedElementIds = [];
           state.presentation.updatedAt = new Date().toISOString();
         }),
