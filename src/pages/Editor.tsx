@@ -271,6 +271,7 @@ export default function EditorPage() {
   const [showSaveTemplate, setShowSaveTemplate] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
+  const vidInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
   const { addConnector } = useEditorStore();
 
@@ -583,6 +584,13 @@ export default function EditorPage() {
               if (result) addElement({ type: 'image', content: result.url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } });
               e.target.value = '';
             }} />
+            {/* Hidden file input for video upload */}
+            <input ref={vidInputRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={async (e) => {
+              const file = e.target.files?.[0]; if (!file) return;
+              const result = await uploadAsset(file);
+              if (result) addElement({ type: 'video', content: result.url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
+              e.target.value = '';
+            }} />
             {/* Hidden file input for replacing an existing image */}
             <input ref={replaceInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file || !replaceTargetRef.current) return;
@@ -634,11 +642,28 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => setShowAIImage(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              {/* Video element — available always */}
-              <ToolBtn icon={<Video className="w-4 h-4" />} label="Video" onClick={() => {
-                const url = prompt('Video URL (MP4 or HLS):');
-                if (url) addElement({ type: 'video', content: url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
-              }} />
+              {/* Video element */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild><ToolBtn icon={<Video className="w-4 h-4" />} label="Video" /></DropdownMenuTrigger>
+                <DropdownMenuContent side="top" className="mb-2 w-52">
+                  <DropdownMenuItem onClick={() => vidInputRef.current?.click()}>
+                    <Upload className="w-4 h-4 mr-2" />Upload from PC
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    const url = prompt('Video URL (MP4 or HLS):');
+                    if (url) addElement({ type: 'video', content: url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
+                  }}>
+                    <Video className="w-4 h-4 mr-2" />Insert from URL
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => {
+                    const prompt2 = window.prompt('Describe the video you want AI to generate:');
+                    if (prompt2) toast.info('AI video generation coming soon — use a URL for now');
+                  }}>
+                    <Sparkles className="w-4 h-4 mr-2" />Generate with AI
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
               {/* Placeholder presets (template mode) */}
               {isTemplateMode && (
                 <DropdownMenu>
