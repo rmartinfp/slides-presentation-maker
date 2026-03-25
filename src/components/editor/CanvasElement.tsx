@@ -677,6 +677,19 @@ export default function CanvasElement({
         );
       }
 
+      case 'video': {
+        return (
+          <div className="w-full h-full overflow-hidden pointer-events-none" style={{ borderRadius: s.borderRadius ?? 0 }}>
+            <video
+              src={element.content}
+              autoPlay muted loop playsInline
+              className="w-full h-full"
+              style={{ objectFit: (s.objectFit as any) || 'cover' }}
+            />
+          </div>
+        );
+      }
+
       default:
         return <div className="w-full h-full bg-gray-200 rounded pointer-events-none" />;
     }

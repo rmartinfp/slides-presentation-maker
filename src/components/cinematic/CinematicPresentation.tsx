@@ -424,6 +424,19 @@ function AnimatedElement({
       )}
 
       {/* Chart placeholder in cinematic mode */}
+      {/* Video element */}
+      {element.type === 'video' && element.content && (
+        <video
+          src={element.content}
+          autoPlay muted loop playsInline
+          className="w-full h-full"
+          style={{
+            objectFit: (element.style.objectFit as any) || 'cover',
+            borderRadius: element.style.borderRadius || 0,
+          }}
+        />
+      )}
+
       {isChart && (
         <div className="w-full h-full flex items-center justify-center" style={{ opacity: 0.5 }}>
           <span style={{ color: 'rgba(255,255,255,0.3)', fontSize: 14 }}>Chart</span>

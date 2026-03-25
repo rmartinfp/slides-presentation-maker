@@ -46,7 +46,7 @@ import {
   Type, Square, Circle, Triangle, Image, ArrowRight as ArrowRightIcon, Minus,
   Trash2, Copy, Lock, Unlock, ArrowUpToLine, ArrowDownToLine, Sparkles,
   FileText, FileDown, ChevronDown, Plus, MoreVertical, Star, Pentagon, Hexagon,
-  Heart, MoveLeft, ArrowUp, ArrowDown, Monitor, Grid3X3, Upload,
+  Heart, MoveLeft, ArrowUp, ArrowDown, Monitor, Grid3X3, Upload, Video,
   Languages, GraduationCap, Wand2, Palette, BarChart3, Mic, ImagePlus, LayoutGrid, Lightbulb,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -634,6 +634,45 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => setShowAIImage(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              {/* Video element — available always */}
+              <ToolBtn icon={<Video className="w-4 h-4" />} label="Video" onClick={() => {
+                const url = prompt('Video URL (MP4 or HLS):');
+                if (url) addElement({ type: 'video', content: url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
+              }} />
+              {/* Placeholder presets (template mode) */}
+              {isTemplateMode && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<FileText className="w-4 h-4" />} label="Placeholder" /></DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" className="mb-2 w-56">
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{title}}', x: 96, y: 680, width: 1400, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 80, fontWeight: '700', color: '#FFFFFF', textAlign: 'left', lineHeight: 0.95, letterSpacing: -2 } })}>
+                      <Type className="w-4 h-4 mr-2" />Hero Title (80px bold)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{subtitle}}', x: 96, y: 550, width: 900, height: 100, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 17, fontWeight: '400', color: '#80838e', textAlign: 'left', lineHeight: 1.65 } })}>
+                      <Type className="w-4 h-4 mr-2" />Subtitle (17px muted)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{heading}}', x: 96, y: 200, width: 1400, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 48, fontWeight: '500', color: '#FFFFFF', textAlign: 'left', lineHeight: 1.06, letterSpacing: -0.5 } })}>
+                      <Type className="w-4 h-4 mr-2" />Heading (48px medium)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{body}}', x: 96, y: 600, width: 780, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 15, fontWeight: '400', color: '#80838e', textAlign: 'left', lineHeight: 1.7 } })}>
+                      <Type className="w-4 h-4 mr-2" />Body text (15px muted)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{stat_value}}', x: 96, y: 400, width: 500, height: 150, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 88, fontWeight: '700', color: '#FFFFFF', textAlign: 'left', lineHeight: 0.96, letterSpacing: -2 } })}>
+                      <Type className="w-4 h-4 mr-2" />Stat number (88px bold)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{stat_label}}', x: 96, y: 560, width: 500, height: 40, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 15, fontWeight: '400', color: '#FFFFFF', textAlign: 'left', lineHeight: 1.4 } })}>
+                      <Type className="w-4 h-4 mr-2" />Stat label (15px)
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{label}}', x: 96, y: 160, width: 400, height: 25, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 12, fontWeight: '600', color: '#80838e', textAlign: 'left', letterSpacing: 2 } })}>
+                      <Type className="w-4 h-4 mr-2" />Section label (12px caps)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{logo}}', x: 96, y: 38, width: 200, height: 28, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 14, fontWeight: '700', color: '#FFFFFF', letterSpacing: 1 } })}>
+                      <Type className="w-4 h-4 mr-2" />Logo placeholder
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
               <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
               <ToolBtn icon={<BarChart3 className="w-4 h-4" />} label="Chart" onClick={() => setShowChart(true)} />
               <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" onClick={() => setShowInfographics(true)} />
