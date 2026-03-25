@@ -288,6 +288,7 @@ function parseTextFromSpTree(
   layoutPlaceholderSizes?: Map<string, number>,
   layoutPlaceholderFonts?: Map<string, string>,
   layoutPlaceholderBold?: Map<string, boolean>,
+  layoutPlaceholderColors?: Map<string, string>,
   masterDefaults?: { titleBold: boolean; titleSz: number | null; bodySz: number | null; titleColor: string | null; bodyColor: string | null },
 ): ParsedElement | null {
   // Extract position (support negative offsets)
@@ -534,12 +535,21 @@ function parseTextFromSpTree(
       fontSize: firstFontSize || 12,
       fontWeight: firstBold ? 'bold' : 'normal',
       color: firstColor || (() => {
-        // Inherit text color from master placeholder: title uses titleColor, body uses bodyColor
+        // Inherit text color: run → layout placeholder → master placeholder → theme dk1
+        const isTitle = phType === 'ctrTitle' || phType === 'title';
+        // 1. Layout placeholder color (from lstStyle lvl1pPr defRPr)
+        // Skip for title/ctrTitle — those inherit from master (different chain in OOXML)
+        // Only use idx-based layout color (type-based mixes different placeholder styles)
+        if (layoutPlaceholderColors && !isTitle && phIdx) {
+          const layoutColor = layoutPlaceholderColors.get(`idx:${phIdx}`);
+          if (layoutColor) return layoutColor;
+        }
+        // 2. Master placeholder color
         if (masterDefaults) {
-          const isTitle = phType === 'ctrTitle' || phType === 'title';
           const masterColor = isTitle ? masterDefaults.titleColor : masterDefaults.bodyColor;
           if (masterColor) return masterColor;
         }
+        // 3. Theme fallback
         return themeColors.dk1;
       })(),
       textAlign: firstAlign || 'left',
@@ -1596,6 +1606,7 @@ async function main() {
     const layoutPlaceholderSizes = new Map<string, number>();
     const layoutPlaceholderFonts = new Map<string, string>();
     const layoutPlaceholderBold = new Map<string, boolean>();
+    const layoutPlaceholderColors = new Map<string, string>();
     let layoutXml = '';
     const layoutRef = relsMap.get('rId1'); // Usually rId1 points to layout
     let layoutPath = '';
@@ -1658,6 +1669,10 @@ async function main() {
               if (!layoutPlaceholderFonts.has(key)) {
                 const fontMatch = effectiveAttrs.match(/<a:latin\s+typeface="([^"]+)"/);
                 if (fontMatch) layoutPlaceholderFonts.set(key, cleanFontName(fontMatch[1]));
+              }
+              if (!layoutPlaceholderColors.has(key)) {
+                const colorVal = parseColorFromShapeXml(effectiveAttrs, themeColors);
+                if (colorVal) layoutPlaceholderColors.set(key, colorVal);
               }
             }
           }
@@ -1980,7 +1995,7 @@ async function main() {
         if (/<p:ph[^>]*type="pic"/.test(spXml) || /<p:ph[^>]*type="media"/.test(spXml)) continue;
 
         // Try as text first
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) { textEl.zIndex = zIndex++; elements.push(textEl); continue; }
 
         // Try as shape
@@ -2095,7 +2110,7 @@ async function main() {
           elements.push(shapeEl);
           continue;
         }
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) {
           const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
