@@ -1139,6 +1139,141 @@ function tasklyTheme() {
   return { id: 'editorial', name: 'Taskly', category: 'Cinematic', tokens: { palette: { primary: '#0084FF', secondary: '#64748b', accent: '#0084FF', bg: '#FFFFFF', text: '#1a1a2e' }, typography: { titleFont: 'Fustat', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '16px', shadows: 'lg' }, previewColors: ['#0084FF', '#64748b', '#FFFFFF'] };
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: AURA (Purple/Pink gradient — 5 slides)
+// ════════════════════════════════════════════
+
+function buildAura(): Slide[] {
+  const fH = 'Instrument Sans', fSerif = 'Instrument Serif', fB = 'Instrument Sans';
+  const fg = '#FFFFFF', sub = '#a0a0b8';
+  const bg = { type: 'solid', value: '#010101' };
+  const VA = 'https://customer-cbeadsgr09pnsezs.cloudflarestream.com/697945ca6b876878dba3b23fbd2f1561/manifest/video.m3u8';
+  const gradPurple = 'linear-gradient(135deg, #FFFFFF 20%, #C967E8 60%, #983AD6 100%)';
+  const slides: Slide[] = [];
+
+  // S1: Hero — Gradient headline centered
+  { const preH = gid(), mainH = gid(), subT = gid();
+    slides.push({ id: gid(), elements: [...skeleton('', fB),
+      txt(preH, '{{pre_headline}}', 560, 260, 800, 35, { fontSize: 14, fontWeight: '500', color: sub, fontFamily: fB, textAlign: 'center', letterSpacing: 0.5, zIndex: 15, textShadow: 'none' }),
+      txt(mainH, '{{main_headline}}', 260, 320, 1400, 260, { fontSize: 72, fontWeight: '600', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
+      txt(subT, '{{sub_headline}}', 460, 610, 1000, 100, { fontSize: 17, color: `${fg}cc`, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VA, type: 'hls', opacity: 0.6 },
+    animationConfig: cineAnim({ [preH]: { type: 'fade-in', delay: 0.1, duration: 0.6, easing: E.expoOut }, [mainH]: { type: 'scale-up', delay: 0.2, duration: 0.6, easing: E.expoOut }, [subT]: { type: 'fade-in', delay: 0.4, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S2: Problem + 3 stats
+  { const l = gid(), h = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', fB),
+      txt(l, '{{problem_label}}', 96, 130, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{problem_heading}}', 96, 180, 1600, 300, { fontSize: 46, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15 }),
+      txt(s1v, '{{stat1_value}}', 96, 680, 540, 140, { fontSize: 88, fontWeight: '600', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
+      txt(s1l, '{{stat1_label}}', 96, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 700, 680, 540, 140, { fontSize: 88, fontWeight: '600', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
+      txt(s2l, '{{stat2_label}}', 700, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s3v, '{{stat3_value}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '600', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
+      txt(s3l, '{{stat3_label}}', 1300, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 0.7, filter: 'brightness(0.55)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut }, [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Solution — serif pre + gradient main
+  { const preH = gid(), mainH = gid(), body = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', fB),
+      txt(preH, '{{solution_pre}}', 460, 290, 1000, 45, { fontSize: 30, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none' }),
+      txt(mainH, '{{solution_headline}}', 260, 360, 1400, 200, { fontSize: 80, fontWeight: '600', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
+      txt(body, '{{solution_body}}', 460, 590, 1000, 120, { fontSize: 16, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VA, type: 'hls', opacity: 0.5 },
+    animationConfig: cineAnim({ [preH]: { type: 'fade-in', delay: 0.1, duration: 0.6, easing: E.expoOut }, [mainH]: { type: 'scale-up', delay: 0.2, duration: 0.6, easing: E.expoOut }, [body]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S4: Content left
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', fB),
+      txt(l, '{{content_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{content_heading}}', 96, 310, 1200, 320, { fontSize: 48, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15 }),
+      txt(b, '{{content_body}}', 96, 690, 780, 200, { fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.65, filter: 'brightness(0.5) saturate(1.2)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S5: Closing gradient
+  { const preH = gid(), mainH = gid(), sub2 = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', fB),
+      txt(preH, '{{closing_pre}}', 460, 340, 1000, 45, { fontSize: 30, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none' }),
+      txt(mainH, '{{closing_headline}}', 260, 410, 1400, 200, { fontSize: 80, fontWeight: '600', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
+      txt(sub2, '{{closing_body}}', 510, 640, 900, 80, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
+    ], background: { type: 'solid', value: '#050510' }, videoBackground: { url: VA, type: 'hls', opacity: 0.55 },
+    animationConfig: cineAnim({ [preH]: { type: 'fade-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [mainH]: { type: 'scale-up', delay: 0.25, duration: 0.6, easing: E.expoOut }, [sub2]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut } }) }); }
+
+  return slides;
+}
+
+function auraTheme() {
+  return { id: 'midnight', name: 'Aura', category: 'Cinematic', tokens: { palette: { primary: '#C967E8', secondary: '#a0a0b8', accent: '#983AD6', bg: '#010101', text: '#FFFFFF' }, typography: { titleFont: 'Instrument Sans', bodyFont: 'Instrument Sans', titleSize: 56, bodySize: 17 }, radii: '16px', shadows: 'lg' }, previewColors: ['#C967E8', '#983AD6', '#010101'] };
+}
+
+// ════════════════════════════════════════════
+// TEMPLATE: APEX (Rubik Bold Uppercase — 5 slides)
+// ════════════════════════════════════════════
+// Brutalist, high-impact. ALL CAPS headings. Deep blue video bg.
+
+function buildApex(): Slide[] {
+  const f = 'Rubik';
+  const fg = '#FFFFFF', sub = '#94a3b8';
+  const bg = { type: 'solid', value: '#21346e' };
+  const VX = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260206_044704_dd33cb15-c23f-4cfc-aa09-a0465d4dcb54.mp4';
+  const slides: Slide[] = [];
+
+  // S1: Hero — Massive 3-line uppercase title
+  { const l1 = gid(), l2 = gid(), l3 = gid();
+    slides.push({ id: gid(), elements: [
+      txt(gid(), '{{logo}}', 96, 38, 200, 28, { fontSize: 14, fontWeight: '700', color: fg, fontFamily: f, letterSpacing: 2, zIndex: 20, textShadow: 'none' }),
+      shp(gid(), 96, 82, 1728, 1, { fill: 'rgba(255,255,255,0.1)', zIndex: 5 }),
+      txt(l1, '{{hero_line1}}', 96, 340, 1600, 170, { fontSize: 100, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.98, letterSpacing: -3, zIndex: 15 }),
+      txt(l2, '{{hero_line2}}', 96, 510, 1600, 170, { fontSize: 100, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.98, letterSpacing: -3, zIndex: 15 }),
+      txt(l3, '{{hero_line3}}', 96, 680, 1600, 170, { fontSize: 100, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.98, letterSpacing: -3, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VX, type: 'mp4', opacity: 0.9, filter: 'brightness(0.7)' },
+    animationConfig: cineAnim({ [l1]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut }, [l2]: { type: 'slide-up', delay: 0.3, duration: 0.7, easing: E.expoOut }, [l3]: { type: 'slide-up', delay: 0.4, duration: 0.7, easing: E.expoOut } }) }); }
+
+  // S2: Problem + stats
+  { const l = gid(), h = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', f),
+      txt(l, '{{problem_label}}', 96, 130, 500, 22, { fontSize: 12, fontWeight: '700', color: sub, fontFamily: f, letterSpacing: 3, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{problem_heading}}', 96, 180, 1500, 300, { fontSize: 48, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 1.04, letterSpacing: -1, zIndex: 15 }),
+      txt(s1v, '{{stat1_value}}', 96, 700, 700, 140, { fontSize: 96, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -3, zIndex: 15 }),
+      txt(s1l, '{{stat1_label}}', 96, 850, 600, 35, { fontSize: 14, fontWeight: '500', color: sub, fontFamily: f, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 900, 700, 700, 140, { fontSize: 96, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -3, zIndex: 15 }),
+      txt(s2l, '{{stat2_label}}', 900, 850, 600, 35, { fontSize: 14, fontWeight: '500', color: sub, fontFamily: f, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VX, type: 'mp4', opacity: 0.8, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Statement — big bold centered
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', f),
+      txt(h, '{{statement}}', 96, 300, 1728, 400, { fontSize: 60, fontWeight: '700', fontFamily: f, color: fg, textAlign: 'center', lineHeight: 1.04, letterSpacing: -1.5, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VX, type: 'mp4', opacity: 0.85, filter: 'brightness(0.65)' },
+    animationConfig: cineAnim({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 } }) }); }
+
+  // S4: Content
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', f),
+      txt(l, '{{content_label}}', 96, 280, 500, 22, { fontSize: 12, fontWeight: '700', color: sub, fontFamily: f, letterSpacing: 3, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{content_heading}}', 96, 330, 1200, 300, { fontSize: 52, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 1.04, letterSpacing: -1, zIndex: 15 }),
+      txt(b, '{{content_body}}', 96, 680, 780, 200, { fontSize: 15, fontWeight: '400', color: sub, fontFamily: f, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VX, type: 'mp4', opacity: 0.75, filter: 'brightness(0.55)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S5: Closing — 2-line bold bottom
+  { const l1 = gid(), l2 = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', f),
+      txt(l1, '{{closing_line1}}', 96, 640, 1500, 150, { fontSize: 80, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.98, letterSpacing: -2, zIndex: 15 }),
+      txt(l2, '{{closing_line2}}', 96, 790, 1500, 150, { fontSize: 80, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.98, letterSpacing: -2, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VX, type: 'mp4', opacity: 0.9, filter: 'brightness(0.7)' },
+    animationConfig: cineAnim({ [l1]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut }, [l2]: { type: 'slide-up', delay: 0.35, duration: 0.7, easing: E.expoOut } }) }); }
+
+  return slides;
+}
+
+function apexTheme() {
+  return { id: 'midnight', name: 'Apex', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#94a3b8', accent: '#FFFFFF', bg: '#21346e', text: '#FFFFFF' }, typography: { titleFont: 'Rubik', bodyFont: 'Rubik', titleSize: 60, bodySize: 16 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#21346e', '#000000'] };
+}
+
 // ══════════════════════════════
 // MAIN SEED
 // ══════════════════════════════
@@ -1242,6 +1377,28 @@ const TEMPLATES = [
     theme: tasklyTheme(),
     tags: ['saas', 'product', 'light', 'clean', 'task', 'ai'],
     sort_order: 9,
+  },
+  {
+    name: 'Aura',
+    slug: 'aura',
+    category: 'Agency / Startup',
+    description: 'Purple-pink gradient accents with glassmorphism. Instrument Sans + gradient headlines on dark.',
+    preset_id: 'midnight',
+    slides: buildAura(),
+    theme: auraTheme(),
+    tags: ['agency', 'startup', 'gradient', 'purple', 'glassmorphism'],
+    sort_order: 10,
+  },
+  {
+    name: 'Apex',
+    slug: 'apex',
+    category: 'Bold / Creative',
+    description: 'Rubik Bold uppercase on deep blue video. Brutalist, high-impact, minimal.',
+    preset_id: 'midnight',
+    slides: buildApex(),
+    theme: apexTheme(),
+    tags: ['bold', 'creative', 'uppercase', 'brutalist', 'design'],
+    sort_order: 11,
   },
 ];
 
