@@ -1762,7 +1762,7 @@ async function main() {
       console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
     }
 
-    // Parse background
+    // Parse background — first from slide, then inherit from layout if slide has none
     let background = parseSlideBackground(slideXml, relsMap, themeColors);
 
     // Parse elements — start with layout decorations (images, shapes that aren't placeholders)
@@ -1785,6 +1785,33 @@ async function main() {
           const lRelMatches = layoutRelsXml.matchAll(/Id="(rId\d+)"[^>]+Target="([^"]+)"/g);
           for (const m of lRelMatches) {
             layoutRelsMap.set(m[1], m[2]);
+          }
+        }
+
+        // Inherit background from layout if slide doesn't have its own <p:bg>
+        if (background.type === 'solid' && background.value === themeColors.lt1) {
+          const layoutBg = parseSlideBackground(layoutXml, layoutRelsMap, themeColors);
+          if (layoutBg.type !== 'solid' || layoutBg.value !== themeColors.lt1) {
+            background = layoutBg;
+            // If layout bg is an image reference, resolve and upload it
+            if (background.type === 'image' && background.value.startsWith('../')) {
+              const imgPath = 'ppt/' + background.value.replace('../', '');
+              const imgFile = zip.files[imgPath];
+              if (imgFile) {
+                const imgData = await imgFile.async('nodebuffer');
+                const imgExt = imgPath.split('.').pop()?.toLowerCase() || 'png';
+                const uploadName = `imported/${genId()}.${imgExt}`;
+                const { error: uploadErr } = await supabase.storage.from('presentation-assets').upload(uploadName, imgData, {
+                  contentType: `image/${imgExt === 'jpg' ? 'jpeg' : imgExt}`,
+                  cacheControl: '31536000', upsert: false,
+                });
+                if (!uploadErr) {
+                  const { data: publicData } = supabase.storage.from('presentation-assets').getPublicUrl(uploadName);
+                  background.value = publicData.publicUrl;
+                  console.log(`  Layout background image uploaded`);
+                }
+              }
+            }
           }
         }
 
