@@ -155,7 +155,11 @@ export default function SlideAIPage() {
     });
   };
 
-  const handleGenerate = async () => {
+  const [genOptions, setGenOptions] = useState<{ slideCount?: number; audience?: string; tone?: string }>({});
+
+  const handleGenerate = async (options?: { slideCount?: number; audience?: string; tone?: string }) => {
+    if (options) setGenOptions(options);
+    const opts = options || genOptions;
     setStep('generating');
     const theme = selectedTheme || THEME_CATALOG[0];
 
@@ -181,18 +185,29 @@ export default function SlideAIPage() {
           return true;
         });
 
-        const templateBrief = buildTemplateBrief(cleanSlides);
+        // Respect slideCount: keep cover (first) + closing (last) + fill middle from content slides
+        const requestedCount = opts.slideCount || cleanSlides.length;
+        let finalSlides = cleanSlides;
+        if (requestedCount < cleanSlides.length) {
+          const cover = cleanSlides[0];
+          const closing = cleanSlides.find(s => (s as any).layout === 'closing') || cleanSlides[cleanSlides.length - 1];
+          const middle = cleanSlides.filter(s => s !== cover && s !== closing);
+          const middleCount = Math.max(1, requestedCount - 2); // reserve 2 for cover + closing
+          finalSlides = [cover, ...middle.slice(0, middleCount), closing];
+        }
+
+        const templateBrief = buildTemplateBrief(finalSlides);
 
         const result = await generatePresentation({
           prompt: contentText,
-          length: 'informative',
-          tone: 'professional',
-          audience: 'general',
+          length: requestedCount <= 7 ? 'short' : requestedCount >= 13 ? 'detailed' : 'informative',
+          tone: opts.tone?.toLowerCase() || 'professional',
+          audience: opts.audience?.toLowerCase() || 'general',
           templateBrief,
         });
 
         // Map AI content back onto clean template slides
-        const slides: Slide[] = cleanSlides.map((templateSlide, slideIndex) => {
+        const slides: Slide[] = finalSlides.map((templateSlide, slideIndex) => {
           const aiSlide = result.slides.find((s: any) => s.slideIndex === slideIndex)
             || result.slides[slideIndex];
 
@@ -279,9 +294,9 @@ export default function SlideAIPage() {
       // ─── LEGACY FREE-FORM FLOW (no template) ───
       const result = await generatePresentation({
         prompt: contentText,
-        length: 'informative',
-        tone: 'professional',
-        audience: 'general',
+        length: (opts.slideCount || 10) <= 7 ? 'short' : (opts.slideCount || 10) >= 13 ? 'detailed' : 'informative',
+        tone: opts.tone?.toLowerCase() || 'professional',
+        audience: opts.audience?.toLowerCase() || 'general',
       });
 
       const slides: Slide[] = result.slides.map((aiSlide: any, index: number) => {

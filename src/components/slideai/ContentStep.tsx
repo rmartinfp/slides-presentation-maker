@@ -30,7 +30,7 @@ interface Props {
   theme: PresentationTheme;
   contentText: string;
   onContentChange: (text: string) => void;
-  onGenerate: () => void;
+  onGenerate: (options?: { slideCount?: number; audience?: string; tone?: string }) => void;
   onBack: () => void;
 }
 
@@ -217,7 +217,7 @@ export default function ContentStep({ theme, contentText, onContentChange, onGen
             <motion.button
               whileHover={{ scale: canGenerate ? 1.02 : 1 }}
               whileTap={{ scale: canGenerate ? 0.97 : 1 }}
-              onClick={onGenerate}
+              onClick={() => onGenerate({ slideCount, audience, tone })}
               disabled={!canGenerate}
               className={cn(
                 'w-full md:w-auto md:px-12 py-5 rounded-full font-headline font-bold text-lg flex items-center justify-center gap-3 transition-all',
