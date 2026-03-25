@@ -89,8 +89,12 @@ export interface ElementStyle {
   objectFit?: 'cover' | 'contain' | 'fill';
   objectPosition?: string; // CSS object-position e.g. "50% 30%"
 
+  // Flip (from PPTX xfrm)
+  flipH?: boolean;
+  flipV?: boolean;
+
   // Extra CSS
-  [key: string]: string | number | undefined;
+  [key: string]: string | number | boolean | undefined;
 }
 
 export interface SlideElement {
