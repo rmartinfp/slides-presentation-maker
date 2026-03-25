@@ -89,9 +89,15 @@ export default function SlideCanvas({
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (!isEditing) return;
-    // Don't start marquee if clicking on a canvas element (they handle their own selection)
+    // Don't start marquee if clicking on an UNLOCKED canvas element (they handle their own selection)
+    // Locked elements (layout decorations) should not block marquee selection
     const target = e.target as HTMLElement;
-    if (target.closest('.canvas-element')) return;
+    const closestElement = target.closest('.canvas-element') as HTMLElement | null;
+    if (closestElement) {
+      const elId = closestElement.getAttribute('data-element-id');
+      const el = elId ? (slide.elements || []).find(e => e.id === elId) : null;
+      if (el && !el.locked) return; // Only block for unlocked (interactive) elements
+    }
     e.preventDefault();
     const rect = stageRef.current?.getBoundingClientRect();
     if (!rect) return;
