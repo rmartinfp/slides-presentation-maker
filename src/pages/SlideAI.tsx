@@ -185,13 +185,25 @@ export default function SlideAIPage() {
           return true;
         });
 
+        // Deduplicate similar layouts — keep only one of each layout type
+        // (Slidesgo templates often have 2 variants: 4-item and 6-item version of same slide)
+        const seenLayouts = new Set<string>();
+        const deduped = cleanSlides.filter((s, idx) => {
+          if (idx === 0 || (s as any).layout === 'cover' || (s as any).layout === 'closing') return true;
+          const layoutKey = (s as any).layout || 'unknown';
+          // For content slides with same layout, keep first only
+          if (layoutKey !== 'unknown' && layoutKey !== 'content' && seenLayouts.has(layoutKey)) return false;
+          seenLayouts.add(layoutKey);
+          return true;
+        });
+
         // Respect slideCount: keep cover (first) + closing (last) + fill middle from content slides
-        const requestedCount = opts.slideCount || cleanSlides.length;
-        let finalSlides = cleanSlides;
-        if (requestedCount < cleanSlides.length) {
-          const cover = cleanSlides[0];
-          const closing = cleanSlides.find(s => (s as any).layout === 'closing') || cleanSlides[cleanSlides.length - 1];
-          const middle = cleanSlides.filter(s => s !== cover && s !== closing);
+        const requestedCount = opts.slideCount || deduped.length;
+        let finalSlides = deduped;
+        if (requestedCount < deduped.length) {
+          const cover = deduped[0];
+          const closing = deduped.find(s => (s as any).layout === 'closing') || deduped[deduped.length - 1];
+          const middle = deduped.filter(s => s !== cover && s !== closing);
           const middleCount = Math.max(1, requestedCount - 2); // reserve 2 for cover + closing
           finalSlides = [cover, ...middle.slice(0, middleCount), closing];
         }

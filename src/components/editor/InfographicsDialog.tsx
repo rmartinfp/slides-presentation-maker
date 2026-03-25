@@ -322,7 +322,7 @@ const TEMPLATES: Template[] = [
         els.push(box(cx, cy, w, h, colors[i], 16));
 
         // Stage label
-        els.push(txt(s.label, cx + 35, cy + 18, 300, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: contrastText(color) }));
+        els.push(txt(s.label, cx + 35, cy + 18, 300, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: contrastText(colors[i]) }));
         // Description
         els.push(txt(s.desc, cx + 35, cy + 65, w - 80, 30, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: contrastText(colors[i]), opacity: 0.7 }));
         // Value
