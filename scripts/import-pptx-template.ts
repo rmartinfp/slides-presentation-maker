@@ -295,8 +295,8 @@ function parseTextFromSpTree(
   const ext = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
   if (!off || !ext) return null;
 
-  const x = emuToPxX(Math.max(0, parseInt(off[1])));
-  const y = emuToPxY(Math.max(0, parseInt(off[2])));
+  const x = emuToPxX(parseInt(off[1]));
+  const y = emuToPxY(parseInt(off[2]));
   const width = emuToPxX(parseInt(ext[1]));
   const height = emuToPxY(parseInt(ext[2]));
 
@@ -556,8 +556,8 @@ function parseImageFromSpTree(
   const ext = picXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
   if (!off || !ext) return null;
 
-  const x = emuToPxX(Math.max(0, parseInt(off[1])));
-  const y = emuToPxY(Math.max(0, parseInt(off[2])));
+  const x = emuToPxX(parseInt(off[1]));
+  const y = emuToPxY(parseInt(off[2]));
   const width = emuToPxX(parseInt(ext[1]));
   const height = emuToPxY(parseInt(ext[2]));
 
@@ -725,8 +725,8 @@ function parseShapeFromSpTree(
   const ext = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
   if (!off || !ext) return null;
 
-  const x = emuToPxX(Math.max(0, parseInt(off[1])));
-  const y = emuToPxY(Math.max(0, parseInt(off[2])));
+  const x = emuToPxX(parseInt(off[1]));
+  const y = emuToPxY(parseInt(off[2]));
   const width = emuToPxX(parseInt(ext[1]));
   const height = emuToPxY(parseInt(ext[2]));
 
@@ -1319,11 +1319,13 @@ async function main() {
   const presentationXmlFile = zip.files['ppt/presentation.xml'];
   if (presentationXmlFile) {
     const presXml = await presentationXmlFile.async('string');
-    const sldSzMatch = presXml.match(/<p:sldSz\s+cx="(\d+)"\s+cy="(\d+)"/);
-    if (sldSzMatch) {
-      slideWidthEmu = parseInt(sldSzMatch[1]);
-      slideHeightEmu = parseInt(sldSzMatch[2]);
-      console.log(`Slide size: ${slideWidthEmu} x ${slideHeightEmu} EMU`);
+    // Handle either attribute order: cx="..." cy="..." or cy="..." cx="..."
+    const cxMatch = presXml.match(/<p:sldSz[^>]+cx="(\d+)"/);
+    const cyMatch = presXml.match(/<p:sldSz[^>]+cy="(\d+)"/);
+    if (cxMatch && cyMatch) {
+      slideWidthEmu = parseInt(cxMatch[1]);
+      slideHeightEmu = parseInt(cyMatch[1]);
+      console.log(`Slide size: ${slideWidthEmu} x ${slideHeightEmu} EMU (${(slideWidthEmu/914400).toFixed(1)}" x ${(slideHeightEmu/914400).toFixed(1)}")`);
     }
   }
 
@@ -1985,10 +1987,10 @@ async function main() {
           const headEnd = cxnXml.match(/<a:headEnd[^>]*type="(\w+)"/);
           const tailEnd = cxnXml.match(/<a:tailEnd[^>]*type="(\w+)"/);
           // Center the element if we expanded width for vertical lines
-          const adjustedX = isVertical && cxnW === 0 ? emuToPxX(Math.max(0, parseInt(off[1]))) - 2 : emuToPxX(Math.max(0, parseInt(off[1])));
+          const adjustedX = isVertical && cxnW === 0 ? emuToPxX(parseInt(off[1])) - 2 : emuToPxX(parseInt(off[1]));
           elements.push({
             id: genId(), type: 'shape', content: '',
-            x: adjustedX, y: emuToPxY(Math.max(0, parseInt(off[2]))),
+            x: adjustedX, y: emuToPxY(parseInt(off[2])),
             width: finalW, height: finalH,
             rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
             style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined, lineHeadEnd: headEnd?.[1] || undefined, lineTailEnd: tailEnd?.[1] || undefined },
