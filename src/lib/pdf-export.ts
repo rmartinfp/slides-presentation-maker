@@ -425,7 +425,7 @@ export async function exportToPdfFromSlides(presentation: Presentation): Promise
             svg.setAttribute('width', '100%');
             svg.setAttribute('height', '100%');
             svg.setAttribute('viewBox', (st.svgViewBox as string) || '0 0 100 100');
-            svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+            svg.setAttribute('preserveAspectRatio', 'none');
             const path = document.createElementNS(svgNs, 'path');
             path.setAttribute('d', st.svgPath as string);
             path.setAttribute('fill', fill);

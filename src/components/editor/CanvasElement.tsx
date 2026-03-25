@@ -498,7 +498,7 @@ export default function CanvasElement({
         // Custom SVG path — use xMidYMid meet to preserve icon proportions
         if (shapeType === 'custom' && s.svgPath) {
           return (
-            <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="xMidYMid meet" style={{ pointerEvents: 'none' }}>
+            <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none" style={{ pointerEvents: 'none' }}>
               {gradDef}
               <path d={s.svgPath} fill={fill} fillRule="evenodd" {...strokeProps} vectorEffect="non-scaling-stroke" />
             </svg>

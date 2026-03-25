@@ -393,7 +393,7 @@ function svgToBase64(svgPath: string, viewBox: string, fill: string, stroke: str
   try {
     const pixelW = Math.round(w * 192);
     const pixelH = Math.round(h * 192);
-    const svgXml = `<svg xmlns="http://www.w3.org/2000/svg" width="${pixelW}" height="${pixelH}" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">
+    const svgXml = `<svg xmlns="http://www.w3.org/2000/svg" width="${pixelW}" height="${pixelH}" viewBox="${viewBox}" preserveAspectRatio="none">
       <path d="${svgPath}" fill="${fill}" fill-rule="evenodd" stroke="${stroke}" stroke-width="${strokeWidth}"/>
     </svg>`;
     return `data:image/svg+xml;base64,${btoa(svgXml)}`;
