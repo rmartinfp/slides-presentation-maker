@@ -57,15 +57,22 @@ Each element has: { type, content, x, y, width, height, style }
 - For shapes: content is empty, style includes shapeType ("rectangle"|"circle"|"triangle"), shapeFill (hex color), borderRadius
 
 Theme colors: primary=${palette.primary}, secondary=${palette.secondary}, accent=${palette.accent}, bg=${palette.bg}, text=${palette.text}
-Fonts: title=${typography.titleFont}, body=${typography.bodyFont}
-Title size: ${typography.titleSize}pt, Body size: ${typography.bodySize}pt
 
-Rules:
-- Title at top (y: 60-100), large font
-- Body content below (y: 200+)
-- Leave margins (x: 100-128)
-- Use theme colors
-- Keep text concise and impactful
+CRITICAL FONT RULES:
+- Title text: fontFamily="${typography.titleFont}", fontSize=${typography.titleSize}, fontWeight="bold", color="${palette.text}"
+- Subtitle text: fontFamily="${typography.bodyFont}", fontSize=${Math.round(typography.titleSize * 0.6)}, color="${palette.text}"
+- Body text: fontFamily="${typography.bodyFont}", fontSize=${typography.bodySize}, color="${palette.text}"
+- Numbers/stats: fontFamily="${typography.titleFont}", fontSize=${Math.round(typography.titleSize * 1.5)}, fontWeight="bold"
+- Small labels: fontFamily="${typography.bodyFont}", fontSize=${Math.round(typography.bodySize * 0.6)}
+
+Canvas rules:
+- Canvas is 1920x1080 pixels
+- Title at top (y: 60-120, x: 120), width: 800-1200, height: 80-150
+- Body below title (y: 250+), width: 600-1000
+- Leave margins: x minimum 120px
+- Elements should be LARGE and readable — this is for projection
+- Minimum text height: 60px for body, 100px for titles
+- Use theme colors for ALL text
 - Return ONLY a JSON array, no markdown or explanation`;
 
     const userPrompt = context
