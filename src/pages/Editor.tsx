@@ -21,6 +21,7 @@ import CoachDialog from '@/components/editor/CoachDialog';
 import RedesignDialog from '@/components/editor/RedesignDialog';
 import BrandKitDialog from '@/components/editor/BrandKitDialog';
 import ChartDialog from '@/components/editor/ChartDialog';
+import SaveAsTemplateDialog from '@/components/editor/SaveAsTemplateDialog';
 import ImageEditDialog from '@/components/editor/ImageEditDialog';
 import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
 import SmartSuggest from '@/components/editor/SmartSuggest';
@@ -264,6 +265,7 @@ export default function EditorPage() {
   const [showAddSlide, setShowAddSlide] = React.useState(false);
   const [showInfographics, setShowInfographics] = React.useState(false);
   const [showAIInfographic, setShowAIInfographic] = React.useState(false);
+  const [showSaveTemplate, setShowSaveTemplate] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
@@ -421,6 +423,10 @@ export default function EditorPage() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={async () => { toast.info('Generating PDF...'); try { await exportToPdfFromSlides(presentation); toast.success('Downloaded!'); } catch { toast.error('Failed'); } }}>
                   <FileDown className="w-4 h-4 mr-2" />PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShowSaveTemplate(true)}>
+                  <Upload className="w-4 h-4 mr-2" />Save as Template
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -703,6 +709,7 @@ export default function EditorPage() {
         {showAddSlide && <AddSlideDialog onClose={() => setShowAddSlide(false)} />}
         {showInfographics && <InfographicsDialog onClose={() => setShowInfographics(false)} />}
         {showAIInfographic && <AIInfographicDialog onClose={() => setShowAIInfographic(false)} />}
+        {showSaveTemplate && <SaveAsTemplateDialog onClose={() => setShowSaveTemplate(false)} />}
       </AnimatePresence>
     </>
   );
