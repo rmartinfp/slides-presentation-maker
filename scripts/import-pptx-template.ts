@@ -2221,9 +2221,18 @@ async function main() {
       'CAPTION_ONLY': 'image',
       'BLANK': 'blank',
     };
+    // Detect section headers by content: big number (01-09) + few text elements
+    const textEls = elements.filter(e => e.type === 'text');
+    const hasBigNumber = textEls.some(t => {
+      const plain = t.content?.replace(/<[^>]+>/g, '').trim();
+      return (t.style?.fontSize || 0) >= 60 && /^0[1-9]$/.test(plain || '');
+    });
+    const isSectionByContent = hasBigNumber && textEls.length <= 4;
+
     const slideType = isTocSlide ? 'toc'
       : isClosingSlide ? 'closing'
       : isTitleOnly ? 'title-only'
+      : isSectionByContent ? 'section'
       : slideTypeMap[layoutName] ||
       (layoutName.includes('CUSTOM') && elements.length <= 5 ? 'content' : 'content');
 

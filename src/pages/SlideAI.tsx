@@ -141,8 +141,17 @@ export default function SlideAIPage() {
           const minChars = Math.min(...itemSlots.map(s => s.maxChars));
           textSlots.push({ role: 'item', maxChars: minChars, count: itemSlots.length });
         }
+      } else if (type === 'section') {
+        // Section headers: only title + subtitle (no body text)
+        for (let i = 0; i < textElements.length; i++) {
+          const el = textElements[i];
+          const role = classifyTextRole(el, i === 0);
+          if (role === 'number') continue;
+          if (role === 'body' || role === 'item') continue; // Skip body in section headers
+          textSlots.push({ role, maxChars: calcMaxChars(el) });
+        }
       } else {
-        // Non-TOC slides: classify each element
+        // Content slides: classify each element
         for (let i = 0; i < textElements.length; i++) {
           const el = textElements[i];
           const role = classifyTextRole(el, i === 0);
