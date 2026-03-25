@@ -60,6 +60,8 @@ function txt(id: string, content: string, x: number, y: number, w: number, h: nu
       color: opts.color ?? '#F0F0F0', fontFamily: opts.fontFamily,
       textAlign: opts.textAlign ?? 'left', verticalAlign: opts.verticalAlign ?? 'top',
       lineHeight: opts.lineHeight ?? 1.2, letterSpacing: opts.letterSpacing,
+      textShadow: opts.textShadow, textGradient: opts.textGradient,
+      glowColor: opts.glowColor, glowSize: opts.glowSize,
     },
   };
 }
@@ -69,7 +71,16 @@ function shp(id: string, x: number, y: number, w: number, h: number, opts: any =
     id, type: 'shape', content: '', x, y, width: w, height: h,
     rotation: 0, opacity: opts.opacity ?? 1, locked: false, visible: true,
     zIndex: opts.zIndex ?? 5,
-    style: { shapeType: 'rectangle', shapeFill: opts.fill ?? 'rgba(255,255,255,0.06)', borderRadius: opts.borderRadius ?? 0 },
+    style: {
+      shapeType: 'rectangle',
+      shapeFill: opts.fill ?? 'rgba(255,255,255,0.06)',
+      borderRadius: opts.borderRadius ?? 0,
+      glassmorphism: opts.glass ?? false,
+      glassBlur: opts.glassBlur,
+      glassOpacity: opts.glassOpacity,
+      glassBorder: opts.glassBorder,
+      boxShadow: opts.boxShadow,
+    },
   };
 }
 
@@ -114,107 +125,154 @@ const MINIMAL_VIDEOS = [
 function buildNexus(): Slide[] {
   const fH = 'General Sans', fB = 'Geist Sans';
   const fg = '#F2F2F3', sub = '#9CA0AE', acc = '#7C3AED';
-  const glass = 'rgba(255,255,255,0.04)', brd = 'rgba(255,255,255,0.08)';
   const bg = { type: 'solid', value: '#0a0512' };
+  // Gradient for hero text: white → blue (like reference "Grow")
+  const heroGradient = 'linear-gradient(223deg, #E8E8E9 0%, #3A7BBF 104%)';
   const ov = { vignette: true, vignetteIntensity: 0.4, filmGrain: true, filmGrainOpacity: 0.03, scrim: 'bottom' as const, scrimOpacity: 0.55 };
   const radOv = { ...ov, scrim: 'radial' as const };
   const slides: Slide[] = [];
 
-  // S1: Hero
-  let ids = Array.from({length: 6}, () => gid());
+  // S1: Hero — Giant gradient word + subtitle + glass CTA (matching reference)
+  let ids = Array.from({length: 7}, () => gid());
   slides.push({ id: gid(), elements: [
-    txt(ids[0], '{{brand_name}}', 80, 50, 300, 30, { fontSize: 16, fontWeight: '600', color: fg, fontFamily: fB, letterSpacing: 0.5, zIndex: 20 }),
-    shp(ids[1], 0, 95, 1920, 1, { fill: brd, zIndex: 5 }),
-    txt(ids[2], '{{hero_word}}', 160, 260, 1600, 350, { fontSize: 200, fontWeight: '400', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 1.0, letterSpacing: -5, zIndex: 15 }),
-    txt(ids[3], '{{hero_subtitle}}', 560, 640, 800, 80, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.7, zIndex: 15 }),
-    shp(ids[4], 760, 760, 400, 60, { fill: glass, borderRadius: 30, opacity: 0.9, zIndex: 14 }),
-    txt(ids[5], '{{hero_cta}}', 760, 770, 400, 40, { fontSize: 15, fontWeight: '500', color: fg, fontFamily: fB, textAlign: 'center', zIndex: 16 }),
-  ], background: bg, videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.25, filter: 'brightness(0.4) saturate(0.8)' },
-  animationConfig: animCfg({ [ids[0]]: { type: 'fade-in', delay: 0.05, duration: 0.4, easing: E.smooth }, [ids[2]]: { type: 'blur-in', delay: 0.2, duration: 1.2, easing: E.expoOut }, [ids[3]]: { type: 'blur-in', delay: 0.7, duration: 0.8, easing: E.expoOut }, [ids[4]]: { type: 'scale-up', delay: 1.1, duration: 0.6, easing: E.backOut }, [ids[5]]: { type: 'fade-in', delay: 1.2, duration: 0.5, easing: E.quintOut } }, { overlays: ov }) });
+    // Nav: brand name top-left
+    txt(ids[0], '{{brand_name}}', 80, 45, 300, 30, { fontSize: 18, fontWeight: '600', color: fg, fontFamily: fB, letterSpacing: -0.3, zIndex: 20 }),
+    // Nav links top-center (decorative)
+    txt(ids[6], 'Features    Solutions    Plans    Learning', 560, 48, 800, 25, { fontSize: 14, fontWeight: '400', color: `${sub}99`, fontFamily: fB, textAlign: 'center', letterSpacing: 0.5, zIndex: 20 }),
+    // Divider line
+    shp(ids[1], 0, 90, 1920, 1, { fill: 'rgba(255,255,255,0.06)', zIndex: 5 }),
+    // GIANT gradient headline — the star of the slide
+    txt(ids[2], '{{hero_word}}', 60, 220, 1800, 380, {
+      fontSize: 220, fontWeight: '400', fontFamily: fH, textAlign: 'center',
+      lineHeight: 1.02, letterSpacing: -6,
+      textGradient: heroGradient,  // Gradient text like "Grow"
+      glowColor: 'rgba(58, 123, 191, 0.15)', glowSize: 100,
+      zIndex: 15,
+    }),
+    // Subtitle — muted, centered
+    txt(ids[3], '{{hero_subtitle}}', 560, 620, 800, 70, {
+      fontSize: 17, color: `${sub}cc`, fontFamily: fB, textAlign: 'center',
+      lineHeight: 1.8, zIndex: 15,
+      textShadow: 'none',
+    }),
+    // Glass CTA pill
+    shp(ids[4], 760, 730, 400, 56, { glass: true, glassBlur: 4, glassOpacity: 0.01, borderRadius: 28, zIndex: 14 }),
+    txt(ids[5], '{{hero_cta}}', 760, 742, 400, 32, { fontSize: 15, fontWeight: '500', color: fg, fontFamily: fB, textAlign: 'center', zIndex: 16, textShadow: 'none' }),
+  ], background: bg, videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.3, filter: 'brightness(0.45) saturate(0.85)' },
+  animationConfig: animCfg({
+    [ids[0]]: { type: 'fade-in', delay: 0.05, duration: 0.4, easing: E.smooth },
+    [ids[6]]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.smooth },
+    [ids[2]]: { type: 'blur-in', delay: 0.15, duration: 1.4, easing: E.expoOut },
+    [ids[3]]: { type: 'blur-in', delay: 0.7, duration: 0.9, easing: E.expoOut },
+    [ids[4]]: { type: 'scale-up', delay: 1.1, duration: 0.6, easing: E.backOut },
+    [ids[5]]: { type: 'fade-in', delay: 1.2, duration: 0.5, easing: E.quintOut },
+  }, { overlays: ov }) });
 
-  // S2: Statement
-  ids = Array.from({length: 2}, () => gid());
-  slides.push({ id: gid(), elements: [
-    shp(ids[0], 935, 280, 50, 50, { fill: acc, borderRadius: 25, opacity: 0.3, zIndex: 5 }),
-    txt(ids[1], '{{statement}}', 200, 340, 1520, 300, { fontSize: 48, fontWeight: '500', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 1.2, letterSpacing: -0.5, zIndex: 15 }),
-  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 0.2, filter: 'brightness(0.35) saturate(0.7)' },
-  animationConfig: animCfg({ [ids[0]]: { type: 'scale-up', delay: 0.1, duration: 0.6, easing: E.backOut }, [ids[1]]: { type: 'word-by-word', delay: 0.2, duration: 0.5, easing: E.expoOut, stagger: 0.04 } }, { overlays: radOv }) });
-
-  // S3: Content + glass card
-  ids = Array.from({length: 5}, () => gid());
-  slides.push({ id: gid(), elements: [
-    txt(ids[0], '{{label}}', 96, 140, 400, 25, { fontSize: 11, fontWeight: '600', color: acc, fontFamily: fB, letterSpacing: 3, zIndex: 15 }),
-    txt(ids[1], '{{title}}', 96, 200, 1100, 140, { fontSize: 48, fontWeight: '600', fontFamily: fH, color: fg, lineHeight: 1.08, letterSpacing: -1.2, zIndex: 15 }),
-    txt(ids[2], '{{body}}', 96, 400, 820, 200, { fontSize: 17, color: sub, fontFamily: fB, lineHeight: 1.75, zIndex: 15 }),
-    shp(ids[3], 1050, 200, 780, 400, { fill: glass, borderRadius: 20, zIndex: 8 }),
-    txt(ids[4], '{{card_highlight}}', 1090, 240, 700, 320, { fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 12 }),
-  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.15, filter: 'brightness(0.35)' },
-  animationConfig: animCfg({ [ids[0]]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.quintOut }, [ids[1]]: { type: 'blur-in', delay: 0.2, duration: 0.8, easing: E.expoOut }, [ids[2]]: { type: 'blur-in', delay: 0.6, duration: 0.8, easing: E.expoOut }, [ids[3]]: { type: 'glass-reveal', delay: 0.3, duration: 0.7, easing: E.quintOut }, [ids[4]]: { type: 'blur-in', delay: 0.7, duration: 0.7, easing: E.expoOut } }) });
-
-  // S4: Stats — 3 numbers
-  ids = Array.from({length: 9}, () => gid());
-  slides.push({ id: gid(), elements: [
-    txt(ids[0], '{{stats_header}}', 96, 150, 600, 35, { fontSize: 12, fontWeight: '600', color: acc, fontFamily: fB, letterSpacing: 3, zIndex: 15 }),
-    txt(ids[1], '{{stat1_value}}', 96, 380, 500, 140, { fontSize: 88, fontWeight: '700', fontFamily: fH, color: fg, lineHeight: 1, zIndex: 15 }),
-    txt(ids[2], '{{stat1_label}}', 96, 530, 400, 40, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15 }),
-    shp(ids[3], 620, 370, 1, 200, { fill: brd, zIndex: 5 }),
-    txt(ids[4], '{{stat2_value}}', 700, 380, 500, 140, { fontSize: 88, fontWeight: '700', fontFamily: fH, color: fg, lineHeight: 1, zIndex: 15 }),
-    txt(ids[5], '{{stat2_label}}', 700, 530, 400, 40, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15 }),
-    shp(ids[6], 1220, 370, 1, 200, { fill: brd, zIndex: 5 }),
-    txt(ids[7], '{{stat3_value}}', 1300, 380, 500, 140, { fontSize: 88, fontWeight: '700', fontFamily: fH, color: fg, lineHeight: 1, zIndex: 15 }),
-    txt(ids[8], '{{stat3_label}}', 1300, 530, 400, 40, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15 }),
-  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[3], type: 'mp4', opacity: 0.15, filter: 'brightness(0.3)' },
-  animationConfig: animCfg({ [ids[1]]: { type: 'scale-up', delay: 0.25, duration: 0.7, easing: E.backOut }, [ids[4]]: { type: 'scale-up', delay: 0.4, duration: 0.7, easing: E.backOut }, [ids[7]]: { type: 'scale-up', delay: 0.55, duration: 0.7, easing: E.backOut } }) });
-
-  // S5: Features — 3 glass cards
-  ids = Array.from({length: 9}, () => gid());
-  slides.push({ id: gid(), elements: [
-    txt(ids[0], '{{features_title}}', 96, 120, 800, 60, { fontSize: 12, fontWeight: '600', color: acc, fontFamily: fB, letterSpacing: 3, zIndex: 15 }),
-    shp(ids[1], 96, 240, 560, 360, { fill: glass, borderRadius: 20, zIndex: 8 }),
-    txt(ids[2], '{{feat1_title}}', 136, 280, 480, 50, { fontSize: 22, fontWeight: '600', fontFamily: fH, color: fg, zIndex: 12 }),
-    txt(ids[3], '{{feat1_desc}}', 136, 345, 480, 200, { fontSize: 14, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 12 }),
-    shp(ids[4], 680, 240, 560, 360, { fill: glass, borderRadius: 20, zIndex: 8 }),
-    txt(ids[5], '{{feat2_title}}', 720, 280, 480, 50, { fontSize: 22, fontWeight: '600', fontFamily: fH, color: fg, zIndex: 12 }),
-    txt(ids[6], '{{feat2_desc}}', 720, 345, 480, 200, { fontSize: 14, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 12 }),
-    shp(ids[7], 1264, 240, 560, 360, { fill: glass, borderRadius: 20, zIndex: 8 }),
-    txt(ids[8], '{{feat3_title}}', 1304, 280, 480, 50, { fontSize: 22, fontWeight: '600', fontFamily: fH, color: fg, zIndex: 12 }),
-  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[0], type: 'mp4', opacity: 0.12, filter: 'brightness(0.3)' },
-  animationConfig: animCfg({ [ids[1]]: { type: 'glass-reveal', delay: 0.2, duration: 0.7, easing: E.quintOut }, [ids[4]]: { type: 'glass-reveal', delay: 0.35, duration: 0.7, easing: E.quintOut }, [ids[7]]: { type: 'glass-reveal', delay: 0.5, duration: 0.7, easing: E.quintOut } }) });
-
-  // S6: Social Proof
+  // S2: Problem Statement — Big text + stat cards at bottom (like reference slide 2)
   ids = Array.from({length: 8}, () => gid());
   slides.push({ id: gid(), elements: [
-    txt(ids[0], '{{social_proof_title}}', 200, 300, 1520, 60, { fontSize: 13, fontWeight: '600', color: sub, fontFamily: fB, textAlign: 'center', letterSpacing: 3, zIndex: 15 }),
-    txt(ids[1], '{{social_proof_subtitle}}', 400, 370, 1120, 50, { fontSize: 36, fontWeight: '600', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 1.15, zIndex: 15 }),
-    shp(ids[2], 210, 520, 200, 60, { fill: glass, borderRadius: 12, zIndex: 8 }),
-    shp(ids[3], 450, 520, 200, 60, { fill: glass, borderRadius: 12, zIndex: 8 }),
-    shp(ids[4], 690, 520, 200, 60, { fill: glass, borderRadius: 12, zIndex: 8 }),
-    shp(ids[5], 930, 520, 200, 60, { fill: glass, borderRadius: 12, zIndex: 8 }),
-    shp(ids[6], 1170, 520, 200, 60, { fill: glass, borderRadius: 12, zIndex: 8 }),
-    shp(ids[7], 1410, 520, 200, 60, { fill: glass, borderRadius: 12, zIndex: 8 }),
-  ], background: bg, videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.18, filter: 'brightness(0.35) saturate(0.7)' },
-  animationConfig: animCfg({ [ids[1]]: { type: 'blur-in', delay: 0.3, duration: 0.8, easing: E.expoOut } }, { overlays: radOv }) });
+    // Subtitle label
+    txt(ids[0], '{{problem_label}}', 96, 140, 400, 25, { fontSize: 13, fontWeight: '400', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    // Slide number
+    txt(ids[7], '02', 1780, 140, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 15, textShadow: 'none' }),
+    // Divider
+    shp(ids[6], 96, 185, 1728, 1, { fill: 'rgba(255,255,255,0.12)', zIndex: 5 }),
+    // Main heading — large, wrapping
+    txt(ids[1], '{{problem_statement}}', 96, 220, 1600, 250, {
+      fontSize: 48, fontWeight: '400', fontFamily: fH, color: fg,
+      lineHeight: 1.06, letterSpacing: -1,
+      textShadow: '0 2px 30px rgba(0,0,0,0.4)', zIndex: 15,
+    }),
+    // Stat cards at bottom — 3 columns
+    txt(ids[2], '{{stat1_value}}', 96, 700, 520, 130, {
+      fontSize: 88, fontWeight: '400', fontFamily: fH, color: fg,
+      lineHeight: 0.96, letterSpacing: -2, zIndex: 15,
+    }),
+    txt(ids[3], '{{stat1_label}}', 96, 840, 520, 40, { fontSize: 16, color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+    txt(ids[4], '{{stat2_value}}', 680, 700, 520, 130, {
+      fontSize: 88, fontWeight: '400', fontFamily: fH, color: fg,
+      lineHeight: 0.96, letterSpacing: -2, zIndex: 15,
+    }),
+    txt(ids[5], '{{stat2_label}}', 680, 840, 520, 40, { fontSize: 16, color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 0.35, filter: 'brightness(0.5)' },
+  animationConfig: animCfg({
+    [ids[0]]: { type: 'blur-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+    [ids[1]]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+    [ids[2]]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut },
+    [ids[3]]: { type: 'fade-in', delay: 0.75, duration: 0.5, easing: E.quintOut },
+    [ids[4]]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut },
+    [ids[5]]: { type: 'fade-in', delay: 0.85, duration: 0.5, easing: E.quintOut },
+  }, { overlays: ov }) });
 
-  // S7: Split — image + text
-  ids = Array.from({length: 4}, () => gid());
-  slides.push({ id: gid(), elements: [
-    { id: ids[0], type: 'image', content: '{{image}}', x: 60, y: 60, width: 880, height: 960, rotation: 0, opacity: 1, locked: false, visible: true, zIndex: 8, style: { objectFit: 'cover', borderRadius: 24 } },
-    shp(ids[1], 1000, 260, 4, 500, { fill: acc, opacity: 0.25, zIndex: 5 }),
-    txt(ids[2], '{{title}}', 1060, 280, 780, 160, { fontSize: 42, fontWeight: '600', fontFamily: fH, color: fg, lineHeight: 1.1, letterSpacing: -1, zIndex: 15 }),
-    txt(ids[3], '{{body}}', 1060, 480, 760, 280, { fontSize: 16, color: sub, fontFamily: fB, lineHeight: 1.75, zIndex: 15 }),
-  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 0.1, filter: 'brightness(0.25)' },
-  animationConfig: animCfg({ [ids[0]]: { type: 'scale-up', delay: 0.2, duration: 0.9, easing: E.quintOut }, [ids[2]]: { type: 'blur-in', delay: 0.3, duration: 0.8, easing: E.expoOut }, [ids[3]]: { type: 'blur-in', delay: 0.7, duration: 0.8, easing: E.expoOut } }) });
-
-  // S8: Closing CTA
+  // S3: Content — label + big heading + body text (full-width cinematic style)
   ids = Array.from({length: 5}, () => gid());
   slides.push({ id: gid(), elements: [
-    shp(ids[0], 660, 280, 600, 200, { fill: acc, borderRadius: 300, opacity: 0.12, zIndex: 3 }),
-    txt(ids[1], '{{closing_title}}', 260, 320, 1400, 200, { fontSize: 72, fontWeight: '600', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 1.05, letterSpacing: -2, zIndex: 15 }),
-    txt(ids[2], '{{closing_subtitle}}', 510, 540, 900, 60, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.6, zIndex: 15 }),
-    shp(ids[3], 760, 650, 400, 60, { fill: acc, borderRadius: 30, opacity: 0.9, zIndex: 14 }),
-    txt(ids[4], '{{closing_cta}}', 760, 660, 400, 40, { fontSize: 15, fontWeight: '600', color: '#FFFFFF', fontFamily: fB, textAlign: 'center', zIndex: 16 }),
-  ], background: bg, videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.25, filter: 'brightness(0.35)' },
-  animationConfig: animCfg({ [ids[1]]: { type: 'blur-in', delay: 0.2, duration: 1.2, easing: E.quintOut }, [ids[2]]: { type: 'blur-in', delay: 0.7, duration: 0.8, easing: E.quintOut }, [ids[3]]: { type: 'scale-up', delay: 1.1, duration: 0.6, easing: E.backOut } }, { overlays: radOv }) });
+    // Slide number
+    txt(ids[4], '03', 1780, 36, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+    // Subtitle label
+    txt(ids[0], '{{content_label}}', 96, 160, 600, 25, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    // Big heading
+    txt(ids[1], '{{content_heading}}', 96, 220, 1500, 280, {
+      fontSize: 56, fontWeight: '400', fontFamily: fH, color: fg,
+      lineHeight: 1.04, letterSpacing: -1,
+      textShadow: '0 2px 30px rgba(0,0,0,0.4)', zIndex: 15,
+    }),
+    // Body paragraph
+    txt(ids[2], '{{content_body}}', 96, 560, 780, 200, {
+      fontSize: 16, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15,
+      textShadow: 'none',
+    }),
+    // Divider
+    shp(ids[3], 96, 195, 1728, 1, { fill: 'rgba(255,255,255,0.12)', zIndex: 5 }),
+  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.4, filter: 'brightness(0.5) saturate(0.9)' },
+  animationConfig: animCfg({
+    [ids[0]]: { type: 'blur-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+    [ids[1]]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+    [ids[2]]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut },
+  }) });
+
+  // S4: Sales/Distribution — Vertically centered big text, video takes the right half
+  ids = Array.from({length: 5}, () => gid());
+  slides.push({ id: gid(), elements: [
+    txt(ids[0], '04', 1780, 36, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+    txt(ids[1], '{{distribution_label}}', 96, 350, 500, 25, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    txt(ids[2], '{{distribution_heading}}', 96, 400, 1100, 300, {
+      fontSize: 64, fontWeight: '400', fontFamily: fH, color: fg,
+      lineHeight: 1.04, letterSpacing: -1.5,
+      textShadow: '0 4px 40px rgba(0,0,0,0.5)', zIndex: 15,
+    }),
+    txt(ids[3], '{{distribution_body}}', 96, 740, 780, 150, {
+      fontSize: 16, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15,
+      textShadow: 'none',
+    }),
+    shp(ids[4], 96, 385, 1728, 1, { fill: 'rgba(255,255,255,0.12)', zIndex: 5 }),
+  ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[3], type: 'mp4', opacity: 0.5, filter: 'brightness(0.5)' },
+  animationConfig: animCfg({
+    [ids[1]]: { type: 'blur-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+    [ids[2]]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+    [ids[3]]: { type: 'blur-in', delay: 1.0, duration: 0.8, easing: E.expoOut },
+  }) });
+
+  // S5: Global/Expansion — Bottom-aligned text, video fills most of slide
+  ids = Array.from({length: 4}, () => gid());
+  slides.push({ id: gid(), elements: [
+    txt(ids[0], '05', 1780, 36, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+    shp(ids[3], 96, 90, 1728, 1, { fill: 'rgba(255,255,255,0.12)', zIndex: 5 }),
+    txt(ids[1], '{{expansion_label}}', 96, 740, 500, 25, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    txt(ids[2], '{{expansion_heading}}', 96, 790, 1000, 200, {
+      fontSize: 64, fontWeight: '400', fontFamily: fH, color: fg,
+      lineHeight: 1.04, letterSpacing: -1.5,
+      textShadow: '0 4px 40px rgba(0,0,0,0.5)', zIndex: 15,
+    }),
+  ], background: { type: 'solid', value: '#131318' },
+  videoBackground: { url: ABSTRACT_VIDEOS[0], type: 'mp4', opacity: 0.6, filter: 'brightness(0.5)' },
+  animationConfig: animCfg({
+    [ids[1]]: { type: 'blur-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+    [ids[2]]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+  }, { overlays: { ...ov, scrimOpacity: 0.7 } }) });
+
+  // No more S6/S7/S8 — the Nexus template now has 5 slides matching the reference quality.
+  // Each slide has: full video bg, big cinematic text, proper spacing.
 
   return slides;
 }

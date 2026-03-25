@@ -77,7 +77,19 @@ export interface ElementStyle {
   // Effects
   opacity?: number;
   boxShadow?: string;
+  textShadow?: string;
   filter?: string;
+
+  // Cinematic text effects
+  textGradient?: string;       // CSS linear-gradient for gradient text (background-clip: text)
+  glowColor?: string;          // Glow effect behind text (e.g. 'rgba(124,58,237,0.4)')
+  glowSize?: number;           // Glow blur radius in px
+
+  // Cinematic shape effects
+  glassmorphism?: boolean;     // Renders with backdrop-filter blur
+  glassBlur?: number;          // Blur amount (default 20)
+  glassOpacity?: number;       // Background opacity (default 0.06)
+  glassBorder?: boolean;       // Show subtle border (default true)
 
   // Shape-specific
   shapeType?: ShapeType;

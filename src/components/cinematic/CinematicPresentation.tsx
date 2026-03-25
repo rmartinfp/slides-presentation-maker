@@ -270,16 +270,27 @@ function AnimatedElement({
     zIndex: element.zIndex || 0,
   };
 
+  const st = element.style;
+
   // Text styling
+  const hasGradientText = isText && st.textGradient;
   const textStyle: React.CSSProperties = isText ? {
-    fontFamily: element.style.fontFamily ? `'${element.style.fontFamily}', sans-serif` : 'inherit',
-    fontSize: element.style.fontSize ? element.style.fontSize * 1.333 : undefined,
-    fontWeight: element.style.fontWeight || undefined,
-    fontStyle: element.style.fontStyle || undefined,
-    color: element.style.color || 'inherit',
-    textAlign: element.style.textAlign || undefined,
-    lineHeight: element.style.lineHeight || 1.2,
-    letterSpacing: element.style.letterSpacing || undefined,
+    fontFamily: st.fontFamily ? `'${st.fontFamily}', sans-serif` : 'inherit',
+    fontSize: st.fontSize ? st.fontSize * 1.333 : undefined,
+    fontWeight: st.fontWeight || undefined,
+    fontStyle: st.fontStyle || undefined,
+    color: hasGradientText ? 'transparent' : (st.color || 'inherit'),
+    textAlign: st.textAlign || undefined,
+    lineHeight: st.lineHeight || 1.2,
+    letterSpacing: st.letterSpacing || undefined,
+    textShadow: st.textShadow || (!hasGradientText ? '0 2px 20px rgba(0,0,0,0.3)' : undefined),
+    // Gradient text effect
+    ...(hasGradientText ? {
+      backgroundImage: st.textGradient,
+      backgroundClip: 'text',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+    } : {}),
   } : {};
 
   // Wrapper animation (for non-text animations like fade-in, scale-up, slide-up)
@@ -312,18 +323,29 @@ function AnimatedElement({
     >
       {/* Text element */}
       {isText && !isStatWithCounter && (
-        <div style={textStyle} className="w-full h-full flex items-start">
-          <div className="w-full">
-            {isTextAnimation ? (
-              renderAnimatedText(plainText, animConfig.type, {
-                delay: animConfig.delay,
-                duration: animConfig.duration,
-                easing: animConfig.easing,
-                stagger: animConfig.stagger,
-              })
-            ) : (
-              plainText
-            )}
+        <div className="w-full h-full relative">
+          {/* Glow effect behind text */}
+          {st.glowColor && (
+            <div className="absolute inset-0 pointer-events-none" style={{
+              filter: `blur(${st.glowSize || 60}px)`,
+              background: st.glowColor,
+              transform: 'scale(1.3)',
+              opacity: 0.5,
+            }} />
+          )}
+          <div style={textStyle} className={`w-full h-full flex relative ${st.verticalAlign === 'center' ? 'items-center' : st.verticalAlign === 'bottom' ? 'items-end' : 'items-start'}`}>
+            <div className="w-full">
+              {isTextAnimation ? (
+                renderAnimatedText(plainText, animConfig.type, {
+                  delay: animConfig.delay,
+                  duration: animConfig.duration,
+                  easing: animConfig.easing,
+                  stagger: animConfig.stagger,
+                })
+              ) : (
+                plainText
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -363,20 +385,42 @@ function AnimatedElement({
         />
       )}
 
-      {/* Shape element (SVG) */}
-      {isShape && element.content && (
-        <div
-          className="w-full h-full"
-          style={{
-            backgroundColor: element.style.shapeFill || element.style.backgroundColor,
-            borderRadius: element.style.borderRadius || 0,
-          }}
-          dangerouslySetInnerHTML={
-            element.content.startsWith('<svg') || element.content.startsWith('<path')
-              ? { __html: element.content }
-              : undefined
-          }
-        />
+      {/* Shape element */}
+      {isShape && (
+        st.glassmorphism ? (
+          // Glassmorphism card
+          <div
+            className="w-full h-full"
+            style={{
+              background: `rgba(255, 255, 255, ${st.glassOpacity ?? 0.06})`,
+              backdropFilter: `blur(${st.glassBlur ?? 20}px) saturate(1.3)`,
+              WebkitBackdropFilter: `blur(${st.glassBlur ?? 20}px) saturate(1.3)`,
+              borderRadius: st.borderRadius || 16,
+              border: st.glassBorder !== false ? '1px solid rgba(255,255,255,0.1)' : undefined,
+              boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}
+          />
+        ) : element.content && (element.content.startsWith('<svg') || element.content.startsWith('<path')) ? (
+          // SVG shape
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundColor: st.shapeFill || st.backgroundColor,
+              borderRadius: st.borderRadius || 0,
+            }}
+            dangerouslySetInnerHTML={{ __html: element.content }}
+          />
+        ) : (
+          // Regular shape
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundColor: st.shapeFill || st.backgroundColor,
+              borderRadius: st.borderRadius || 0,
+              boxShadow: st.boxShadow || undefined,
+            }}
+          />
+        )
       )}
 
       {/* Chart placeholder in cinematic mode */}
