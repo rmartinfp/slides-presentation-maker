@@ -979,6 +979,166 @@ function fortuneTheme() {
   return { id: 'midnight', name: 'Fortune', category: 'Cinematic', tokens: { palette: { primary: '#f8f8f8', secondary: '#80838e', accent: '#f8f8f8', bg: '#000000', text: '#FFFFFF' }, typography: { titleFont: 'Barlow', bodyFont: 'Barlow', titleSize: 52, bodySize: 16 }, radii: '2px', shadows: 'none' }, previewColors: ['#f8f8f8', '#80838e', '#000000'] };
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: TASKLY (Light theme / SaaS — 5 slides)
+// ════════════════════════════════════════════
+// FIRST LIGHT TEMPLATE. White bg, dark text, blue accent.
+// Fustat (headlines) + Inter (body). Clean, product-focused.
+
+function buildTaskly(): Slide[] {
+  const fH = 'Fustat', fB = 'Inter';
+  const fg = '#1a1a2e', sub = '#64748b', accent = '#0084FF';
+  const bg = { type: 'solid', value: '#FFFFFF' };
+  const VO = 'https://future.co/images/homepage/glassy-orb/orb-purple.webm';
+  const slides: Slide[] = [];
+
+  // Light skeleton — dark text logo + number
+  function lightSkel(num: string): SlideElement[] {
+    return [
+      txt(gid(), '{{logo}}', 96, 38, 200, 28, { fontSize: 16, fontWeight: '700', color: fg, fontFamily: fH, letterSpacing: -0.5, zIndex: 20, textShadow: 'none' }),
+      txt(gid(), num, 1790, 38, 40, 28, { fontSize: 16, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+      shp(gid(), 96, 82, 1728, 1, { fill: 'rgba(0,0,0,0.08)', zIndex: 5 }),
+    ];
+  }
+
+  function lightAnim(overrides: Record<string, any> = {}): Record<string, any> {
+    return animCfg(overrides, {
+      transition: 'fade-cross',
+      transitionDuration: 0.4,
+      overlays: { vignette: false, vignetteIntensity: 0, filmGrain: false, filmGrainOpacity: 0, scrim: 'none' as const, scrimOpacity: 0 },
+    });
+  }
+
+  // ─── S1: HERO — Big headline centered, blue accent ───
+  {
+    const preH = gid(), mainH = gid(), subT = gid();
+    slides.push({ id: gid(), elements: [
+      ...lightSkel(''),
+      // Pre-headline / social proof line
+      txt(preH, '{{pre_headline}}', 460, 260, 1000, 40, {
+        fontSize: 15, fontWeight: '500', fontFamily: fB, color: sub,
+        textAlign: 'center', letterSpacing: -0.5, zIndex: 15, textShadow: 'none',
+      }),
+      // Main headline — dark, large
+      txt(mainH, '{{main_headline}}', 210, 320, 1500, 240, {
+        fontSize: 72, fontWeight: '700', fontFamily: fH, color: fg,
+        textAlign: 'center', lineHeight: 1.05, letterSpacing: -2, zIndex: 15, textShadow: 'none',
+      }),
+      // Subheadline
+      txt(subT, '{{sub_headline}}', 460, 580, 1000, 100, {
+        fontSize: 17, fontWeight: '400', fontFamily: fB, color: sub,
+        textAlign: 'center', lineHeight: 1.65, letterSpacing: -0.5, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VO, type: 'mp4', opacity: 0.3, filter: 'hue-rotate(-55deg) saturate(250%) brightness(1.2) contrast(1.1)' },
+    animationConfig: lightAnim({
+      [preH]: { type: 'fade-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+      [mainH]: { type: 'scale-up', delay: 0.2, duration: 0.6, easing: E.expoOut },
+      [subT]: { type: 'fade-in', delay: 0.4, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S2: PROBLEM + STATS — Dark text on white, 3 stat columns ───
+  {
+    const lab = gid(), head = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    slides.push({ id: gid(), elements: [
+      ...lightSkel('02'),
+      txt(lab, '{{problem_label}}', 96, 130, 500, 22, { fontSize: 13, fontWeight: '500', color: accent, fontFamily: fB, letterSpacing: 1, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{problem_heading}}', 96, 180, 1500, 280, {
+        fontSize: 46, fontWeight: '700', fontFamily: fH, color: fg,
+        lineHeight: 1.08, letterSpacing: -1, zIndex: 15, textShadow: 'none',
+      }),
+      // Stats
+      txt(s1v, '{{stat1_value}}', 96, 680, 540, 130, { fontSize: 80, fontWeight: '700', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15, textShadow: 'none' }),
+      txt(s1l, '{{stat1_label}}', 96, 820, 500, 35, { fontSize: 15, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 700, 680, 540, 130, { fontSize: 80, fontWeight: '700', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15, textShadow: 'none' }),
+      txt(s2l, '{{stat2_label}}', 700, 820, 500, 35, { fontSize: 15, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s3v, '{{stat3_value}}', 1300, 680, 540, 130, { fontSize: 80, fontWeight: '700', fontFamily: fH, color: accent, lineHeight: 0.96, letterSpacing: -2, zIndex: 15, textShadow: 'none' }),
+      txt(s3l, '{{stat3_label}}', 1300, 820, 500, 35, { fontSize: 15, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    ], background: bg,
+    animationConfig: lightAnim({
+      [lab]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.expoOut },
+      [head]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [s1v]: { type: 'slide-up', delay: 0.5, duration: 0.6, easing: E.expoOut },
+      [s1l]: { type: 'fade-in', delay: 0.6, duration: 0.5, easing: E.quintOut },
+      [s2v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut },
+      [s2l]: { type: 'fade-in', delay: 0.7, duration: 0.5, easing: E.quintOut },
+      [s3v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut },
+      [s3l]: { type: 'fade-in', delay: 0.8, duration: 0.5, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S3: SOLUTION — Centered bold headline ───
+  {
+    const head = gid(), body = gid();
+    slides.push({ id: gid(), elements: [
+      ...lightSkel('03'),
+      txt(head, '{{solution_headline}}', 210, 320, 1500, 260, {
+        fontSize: 60, fontWeight: '700', fontFamily: fH, color: fg,
+        textAlign: 'center', lineHeight: 1.08, letterSpacing: -1.5, zIndex: 15, textShadow: 'none',
+      }),
+      txt(body, '{{solution_body}}', 410, 610, 1100, 120, {
+        fontSize: 17, fontWeight: '400', fontFamily: fB, color: sub,
+        textAlign: 'center', lineHeight: 1.65, letterSpacing: -0.5, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VO, type: 'mp4', opacity: 0.25, filter: 'hue-rotate(-55deg) saturate(250%) brightness(1.2)' },
+    animationConfig: lightAnim({
+      [head]: { type: 'scale-up', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [body]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S4: CONTENT — Label + heading left + body ───
+  {
+    const lab = gid(), head = gid(), body = gid();
+    slides.push({ id: gid(), elements: [
+      ...lightSkel('04'),
+      txt(lab, '{{content_label}}', 96, 260, 500, 22, { fontSize: 13, fontWeight: '500', color: accent, fontFamily: fB, letterSpacing: 1, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{content_heading}}', 96, 310, 1200, 300, {
+        fontSize: 48, fontWeight: '700', fontFamily: fH, color: fg,
+        lineHeight: 1.08, letterSpacing: -1, zIndex: 15, textShadow: 'none',
+      }),
+      txt(body, '{{content_body}}', 96, 670, 780, 200, {
+        fontSize: 16, fontWeight: '400', fontFamily: fB, color: sub,
+        lineHeight: 1.7, letterSpacing: -0.5, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    animationConfig: lightAnim({
+      [lab]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.expoOut },
+      [head]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [body]: { type: 'fade-in', delay: 0.7, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S5: CLOSING — Centered bold headline + subtitle ───
+  {
+    const head = gid(), sub2 = gid();
+    slides.push({ id: gid(), elements: [
+      ...lightSkel('05'),
+      txt(head, '{{closing_headline}}', 210, 370, 1500, 220, {
+        fontSize: 64, fontWeight: '700', fontFamily: fH, color: fg,
+        textAlign: 'center', lineHeight: 1.05, letterSpacing: -2, zIndex: 15, textShadow: 'none',
+      }),
+      txt(sub2, '{{closing_body}}', 460, 620, 1000, 80, {
+        fontSize: 17, fontWeight: '400', fontFamily: fB, color: sub,
+        textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VO, type: 'mp4', opacity: 0.2, filter: 'hue-rotate(-55deg) saturate(250%) brightness(1.3)' },
+    animationConfig: lightAnim({
+      [head]: { type: 'scale-up', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [sub2]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  return slides;
+}
+
+function tasklyTheme() {
+  return { id: 'editorial', name: 'Taskly', category: 'Cinematic', tokens: { palette: { primary: '#0084FF', secondary: '#64748b', accent: '#0084FF', bg: '#FFFFFF', text: '#1a1a2e' }, typography: { titleFont: 'Fustat', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '16px', shadows: 'lg' }, previewColors: ['#0084FF', '#64748b', '#FFFFFF'] };
+}
+
 // ══════════════════════════════
 // MAIN SEED
 // ══════════════════════════════
@@ -1071,6 +1231,17 @@ const TEMPLATES = [
     theme: fortuneTheme(),
     tags: ['agency', 'corporate', 'fortune', 'featured', 'premium'],
     sort_order: 8,
+  },
+  {
+    name: 'Taskly',
+    slug: 'taskly',
+    category: 'SaaS / Product',
+    description: 'Light theme SaaS with Fustat headlines, blue accent, and clean product-focused layouts.',
+    preset_id: 'editorial',
+    slides: buildTaskly(),
+    theme: tasklyTheme(),
+    tags: ['saas', 'product', 'light', 'clean', 'task', 'ai'],
+    sort_order: 9,
   },
 ];
 
