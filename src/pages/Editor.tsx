@@ -571,14 +571,9 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => setShowAIImage(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="More" /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2 w-48">
-                  <DropdownMenuItem onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }}><Grid3X3 className="w-4 h-4 mr-2" />Table</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowChart(true)}><BarChart3 className="w-4 h-4 mr-2" />Chart</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowInfographics(true)}><LayoutGrid className="w-4 h-4 mr-2" />Infographic</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
+              <ToolBtn icon={<BarChart3 className="w-4 h-4" />} label="Chart" onClick={() => setShowChart(true)} />
+              <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" onClick={() => setShowInfographics(true)} />
               <div className="w-px h-6 bg-slate-200/60 mx-1" />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
