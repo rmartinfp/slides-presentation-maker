@@ -555,6 +555,175 @@ function nexusTheme() {
   };
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: LUMINA (AI Builder — 5 slides)
+// ════════════════════════════════════════════
+// Instrument Serif (pre-headline) + Instrument Sans (headline/body).
+// Centered hero layout. Gradient headline. Blue accent #3054ff.
+
+function buildLumina(): Slide[] {
+  const fSerif = 'Instrument Serif', fSans = 'Instrument Sans';
+  const fg = '#FFFFFF', sub = '#80838e', accent = '#3054ff';
+  const bg = { type: 'solid', value: '#000000' };
+  const slides: Slide[] = [];
+
+  const VL = 'https://stream.mux.com/T6oQJQ02cQ6N01TR6iHwZkKFkbepS34dkkIc9iukgy400g.m3u8';
+
+  // ─── S1: HERO — Pre-headline serif + massive gradient "Build Faster" + subtitle + CTA ───
+  {
+    const preH = gid(), mainH = gid(), subT = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('', fSans),
+      // Pre-headline — serif italic style
+      txt(preH, '{{pre_headline}}', 460, 240, 1000, 60, {
+        fontSize: 38, fontWeight: '400', fontFamily: fSerif, color: fg,
+        textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none',
+      }),
+      // Main headline — MASSIVE gradient text
+      txt(mainH, '{{main_headline}}', 260, 320, 1400, 200, {
+        fontSize: 120, fontWeight: '600', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 0.9, letterSpacing: -3,
+        textGradient: 'linear-gradient(180deg, #FFFFFF 30%, #b4c0ff 100%)',
+        zIndex: 15,
+      }),
+      // Subheadline
+      txt(subT, '{{sub_headline}}', 510, 550, 900, 80, {
+        fontSize: 17, fontWeight: '400', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 1.65, opacity: 0.7,
+        zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VL, type: 'hls', opacity: 0.6 },
+    animationConfig: cineAnim({
+      [preH]: { type: 'fade-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+      [mainH]: { type: 'scale-up', delay: 0.2, duration: 0.6, easing: E.expoOut },
+      [subT]: { type: 'fade-in', delay: 0.4, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S2: PROBLEM — Label + big heading + stat cards (3 columns) ───
+  {
+    const lab = gid(), head = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('02', fSans),
+      txt(lab, '{{problem_label}}', 96, 130, 500, 22, { fontSize: 13, color: sub, fontFamily: fSans, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{problem_heading}}', 96, 180, 1600, 300, {
+        fontSize: 46, fontWeight: '400', fontFamily: fSans, color: fg,
+        lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15,
+      }),
+      txt(s1v, '{{stat1_value}}', 96, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: fSans, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s1l, '{{stat1_label}}', 96, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fSans, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 700, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: fSans, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s2l, '{{stat2_label}}', 700, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fSans, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(s3v, '{{stat3_value}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: fSans, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s3l, '{{stat3_label}}', 1300, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fSans, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+    ], background: bg,
+    videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 0.8, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({
+      [lab]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [head]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut },
+      [s1l]: { type: 'fade-in', delay: 0.7, duration: 0.5, easing: E.quintOut },
+      [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut },
+      [s2l]: { type: 'fade-in', delay: 0.8, duration: 0.5, easing: E.quintOut },
+      [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut },
+      [s3l]: { type: 'fade-in', delay: 0.9, duration: 0.5, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S3: SOLUTION — Centered serif pre-headline + gradient main headline ───
+  {
+    const preH = gid(), mainH = gid(), body = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('03', fSans),
+      txt(preH, '{{solution_pre}}', 460, 280, 1000, 50, {
+        fontSize: 32, fontWeight: '400', fontFamily: fSerif, color: fg,
+        textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none',
+      }),
+      txt(mainH, '{{solution_headline}}', 260, 350, 1400, 200, {
+        fontSize: 88, fontWeight: '600', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 0.95, letterSpacing: -2,
+        textGradient: 'linear-gradient(180deg, #FFFFFF 30%, #b4c0ff 100%)',
+        zIndex: 15,
+      }),
+      txt(body, '{{solution_body}}', 460, 580, 1000, 120, {
+        fontSize: 16, color: sub, fontFamily: fSans,
+        textAlign: 'center', lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VL, type: 'hls', opacity: 0.5 },
+    animationConfig: cineAnim({
+      [preH]: { type: 'fade-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+      [mainH]: { type: 'scale-up', delay: 0.2, duration: 0.6, easing: E.expoOut },
+      [body]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  // ─── S4: FEATURES — Label + heading left, body below ───
+  {
+    const lab = gid(), head = gid(), body = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('04', fSans),
+      txt(lab, '{{features_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fSans, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{features_heading}}', 96, 310, 1200, 320, {
+        fontSize: 48, fontWeight: '500', fontFamily: fSans, color: fg,
+        lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15,
+      }),
+      txt(body, '{{features_body}}', 96, 690, 780, 200, {
+        fontSize: 15, color: sub, fontFamily: fSans, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.7, filter: 'brightness(0.55)' },
+    animationConfig: cineAnim({
+      [lab]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [head]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [body]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut },
+    }) });
+  }
+
+  // ─── S5: CLOSING — Centered serif + gradient headline ───
+  {
+    const preH = gid(), mainH = gid(), sub2 = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('05', fSans),
+      txt(preH, '{{closing_pre}}', 460, 340, 1000, 50, {
+        fontSize: 32, fontWeight: '400', fontFamily: fSerif, color: fg,
+        textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none',
+      }),
+      txt(mainH, '{{closing_headline}}', 260, 410, 1400, 200, {
+        fontSize: 88, fontWeight: '600', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 0.95, letterSpacing: -2,
+        textGradient: 'linear-gradient(180deg, #FFFFFF 30%, #b4c0ff 100%)',
+        zIndex: 15,
+      }),
+      txt(sub2, '{{closing_body}}', 510, 640, 900, 80, {
+        fontSize: 17, color: sub, fontFamily: fSans,
+        textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: { type: 'solid', value: '#050510' },
+    videoBackground: { url: VL, type: 'hls', opacity: 0.6 },
+    animationConfig: cineAnim({
+      [preH]: { type: 'fade-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [mainH]: { type: 'scale-up', delay: 0.25, duration: 0.6, easing: E.expoOut },
+      [sub2]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  return slides;
+}
+
+function luminaTheme() {
+  return {
+    id: 'midnight', name: 'Lumina', category: 'Cinematic',
+    tokens: {
+      palette: { primary: '#3054ff', secondary: '#80838e', accent: '#3054ff', bg: '#000000', text: '#FFFFFF' },
+      typography: { titleFont: 'Instrument Sans', bodyFont: 'Instrument Sans', titleSize: 56, bodySize: 17 },
+      radii: '0px', shadows: 'none',
+    },
+    previewColors: ['#3054ff', '#b4c0ff', '#000000'],
+  };
+}
+
 // ══════════════════════════════
 // MAIN SEED
 // ══════════════════════════════
@@ -592,6 +761,17 @@ const TEMPLATES = [
     theme: viktoryTheme(),
     tags: ['investor', 'pitch', 'startup', 'ai', 'enterprise'],
     sort_order: 3,
+  },
+  {
+    name: 'Lumina',
+    slug: 'lumina',
+    category: 'AI / Product',
+    description: 'AI builder style with Instrument Serif + Sans, gradient headlines, blue accent, and centered hero layouts.',
+    preset_id: 'midnight',
+    slides: buildLumina(),
+    theme: luminaTheme(),
+    tags: ['ai', 'saas', 'product', 'builder', 'landing'],
+    sort_order: 4,
   },
 ];
 
