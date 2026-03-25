@@ -90,7 +90,7 @@ function VariantCard({
           className={
             applied
               ? 'w-full bg-green-600 hover:bg-green-700 text-white text-xs'
-              : 'w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-xs'
+              : 'w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white text-xs'
           }
         >
           {applied ? (
@@ -169,6 +169,7 @@ export default function RedesignDialog({ onClose }: Props) {
 
     setAppliedIndex(index);
     toast.success(`Applied "${variant.name}"`);
+    setTimeout(onClose, 600);
   };
 
   return (
@@ -189,7 +190,7 @@ export default function RedesignDialog({ onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
               <Wand2 className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -248,7 +249,7 @@ export default function RedesignDialog({ onClose }: Props) {
               onChange={(e) => setInstruction(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && !loading && handleGenerate()}
               placeholder="e.g. Make the title bigger, center the image..."
-              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 mb-3"
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20 mb-3"
               disabled={loading}
             />
           )}
@@ -256,7 +257,7 @@ export default function RedesignDialog({ onClose }: Props) {
           <Button
             onClick={handleGenerate}
             disabled={loading}
-            className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 rounded-xl"
+            className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-6 rounded-xl"
           >
             {loading ? (
               <>

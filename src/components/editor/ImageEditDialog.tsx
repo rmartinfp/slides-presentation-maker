@@ -91,7 +91,7 @@ export default function ImageEditDialog({ elementId, onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
               <ImagePlus className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -182,14 +182,14 @@ export default function ImageEditDialog({ elementId, onClose }: Props) {
                 }}
                 onKeyDown={e => e.key === 'Enter' && !loading && handleGenerate()}
                 placeholder="Describe how to edit this image..."
-                className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
+                className="flex-1 px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
                 autoFocus
                 disabled={loading}
               />
               <Button
                 onClick={handleGenerate}
                 disabled={loading || (!instruction.trim() && !mode)}
-                className="bg-gradient-to-r from-violet-500 to-indigo-500 text-white px-4 rounded-xl"
+                className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-xl"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>
@@ -200,7 +200,7 @@ export default function ImageEditDialog({ elementId, onClose }: Props) {
           {resultUrl && (
             <Button
               onClick={handleApply}
-              className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white gap-2"
+              className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white gap-2"
             >
               <ImagePlus className="w-4 h-4" /> Apply Changes
             </Button>

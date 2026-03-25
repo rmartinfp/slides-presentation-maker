@@ -113,7 +113,7 @@ export default function BrandKitDialog({ onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
               <Palette className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -231,7 +231,7 @@ export default function BrandKitDialog({ onClose }: Props) {
             <Button
               onClick={handleApply}
               disabled={applied}
-              className="w-full bg-gradient-to-r from-rose-600 to-orange-500 text-white rounded-xl h-10"
+              className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl h-10"
             >
               {applied ? (
                 <span className="flex items-center gap-2">

@@ -239,7 +239,7 @@ export default function VoiceToSlidesDialog({ onClose }: Props) {
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-purple-600 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
               <Mic className="w-4 h-4 text-white" />
             </div>
             <div>
@@ -294,7 +294,7 @@ export default function VoiceToSlidesDialog({ onClose }: Props) {
                 </Button>
                 <Button
                   onClick={handleGenerate}
-                  className="flex-1 bg-gradient-to-r from-rose-500 to-purple-600 text-white gap-2 rounded-xl"
+                  className="flex-1 bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white gap-2 rounded-xl"
                 >
                   <Send className="w-4 h-4" />
                   Generate Slides
@@ -415,7 +415,7 @@ export default function VoiceToSlidesDialog({ onClose }: Props) {
                   {transcript.trim() && !isRecording && (
                     <Button
                       onClick={handleFinishTranscript}
-                      className="w-full bg-gradient-to-r from-rose-500 to-purple-600 text-white gap-2 rounded-xl"
+                      className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white gap-2 rounded-xl"
                     >
                       <Send className="w-4 h-4" />
                       Use this transcript
@@ -437,7 +437,7 @@ export default function VoiceToSlidesDialog({ onClose }: Props) {
                   <Button
                     onClick={handleFinishTranscript}
                     disabled={!hasContent}
-                    className="w-full bg-gradient-to-r from-rose-500 to-purple-600 text-white gap-2 rounded-xl disabled:opacity-50"
+                    className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white gap-2 rounded-xl disabled:opacity-50"
                   >
                     <Send className="w-4 h-4" />
                     Continue with this text
