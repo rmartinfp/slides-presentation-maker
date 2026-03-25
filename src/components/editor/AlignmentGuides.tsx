@@ -8,10 +8,10 @@ interface Props {
   canvasHeight?: number;
 }
 
-const SNAP_THRESHOLD = 8; // px threshold to show guide
+const SNAP_THRESHOLD = 6;
 
 interface GuideLine {
-  type: 'h' | 'v'; // horizontal or vertical
+  type: 'h' | 'v';
   position: number;
 }
 
@@ -27,16 +27,16 @@ export default function AlignmentGuides({
     const active = elements.find(e => e.id === activeElementId);
     if (!active) return [];
 
-    const others = elements.filter(e => e.id !== activeElementId);
+    // Only compare with UNLOCKED, VISIBLE elements (skip decorations)
+    const others = elements.filter(e => e.id !== activeElementId && !e.locked && e.visible !== false);
     const lines: GuideLine[] = [];
 
-    // Active element edges and centers
     const aCx = active.x + active.width / 2;
     const aCy = active.y + active.height / 2;
     const aRight = active.x + active.width;
     const aBottom = active.y + active.height;
 
-    // Canvas center guides
+    // Canvas center guides (always useful)
     if (Math.abs(aCx - canvasWidth / 2) < SNAP_THRESHOLD) {
       lines.push({ type: 'v', position: canvasWidth / 2 });
     }
@@ -44,58 +44,32 @@ export default function AlignmentGuides({
       lines.push({ type: 'h', position: canvasHeight / 2 });
     }
 
-    // Other element alignment
+    // Compare against other unlocked elements — only key alignments
     for (const other of others) {
       const oCx = other.x + other.width / 2;
       const oCy = other.y + other.height / 2;
       const oRight = other.x + other.width;
       const oBottom = other.y + other.height;
 
-      // Vertical alignment (x-axis)
-      const vChecks = [
-        { a: active.x, o: other.x },
-        { a: active.x, o: oCx },
-        { a: active.x, o: oRight },
-        { a: aCx, o: other.x },
-        { a: aCx, o: oCx },
-        { a: aCx, o: oRight },
-        { a: aRight, o: other.x },
-        { a: aRight, o: oCx },
-        { a: aRight, o: oRight },
-      ];
-      for (const check of vChecks) {
-        if (Math.abs(check.a - check.o) < SNAP_THRESHOLD) {
-          lines.push({ type: 'v', position: check.o });
-        }
-      }
+      // Vertical: left-left, center-center, right-right (3 checks, not 9)
+      if (Math.abs(active.x - other.x) < SNAP_THRESHOLD) lines.push({ type: 'v', position: other.x });
+      if (Math.abs(aCx - oCx) < SNAP_THRESHOLD) lines.push({ type: 'v', position: oCx });
+      if (Math.abs(aRight - oRight) < SNAP_THRESHOLD) lines.push({ type: 'v', position: oRight });
 
-      // Horizontal alignment (y-axis)
-      const hChecks = [
-        { a: active.y, o: other.y },
-        { a: active.y, o: oCy },
-        { a: active.y, o: oBottom },
-        { a: aCy, o: other.y },
-        { a: aCy, o: oCy },
-        { a: aCy, o: oBottom },
-        { a: aBottom, o: other.y },
-        { a: aBottom, o: oCy },
-        { a: aBottom, o: oBottom },
-      ];
-      for (const check of hChecks) {
-        if (Math.abs(check.a - check.o) < SNAP_THRESHOLD) {
-          lines.push({ type: 'h', position: check.o });
-        }
-      }
+      // Horizontal: top-top, center-center, bottom-bottom
+      if (Math.abs(active.y - other.y) < SNAP_THRESHOLD) lines.push({ type: 'h', position: other.y });
+      if (Math.abs(aCy - oCy) < SNAP_THRESHOLD) lines.push({ type: 'h', position: oCy });
+      if (Math.abs(aBottom - oBottom) < SNAP_THRESHOLD) lines.push({ type: 'h', position: oBottom });
     }
 
-    // Deduplicate
+    // Deduplicate and limit
     const seen = new Set<string>();
     return lines.filter(l => {
       const key = `${l.type}-${Math.round(l.position)}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
-    });
+    }).slice(0, 6); // Max 6 guides at once
   }, [elements, activeElementId, canvasWidth, canvasHeight]);
 
   if (guides.length === 0) return null;
@@ -108,29 +82,11 @@ export default function AlignmentGuides({
     >
       {guides.map((g, i) =>
         g.type === 'v' ? (
-          <line
-            key={i}
-            x1={g.position}
-            y1={0}
-            x2={g.position}
-            y2={canvasHeight}
-            stroke="#3b82f6"
-            strokeWidth={1}
-            strokeDasharray="6 4"
-            opacity={0.7}
-          />
+          <line key={i} x1={g.position} y1={0} x2={g.position} y2={canvasHeight}
+            stroke="#4F46E5" strokeWidth={1} strokeDasharray="4 3" opacity={0.5} />
         ) : (
-          <line
-            key={i}
-            x1={0}
-            y1={g.position}
-            x2={canvasWidth}
-            y2={g.position}
-            stroke="#3b82f6"
-            strokeWidth={1}
-            strokeDasharray="6 4"
-            opacity={0.7}
-          />
+          <line key={i} x1={0} y1={g.position} x2={canvasWidth} y2={g.position}
+            stroke="#4F46E5" strokeWidth={1} strokeDasharray="4 3" opacity={0.5} />
         ),
       )}
     </svg>
