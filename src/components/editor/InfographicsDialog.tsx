@@ -10,6 +10,21 @@ type P = { primary: string; secondary: string; accent: string; text: string; bg:
 type Typo = { titleFont: string; bodyFont: string; titleSize: number; bodySize: number };
 type El = Partial<SlideElement>;
 
+/** Returns true if the color is dark (needs light text on top) */
+function isDark(hex: string): boolean {
+  const c = hex.replace('#', '').slice(0, 6);
+  if (c.length !== 6) return false;
+  const r = parseInt(c.slice(0, 2), 16);
+  const g = parseInt(c.slice(2, 4), 16);
+  const b = parseInt(c.slice(4, 6), 16);
+  return (r * 0.299 + g * 0.587 + b * 0.114) < 140;
+}
+
+/** Get contrasting text color for a given background */
+function contrastText(bgColor: string, lightOption = '#ffffff', darkOption?: string): string {
+  return isDark(bgColor) ? lightOption : (darkOption || '#1e293b');
+}
+
 interface Template {
   id: string;
   name: string;
@@ -307,11 +322,11 @@ const TEMPLATES: Template[] = [
         els.push(box(cx, cy, w, h, colors[i], 16));
 
         // Stage label
-        els.push(txt(s.label, cx + 35, cy + 18, 300, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
+        els.push(txt(s.label, cx + 35, cy + 18, 300, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: contrastText(color) }));
         // Description
-        els.push(txt(s.desc, cx + 35, cy + 65, w - 80, 30, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.7 }));
+        els.push(txt(s.desc, cx + 35, cy + 65, w - 80, 30, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: contrastText(colors[i]), opacity: 0.7 }));
         // Value
-        els.push(txt(s.value, cx + 35, cy + 100, 200, 36, { fontSize: 28, fontWeight: 'bold', color: '#ffffff', opacity: 0.9 }));
+        els.push(txt(s.value, cx + 35, cy + 100, 200, 36, { fontSize: 28, fontWeight: 'bold', color: contrastText(colors[i]), opacity: 0.9 }));
 
         // Side percentage indicator (right side)
         const indicatorX = 1380;

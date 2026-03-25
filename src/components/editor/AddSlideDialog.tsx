@@ -68,7 +68,12 @@ export default function AddSlideDialog({ onClose }: Props) {
         locked: false,
         visible: true,
         zIndex: 0,
-        style: el.style || {},
+        style: {
+          ...el.style,
+          // Force presentation fonts and ensure text color matches theme
+          fontFamily: el.style?.fontFamily || (el.style?.fontSize > 20 ? theme.typography.titleFont : theme.typography.bodyFont),
+          color: el.style?.color || theme.palette.text,
+        },
       }));
 
       // Add slide after current
