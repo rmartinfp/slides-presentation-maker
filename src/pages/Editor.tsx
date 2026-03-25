@@ -63,22 +63,6 @@ export default function EditorPage() {
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const initializedRef = useRef(false);
 
-  // Cinematic preset: loaded from sessionStorage if this presentation was created from cinematic template
-  const [cinematicPreset, setCinematicPreset] = useState<CinematicPreset | null>(() => {
-    try {
-      const stored = sessionStorage.getItem('cinematicPreset');
-      if (stored) return JSON.parse(stored);
-      return null;
-    } catch { return null; }
-  });
-  // Also check presentation.cinematicPresetId
-  useEffect(() => {
-    if (!cinematicPreset && presentation.cinematicPresetId) {
-      const found = getPresetById(presentation.cinematicPresetId);
-      if (found) setCinematicPreset(found);
-    }
-  }, [presentation.cinematicPresetId, cinematicPreset]);
-
   const {
     presentation, activeSlideIndex, selectedElementIds,
     isPresentationMode, showAIRewrite, saveStatus, scale,
@@ -95,6 +79,21 @@ export default function EditorPage() {
   const selectedElements = activeSlide?.elements?.filter(e => selectedElementIds.includes(e.id)) ?? [];
   const singleSelected = selectedElements.length === 1 ? selectedElements[0] : null;
   const theme = presentation.theme.tokens;
+
+  // Cinematic preset: loaded from sessionStorage or presentation data
+  const [cinematicPreset, setCinematicPreset] = useState<CinematicPreset | null>(() => {
+    try {
+      const stored = sessionStorage.getItem('cinematicPreset');
+      if (stored) return JSON.parse(stored);
+      return null;
+    } catch { return null; }
+  });
+  useEffect(() => {
+    if (!cinematicPreset && presentation.cinematicPresetId) {
+      const found = getPresetById(presentation.cinematicPresetId);
+      if (found) setCinematicPreset(found);
+    }
+  }, [presentation.cinematicPresetId, cinematicPreset]);
 
   // Detect actual font sizes/families used in this presentation for text presets
   const detectedStyles = React.useMemo(() => {

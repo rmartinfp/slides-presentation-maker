@@ -510,13 +510,12 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                         {(firstSlide?.videoBackground?.url || firstSlide?.videoUrl) && (
                           <video
                             src={firstSlide.videoBackground?.url || firstSlide.videoUrl}
+                            autoPlay
                             muted
                             loop
                             playsInline
                             className="absolute inset-0 w-full h-full object-cover"
                             style={{ opacity: firstSlide.videoBackground?.opacity || firstSlide.videoOpacity || 0.3, filter: firstSlide.videoBackground?.filter || undefined }}
-                            onMouseEnter={e => (e.target as HTMLVideoElement).play()}
-                            onMouseLeave={e => { (e.target as HTMLVideoElement).pause(); (e.target as HTMLVideoElement).currentTime = 0; }}
                           />
                         )}
 
