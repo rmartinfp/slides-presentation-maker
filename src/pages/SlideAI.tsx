@@ -165,12 +165,17 @@ export default function SlideAIPage() {
       // so it generates content that maps 1:1 to the template's text boxes.
       if (templateSlides && templateSlides.length > 0) {
         // Filter out leaked final pages (instructions, resources — have 20+ elements)
-        const cleanSlides = templateSlides.filter(s => {
+        const cleanSlides = templateSlides.filter((s, idx) => {
           const elCount = s.elements?.length || 0;
-          if (elCount > 25) return false; // Resource/instruction pages have many elements
-          // Also filter "Instructions for use" text
           const allText = (s.elements || []).map(e => e.content).join(' ').toLowerCase();
+          // Never filter the cover slide (index 0) or closing slides
+          const isCover = idx === 0 || (s as any).layout === 'cover';
+          const isClosing = (s as any).layout === 'closing';
+          if (isCover || isClosing) return true;
+          // Filter instruction/resource pages by text content, not element count
+          // (templates like Halloween have 100+ decorative shapes on normal slides)
           if (allText.includes('instructions for use') || allText.includes('for more info')) return false;
+          if (allText.includes('resources') && allText.includes('freepik') && elCount > 25) return false;
           // Skip title-only slides (no real content structure)
           if ((s as any).layout === 'title-only') return false;
           return true;
