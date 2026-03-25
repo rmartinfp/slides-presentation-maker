@@ -168,6 +168,7 @@ export default function SlideCanvas({
         transform: `scale(${scale})`,
         borderRadius: theme.tokens.radii,
         overflow: 'hidden',
+        clipPath: 'inset(0 0 0 0)',
         ...bgStyle,
       }}
       onClick={isEditing ? handleCanvasClick : undefined}
