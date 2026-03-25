@@ -32,42 +32,65 @@ const line = (x: number, y: number, w: number, h: number, color: string, width =
   type: 'shape', content: '', x, y, width: w, height: h, style: { shapeType: 'line', shapeFill: 'transparent', shapeStroke: color, shapeStrokeWidth: width },
 });
 
+/** Light tint of a hex color (appends hex opacity) */
+const tint = (color: string, opacity: string) => color + opacity;
+
 // ── Templates ──
 const TEMPLATES: Template[] = [
   {
     id: 'process-horizontal',
     name: 'Process Flow',
     category: 'Process',
-    description: '4 steps with arrows — edit each step title and description',
+    description: '4 connected step cards with numbered circles and accent borders',
     generate: (p, t) => {
-      const els: El[] = [
-        // Full-slide background card
-        box(60, 40, 1800, 1000, p.bg === '#ffffff' || p.bg === '#FFFFFF' ? '#f8fafc' : p.bg, 24),
-        txt('Your Process Title', 100, 80, 800, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('Describe the overall process in one line.', 100, 155, 800, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-      ];
+      const els: El[] = [];
+      // Full slide subtle background
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '08'), 0));
+      // Top accent stripe
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      // Title area
+      els.push(txt('Your Process Title', 120, 70, 900, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('Describe the overall process in one line.', 120, 148, 900, 36, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      // Decorative accent line under subtitle
+      els.push(box(120, 196, 80, 3, p.primary, 2));
+
       const steps = [
-        { num: '01', title: 'Research', desc: 'Gather data and insights from your target audience.' },
-        { num: '02', title: 'Strategy', desc: 'Define goals, KPIs and the action plan.' },
-        { num: '03', title: 'Execute', desc: 'Implement the plan with your team.' },
-        { num: '04', title: 'Measure', desc: 'Track results and optimize for growth.' },
+        { num: '01', title: 'Research', desc: 'Gather data and insights from your target audience and market.' },
+        { num: '02', title: 'Strategy', desc: 'Define goals, KPIs and the action plan for execution.' },
+        { num: '03', title: 'Execute', desc: 'Implement the plan with your cross-functional team.' },
+        { num: '04', title: 'Measure', desc: 'Track results, iterate and optimize for growth.' },
       ];
+      const colors = [p.primary, p.secondary, p.accent, p.primary];
+
       steps.forEach((s, i) => {
-        const cx = 120 + i * 420;
-        const cy = 300;
-        // Card
-        els.push(box(cx, cy, 370, 560, i === 0 ? p.primary : i === 1 ? p.secondary : i === 2 ? p.accent : p.primary, 20));
-        // Number
-        els.push(txt(s.num, cx + 30, cy + 30, 100, 70, { fontSize: 48, fontWeight: 'bold', color: '#ffffff', opacity: 0.3 }));
+        const cx = 120 + i * 430;
+        const cy = 310;
+        const cardW = 390;
+        const cardH = 580;
+        const color = colors[i];
+
+        // Card shadow (offset rect)
+        els.push(box(cx + 6, cy + 6, cardW, cardH, tint(p.text, '08'), 18));
+        // Card background (white)
+        els.push(box(cx, cy, cardW, cardH, '#ffffff', 18));
+        // Left accent border
+        els.push(box(cx, cy, 6, cardH, color, 18));
+        // Number circle
+        els.push(circle(cx + 30, cy + 35, 56, color));
+        els.push(txt(s.num, cx + 34, cy + 47, 48, 34, { fontSize: 20, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', fontFamily: t.titleFont }));
         // Title
-        els.push(txt(s.title, cx + 30, cy + 120, 310, 50, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
+        els.push(txt(s.title, cx + 105, cy + 42, 260, 44, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text }));
         // Divider
-        els.push(box(cx + 30, cy + 185, 60, 3, '#ffffff', 2));
+        els.push(box(cx + 30, cy + 118, 330, 2, tint(p.text, '10'), 1));
         // Description
-        els.push(txt(s.desc, cx + 30, cy + 210, 310, 120, { fontSize: 14, color: '#ffffff', opacity: 0.85, lineHeight: 1.6 }));
-        // Arrow between cards
+        els.push(txt(s.desc, cx + 30, cy + 145, 330, 140, { fontSize: t.bodySize, color: p.text, opacity: 0.65, lineHeight: 1.7, fontFamily: t.bodyFont }));
+
+        // Connector arrow between cards
         if (i < 3) {
-          els.push(txt('→', cx + 380, cy + 250, 40, 50, { fontSize: 28, color: p.text, opacity: 0.3, textAlign: 'center' }));
+          // Horizontal line
+          els.push(box(cx + cardW + 8, cy + 62, 28, 3, tint(p.text, '25'), 0));
+          // Arrow head
+          els.push(txt('\u203A', cx + cardW + 18, cy + 40, 30, 44, { fontSize: 32, color: tint(p.text, '30'), textAlign: 'center' }));
         }
       });
       return els;
@@ -77,32 +100,44 @@ const TEMPLATES: Template[] = [
     id: 'stats-dashboard',
     name: 'Key Metrics',
     category: 'Statistics',
-    description: '4 big numbers with labels — just replace the values',
+    description: '2\u00D72 metric cards with large numbers and colored underlines',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('Key Metrics', 100, 80, 600, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('Performance overview for the current quarter.', 100, 155, 600, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-      ];
+      const els: El[] = [];
+      // Full background tint
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      // Top accent
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      // Title
+      els.push(txt('Key Metrics', 120, 65, 700, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('Performance overview for the current quarter.', 120, 143, 700, 36, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 191, 80, 3, p.primary, 2));
+
       const stats = [
         { value: '$2.4M', label: 'Revenue', change: '+24% vs last quarter' },
         { value: '12,847', label: 'Active Users', change: '+18% vs last quarter' },
         { value: '94.2%', label: 'Satisfaction', change: '+3.1% vs last quarter' },
-        { value: '47 days', label: 'Avg. Sales Cycle', change: '-12% vs last quarter' },
+        { value: '47 days', label: 'Avg. Sales Cycle', change: '\u221212% vs last quarter' },
       ];
+      const colors = [p.primary, p.accent, p.secondary, p.primary];
+
+      // Central divider lines
+      els.push(box(960, 270, 2, 720, tint(p.text, '10'), 0)); // vertical
+      els.push(box(140, 630, 1640, 2, tint(p.text, '10'), 0)); // horizontal
+
       stats.forEach((s, i) => {
         const col = i % 2;
         const row = Math.floor(i / 2);
-        const cx = 100 + col * 880;
-        const cy = 280 + row * 360;
-        const colors = [p.primary, p.accent, p.secondary, p.primary];
-        // Card
-        els.push(box(cx, cy, 820, 300, colors[i], 20));
+        const cx = 180 + col * 860;
+        const cy = 310 + row * 360;
+
         // Value
-        els.push(txt(s.value, cx + 50, cy + 40, 600, 110, { fontSize: 64, fontWeight: 'bold', color: '#ffffff' }));
+        els.push(txt(s.value, cx, cy, 600, 100, { fontSize: 72, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+        // Colored underline accent
+        els.push(box(cx, cy + 105, 100, 4, colors[i], 2));
         // Label
-        els.push(txt(s.label, cx + 50, cy + 160, 400, 40, { fontSize: 20, color: '#ffffff', opacity: 0.9 }));
+        els.push(txt(s.label, cx, cy + 130, 400, 36, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text, opacity: 0.8 }));
         // Change
-        els.push(txt(s.change, cx + 50, cy + 210, 400, 30, { fontSize: 14, color: '#ffffff', opacity: 0.6 }));
+        els.push(txt(s.change, cx, cy + 175, 400, 28, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: colors[i], opacity: 0.7 }));
       });
       return els;
     },
@@ -111,31 +146,63 @@ const TEMPLATES: Template[] = [
     id: 'comparison-vs',
     name: 'Before / After',
     category: 'Comparison',
-    description: 'Two columns to compare — edit titles and bullet points',
+    description: 'Clean two-column comparison with a central VS divider',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('Before vs After', 100, 80, 800, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('See the transformation at a glance.', 100, 155, 800, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-        // VS circle
-        circle(900, 480, 80, p.accent),
-        txt('VS', 912, 497, 56, 40, { fontSize: Math.round(t.bodySize * 0.75), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff', textAlign: 'center' }),
-      ];
-      // Left column — Before
-      els.push(box(80, 260, 800, 700, p.primary, 20));
-      els.push(txt('Before', 130, 300, 700, 50, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
-      els.push(box(130, 370, 60, 3, '#ffffff', 2));
-      const beforeItems = ['Manual data entry', 'Slow decision making', 'Scattered communication', 'No real-time visibility'];
+      const els: El[] = [];
+      // Full background
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      // Title
+      els.push(txt('Before vs After', 120, 55, 800, 65, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('See the transformation at a glance.', 120, 128, 800, 34, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 174, 80, 3, p.primary, 2));
+
+      // Center VS divider — vertical line
+      els.push(box(956, 240, 3, 780, tint(p.text, '15'), 0));
+      // VS circle
+      els.push(circle(920, 530, 72, p.accent));
+      els.push(txt('VS', 928, 546, 56, 36, { fontSize: Math.round(t.bodySize * 0.75), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff', textAlign: 'center' }));
+
+      // ── Left column (Before) ──
+      // Card shadow
+      els.push(box(96, 246, 810, 730, tint(p.text, '06'), 20));
+      // Card
+      els.push(box(90, 240, 810, 730, '#ffffff', 20));
+      // Header bar
+      els.push(box(90, 240, 810, 70, tint(p.primary, '12'), 20));
+      els.push(txt('Before', 140, 252, 300, 46, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: p.primary }));
+
+      const beforeItems = ['Manual data entry', 'Slow decision making', 'Scattered communication', 'No real-time visibility', 'High error rate'];
       beforeItems.forEach((item, i) => {
-        els.push(txt(`×  ${item}`, 130, 400 + i * 65, 700, 40, { fontSize: Math.round(t.bodySize * 0.7), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.9 }));
+        const iy = 350 + i * 110;
+        // X icon circle
+        els.push(circle(135, iy, 36, tint(p.primary, '15')));
+        els.push(txt('\u2717', 140, iy + 3, 28, 28, { fontSize: 18, color: p.primary, textAlign: 'center', fontWeight: 'bold' }));
+        // Text
+        els.push(txt(item, 190, iy + 4, 650, 32, { fontSize: t.bodySize, fontFamily: t.bodyFont, color: p.text, opacity: 0.75 }));
+        // Separator
+        if (i < beforeItems.length - 1) {
+          els.push(box(135, iy + 72, 700, 1, tint(p.text, '08'), 0));
+        }
       });
-      // Right column — After
-      els.push(box(1040, 260, 800, 700, p.secondary, 20));
-      els.push(txt('After', 1090, 300, 700, 50, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
-      els.push(box(1090, 370, 60, 3, '#ffffff', 2));
-      const afterItems = ['Automated workflows', 'AI-powered insights', 'Unified platform', 'Real-time dashboards'];
+
+      // ── Right column (After) ──
+      els.push(box(1016, 246, 810, 730, tint(p.text, '06'), 20));
+      els.push(box(1010, 240, 810, 730, '#ffffff', 20));
+      els.push(box(1010, 240, 810, 70, tint(p.accent, '12'), 20));
+      els.push(txt('After', 1060, 252, 300, 46, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: p.accent }));
+
+      const afterItems = ['Automated workflows', 'AI-powered insights', 'Unified platform', 'Real-time dashboards', 'Near-zero errors'];
       afterItems.forEach((item, i) => {
-        els.push(txt(`✓  ${item}`, 1090, 400 + i * 65, 700, 40, { fontSize: Math.round(t.bodySize * 0.7), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.9 }));
+        const iy = 350 + i * 110;
+        els.push(circle(1055, iy, 36, tint(p.accent, '18')));
+        els.push(txt('\u2713', 1060, iy + 3, 28, 28, { fontSize: 18, color: p.accent, textAlign: 'center', fontWeight: 'bold' }));
+        els.push(txt(item, 1110, iy + 4, 650, 32, { fontSize: t.bodySize, fontFamily: t.bodyFont, color: p.text, opacity: 0.75 }));
+        if (i < afterItems.length - 1) {
+          els.push(box(1055, iy + 72, 700, 1, tint(p.text, '08'), 0));
+        }
       });
+
       return els;
     },
   },
@@ -143,37 +210,63 @@ const TEMPLATES: Template[] = [
     id: 'timeline-roadmap',
     name: 'Roadmap Timeline',
     category: 'Timeline',
-    description: 'Horizontal roadmap with milestones — edit dates and titles',
+    description: 'Alternating top/bottom milestone cards on a horizontal axis',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('Product Roadmap', 100, 80, 600, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('Key milestones for the next 12 months.', 100, 155, 600, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-        // Main timeline line
-        box(140, 520, 1640, 4, p.primary, 2),
-      ];
+      const els: El[] = [];
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      els.push(txt('Product Roadmap', 120, 65, 700, 65, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('Key milestones for the next 12 months.', 120, 138, 700, 34, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 184, 80, 3, p.primary, 2));
+
+      // Main horizontal timeline line
+      const lineY = 540;
+      els.push(box(100, lineY - 2, 1720, 4, p.primary, 2));
+      // Endpoint dots
+      els.push(circle(88, lineY - 8, 16, p.primary));
+      els.push(circle(1816, lineY - 8, 16, p.primary));
+
       const milestones = [
-        { date: 'Q1 2026', title: 'Beta Launch', desc: 'Release beta to early adopters and gather feedback.' },
-        { date: 'Q2 2026', title: 'Public Launch', desc: 'Full release with marketing campaign.' },
-        { date: 'Q3 2026', title: 'Enterprise', desc: 'Enterprise features, SSO, and audit logs.' },
-        { date: 'Q4 2026', title: 'Scale', desc: 'International expansion and partnerships.' },
+        { date: 'Q1 2026', title: 'Beta Launch', desc: 'Release beta to early adopters and gather feedback from first users.' },
+        { date: 'Q2 2026', title: 'Public Launch', desc: 'Full public release with a comprehensive marketing campaign.' },
+        { date: 'Q3 2026', title: 'Enterprise', desc: 'Enterprise features including SSO, audit logs and compliance.' },
+        { date: 'Q4 2026', title: 'Scale', desc: 'International expansion and strategic partnerships worldwide.' },
       ];
+      const colors = [p.primary, p.secondary, p.accent, p.primary];
+
       milestones.forEach((m, i) => {
         const cx = 200 + i * 400;
         const isTop = i % 2 === 0;
-        const cardY = isTop ? 260 : 580;
-        const dotY = 508;
-        // Dot on line
-        els.push(circle(cx + 15, dotY, 28, p.primary));
-        // Connector line
-        els.push(box(cx + 27, isTop ? cardY + 200 : 536, 3, isTop ? dotY - cardY - 200 : cardY - 536, p.primary, 0));
+        const cardW = 320;
+        const cardH = 220;
+        const cardY = isTop ? 250 : 600;
+        const color = colors[i];
+
+        // Dot on timeline
+        els.push(circle(cx + 18, lineY - 14, 28, '#ffffff'));
+        els.push(circle(cx + 22, lineY - 10, 20, color));
+
+        // Vertical connector
+        if (isTop) {
+          els.push(box(cx + 30, cardY + cardH, 2, lineY - cardY - cardH - 14, tint(color, '50'), 0));
+        } else {
+          els.push(box(cx + 30, lineY + 16, 2, cardY - lineY - 16, tint(color, '50'), 0));
+        }
+
+        // Card shadow
+        els.push(box(cx - 50 + 5, cardY + 5, cardW, cardH, tint(p.text, '06'), 16));
         // Card
-        els.push(box(cx - 60, cardY, 320, 200, p.bg === '#ffffff' || p.bg === '#FFFFFF' ? '#f1f5f9' : p.primary + '18', 16));
-        // Date
-        els.push(txt(m.date, cx - 30, cardY + 20, 260, 30, { fontSize: 12, fontWeight: 'bold', color: p.primary, textAlign: 'center' }));
+        els.push(box(cx - 50, cardY, cardW, cardH, '#ffffff', 16));
+        // Top accent line on card
+        els.push(box(cx - 50, cardY, cardW, 5, color, 16));
+
+        // Date badge
+        els.push(box(cx - 20, cardY + 22, 110, 30, tint(color, '15'), 8));
+        els.push(txt(m.date, cx - 15, cardY + 25, 100, 24, { fontSize: Math.round(t.bodySize * 0.45), fontWeight: 'bold', color: color, textAlign: 'center', fontFamily: t.bodyFont }));
         // Title
-        els.push(txt(m.title, cx - 30, cardY + 55, 260, 40, { fontSize: Math.round(t.bodySize * 0.75), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text, textAlign: 'center' }));
+        els.push(txt(m.title, cx - 30, cardY + 68, 280, 38, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text }));
         // Description
-        els.push(txt(m.desc, cx - 30, cardY + 105, 260, 70, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.6, textAlign: 'center', lineHeight: 1.5 }));
+        els.push(txt(m.desc, cx - 30, cardY + 116, 280, 80, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: p.text, opacity: 0.55, lineHeight: 1.6 }));
       });
       return els;
     },
@@ -182,28 +275,58 @@ const TEMPLATES: Template[] = [
     id: 'funnel-conversion',
     name: 'Conversion Funnel',
     category: 'Conversion',
-    description: 'Funnel showing conversion stages — edit labels and numbers',
+    description: 'Tapered funnel stages with percentage indicators on the side',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('Conversion Funnel', 100, 80, 600, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('How visitors become customers.', 100, 155, 600, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-      ];
+      const els: El[] = [];
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      els.push(txt('Conversion Funnel', 120, 65, 700, 65, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('How visitors become customers.', 120, 138, 700, 34, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 184, 80, 3, p.primary, 2));
+
       const stages = [
-        { label: 'Visitors', value: '50,000', pct: '100%', w: 1600 },
-        { label: 'Leads', value: '12,500', pct: '25%', w: 1200 },
-        { label: 'Qualified', value: '3,750', pct: '7.5%', w: 800 },
-        { label: 'Customers', value: '1,125', pct: '2.25%', w: 500 },
+        { label: 'Visitors', value: '50,000', pct: '100%', desc: 'Total website visitors this period' },
+        { label: 'Leads', value: '12,500', pct: '25%', desc: 'Signed up or submitted a form' },
+        { label: 'Qualified', value: '3,750', pct: '7.5%', desc: 'Met criteria for sales outreach' },
+        { label: 'Customers', value: '1,125', pct: '2.25%', desc: 'Completed purchase or contract' },
       ];
       const colors = [p.primary, p.secondary, p.accent, p.primary];
+      const stageCount = stages.length;
+
       stages.forEach((s, i) => {
-        const cx = 960 - s.w / 2;
-        const cy = 260 + i * 180;
-        els.push(box(cx, cy, s.w, 140, colors[i], 16));
-        els.push(txt(s.label, cx + 40, cy + 20, 300, 40, { fontSize: Math.round(t.titleSize * 0.48), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
-        els.push(txt(s.value, cx + s.w - 300, cy + 15, 260, 50, { fontSize: 36, fontWeight: 'bold', color: '#ffffff', textAlign: 'right' }));
-        els.push(txt(s.pct, cx + s.w - 300, cy + 70, 260, 30, { fontSize: 14, color: '#ffffff', opacity: 0.7, textAlign: 'right' }));
-        els.push(txt('Description of this stage.', cx + 40, cy + 75, 500, 30, { fontSize: Math.round(t.bodySize * 0.54), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.7 }));
+        const maxW = 1100;
+        const minW = 400;
+        const w = maxW - (maxW - minW) * (i / (stageCount - 1));
+        const h = 150;
+        const cy = 250 + i * 190;
+        const cx = 700 - w / 2; // Left-aligned funnel center at ~700
+
+        // Tapered bar shadow
+        els.push(box(cx + 5, cy + 5, w, h, tint(p.text, '06'), 16));
+        // Tapered bar
+        els.push(box(cx, cy, w, h, colors[i], 16));
+
+        // Stage label
+        els.push(txt(s.label, cx + 35, cy + 18, 300, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
+        // Description
+        els.push(txt(s.desc, cx + 35, cy + 65, w - 80, 30, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.7 }));
+        // Value
+        els.push(txt(s.value, cx + 35, cy + 100, 200, 36, { fontSize: 28, fontWeight: 'bold', color: '#ffffff', opacity: 0.9 }));
+
+        // Side percentage indicator (right side)
+        const indicatorX = 1380;
+        els.push(box(indicatorX, cy + 30, 120, 50, tint(colors[i], '15'), 12));
+        els.push(txt(s.pct, indicatorX + 10, cy + 38, 100, 34, { fontSize: 22, fontWeight: 'bold', color: colors[i], textAlign: 'center', fontFamily: t.titleFont }));
+
+        // Connector line from bar to indicator
+        els.push(box(cx + w + 10, cy + 54, indicatorX - cx - w - 10, 2, tint(colors[i], '30'), 0));
+
+        // Drop-off arrow between stages
+        if (i < stageCount - 1) {
+          els.push(txt('\u25BE', 700, cy + h + 4, 30, 30, { fontSize: 22, color: tint(p.text, '20'), textAlign: 'center' }));
+        }
       });
+
       return els;
     },
   },
@@ -211,37 +334,53 @@ const TEMPLATES: Template[] = [
     id: 'features-grid',
     name: 'Feature Grid',
     category: 'Features',
-    description: '6 feature cards in a grid — edit icon, title and description',
+    description: '6 numbered feature cards in a clean 3\u00D72 grid layout',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('What We Offer', 100, 60, 600, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('Everything you need in one platform.', 100, 125, 600, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-      ];
+      const els: El[] = [];
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      els.push(txt('What We Offer', 120, 50, 700, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('Everything you need in one platform.', 120, 118, 700, 32, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 162, 80, 3, p.primary, 2));
+
       const features = [
-        { icon: '⚡', title: 'Lightning Fast', desc: 'Sub-second response times across all features.' },
-        { icon: '🔒', title: 'Secure', desc: 'Enterprise-grade encryption and compliance.' },
-        { icon: '📊', title: 'Analytics', desc: 'Deep insights with real-time dashboards.' },
-        { icon: '🔄', title: 'Integrations', desc: 'Connect with 100+ tools you already use.' },
-        { icon: '👥', title: 'Collaboration', desc: 'Work together in real-time, anywhere.' },
-        { icon: '🎯', title: 'Automation', desc: 'Set rules once, let the system handle the rest.' },
+        { num: '01', title: 'Lightning Fast', desc: 'Sub-second response times across all features and endpoints.' },
+        { num: '02', title: 'Enterprise Security', desc: 'Bank-grade encryption, SOC2 compliance, and audit trails.' },
+        { num: '03', title: 'Deep Analytics', desc: 'Actionable insights with real-time dashboards and reports.' },
+        { num: '04', title: 'Integrations', desc: 'Connect with 100+ tools your team already uses daily.' },
+        { num: '05', title: 'Collaboration', desc: 'Work together in real-time with comments and approvals.' },
+        { num: '06', title: 'Automation', desc: 'Set rules once, let the system handle the rest automatically.' },
       ];
-      const cardBg = p.bg === '#ffffff' || p.bg === '#FFFFFF' ? '#f8fafc' : p.bg;
+      const colors = [p.primary, p.secondary, p.accent, p.accent, p.primary, p.secondary];
+
       features.forEach((f, i) => {
         const col = i % 3;
         const row = Math.floor(i / 3);
         const cx = 100 + col * 590;
-        const cy = 210 + row * 400;
-        // Card with subtle border
-        els.push(box(cx, cy, 550, 350, cardBg, 20));
-        // Accent bar at top
-        els.push(box(cx, cy, 550, 6, [p.primary, p.secondary, p.accent, p.primary, p.secondary, p.accent][i], 20));
-        // Icon circle
-        els.push(circle(cx + 40, cy + 40, 60, [p.primary, p.secondary, p.accent, p.primary, p.secondary, p.accent][i]));
-        els.push(txt(f.icon, cx + 48, cy + 50, 44, 40, { fontSize: 24, textAlign: 'center', color: '#ffffff' }));
+        const cy = 210 + row * 420;
+        const cardW = 550;
+        const cardH = 380;
+        const color = colors[i];
+
+        // Card shadow
+        els.push(box(cx + 5, cy + 5, cardW, cardH, tint(p.text, '05'), 18));
+        // Card
+        els.push(box(cx, cy, cardW, cardH, '#ffffff', 18));
+        // Thin top border
+        els.push(box(cx, cy, cardW, 4, color, 18));
+
+        // Number circle
+        els.push(circle(cx + 35, cy + 35, 52, color));
+        els.push(txt(f.num, cx + 39, cy + 46, 44, 32, { fontSize: 18, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', fontFamily: t.titleFont }));
+
         // Title
-        els.push(txt(f.title, cx + 40, cy + 130, 470, 40, { fontSize: Math.round(t.titleSize * 0.48), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text }));
-        // Desc
-        els.push(txt(f.desc, cx + 40, cy + 185, 470, 80, { fontSize: Math.round(t.bodySize * 0.58), color: p.text, fontFamily: t.bodyFont, opacity: 0.6, lineHeight: 1.6 }));
+        els.push(txt(f.title, cx + 105, cy + 44, 410, 38, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text }));
+
+        // Divider
+        els.push(box(cx + 35, cy + 115, 480, 1, tint(p.text, '10'), 0));
+
+        // Description
+        els.push(txt(f.desc, cx + 35, cy + 145, 480, 100, { fontSize: t.bodySize, color: p.text, fontFamily: t.bodyFont, opacity: 0.6, lineHeight: 1.7 }));
       });
       return els;
     },
@@ -250,43 +389,71 @@ const TEMPLATES: Template[] = [
     id: 'pricing-table',
     name: 'Pricing Cards',
     category: 'Pricing',
-    description: '3 pricing tiers side by side — edit plan names, prices and features',
+    description: '3 pricing tiers with the middle card highlighted and elevated',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('Simple, Transparent Pricing', 100, 60, 800, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('No hidden fees. Cancel anytime.', 100, 125, 600, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-      ];
+      const els: El[] = [];
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      els.push(txt('Simple, Transparent Pricing', 120, 50, 900, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('No hidden fees. Cancel anytime.', 120, 118, 700, 32, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 162, 80, 3, p.primary, 2));
+
       const plans = [
         { name: 'Starter', price: '$9', period: '/month', features: ['5 projects', '10GB storage', 'Email support', 'Basic analytics'], cta: 'Get Started', featured: false },
         { name: 'Pro', price: '$29', period: '/month', features: ['Unlimited projects', '100GB storage', 'Priority support', 'Advanced analytics', 'Custom domain'], cta: 'Start Free Trial', featured: true },
         { name: 'Enterprise', price: '$99', period: '/month', features: ['Everything in Pro', 'Unlimited storage', 'Dedicated support', 'SSO & SAML', 'SLA guarantee', 'Custom integrations'], cta: 'Contact Sales', featured: false },
       ];
+
       plans.forEach((plan, i) => {
         const cx = 110 + i * 590;
-        const cy = 210;
-        const cardH = plan.featured ? 780 : 740;
-        const cardBg = plan.featured ? p.primary : (p.bg === '#ffffff' || p.bg === '#FFFFFF' ? '#f8fafc' : p.bg);
-        const textColor = plan.featured ? '#ffffff' : p.text;
-        // Card
-        els.push(box(cx, cy, 540, cardH, cardBg, 24));
-        if (plan.featured) {
-          els.push(txt('MOST POPULAR', cx + 160, cy + 20, 220, 25, { fontSize: 10, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', opacity: 0.7 }));
+        const isFeatured = plan.featured;
+        const cy = isFeatured ? 195 : 225;
+        const cardH = isFeatured ? 830 : 780;
+        const cardW = 540;
+
+        if (isFeatured) {
+          // Glow shadow for featured
+          els.push(box(cx - 4, cy - 4, cardW + 8, cardH + 8, tint(p.primary, '18'), 28));
         }
+        // Card shadow
+        els.push(box(cx + 5, cy + 5, cardW, cardH, tint(p.text, isFeatured ? '10' : '05'), 24));
+        // Card
+        els.push(box(cx, cy, cardW, cardH, isFeatured ? p.primary : '#ffffff', 24));
+
+        const textColor = isFeatured ? '#ffffff' : p.text;
+
+        if (isFeatured) {
+          // "Most Popular" badge
+          els.push(box(cx + 155, cy + 16, 230, 32, '#ffffff30', 16));
+          els.push(txt('MOST POPULAR', cx + 160, cy + 19, 220, 26, { fontSize: Math.round(t.bodySize * 0.45), fontWeight: 'bold', color: '#ffffff', textAlign: 'center', fontFamily: t.bodyFont }));
+        }
+
+        const topOffset = isFeatured ? 65 : 30;
+
         // Plan name
-        els.push(txt(plan.name, cx + 40, cy + (plan.featured ? 55 : 35), 460, 40, { fontSize: Math.round(t.titleSize * 0.48), fontWeight: 'bold', fontFamily: t.titleFont, color: textColor }));
+        els.push(txt(plan.name, cx + 40, cy + topOffset, 460, 40, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: textColor }));
         // Price
-        els.push(txt(plan.price, cx + 40, cy + (plan.featured ? 105 : 85), 200, 80, { fontSize: 56, fontWeight: 'bold', color: textColor }));
-        els.push(txt(plan.period, cx + 200, cy + (plan.featured ? 140 : 120), 100, 30, { fontSize: Math.round(t.bodySize * 0.67), fontFamily: t.bodyFont, color: textColor, opacity: 0.6 }));
+        els.push(txt(plan.price, cx + 40, cy + topOffset + 55, 200, 80, { fontSize: 64, fontWeight: 'bold', color: textColor, fontFamily: t.titleFont }));
+        els.push(txt(plan.period, cx + 220, cy + topOffset + 85, 100, 28, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: textColor, opacity: 0.55 }));
+
         // Divider
-        els.push(box(cx + 40, cy + (plan.featured ? 200 : 180), 460, 1, plan.featured ? '#ffffff30' : '#e2e8f0', 0));
-        // Features
+        els.push(box(cx + 40, cy + topOffset + 150, 460, 1, isFeatured ? '#ffffff25' : tint(p.text, '10'), 0));
+
+        // Features with checkmarks
         plan.features.forEach((feat, fi) => {
-          els.push(txt(`✓  ${feat}`, cx + 40, cy + (plan.featured ? 220 : 200) + fi * 45, 460, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: textColor, opacity: plan.featured ? 0.9 : 0.7 }));
+          const fy = cy + topOffset + 175 + fi * 50;
+          // Check circle
+          els.push(circle(cx + 45, fy + 2, 26, isFeatured ? '#ffffff20' : tint(p.primary, '12')));
+          els.push(txt('\u2713', cx + 49, fy + 4, 20, 20, { fontSize: 13, color: isFeatured ? '#ffffff' : p.primary, textAlign: 'center', fontWeight: 'bold' }));
+          els.push(txt(feat, cx + 85, fy + 3, 420, 28, { fontSize: t.bodySize, fontFamily: t.bodyFont, color: textColor, opacity: isFeatured ? 0.9 : 0.65 }));
         });
-        // CTA button shape
-        const btnY = cy + cardH - 80;
-        els.push(box(cx + 40, btnY, 460, 50, plan.featured ? '#ffffff' : p.primary, 12));
-        els.push(txt(plan.cta, cx + 40, btnY + 8, 460, 35, { fontSize: 15, fontWeight: 'bold', color: plan.featured ? p.primary : '#ffffff', textAlign: 'center' }));
+
+        // CTA button
+        const btnY = cy + cardH - 85;
+        const btnBg = isFeatured ? '#ffffff' : p.primary;
+        const btnColor = isFeatured ? p.primary : '#ffffff';
+        els.push(box(cx + 40, btnY, 460, 54, btnBg, 14));
+        els.push(txt(plan.cta, cx + 40, btnY + 12, 460, 30, { fontSize: Math.round(t.bodySize * 0.6), fontWeight: 'bold', color: btnColor, textAlign: 'center', fontFamily: t.bodyFont }));
       });
       return els;
     },
@@ -295,34 +462,63 @@ const TEMPLATES: Template[] = [
     id: 'team-cards',
     name: 'Team Showcase',
     category: 'Team',
-    description: '4 team member cards — replace names, roles and photos',
+    description: '4 team member cards with photo placeholders, names, and roles',
     generate: (p, t) => {
-      const els: El[] = [
-        txt('Meet Our Team', 100, 60, 600, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
-        txt('The people behind the product.', 100, 125, 600, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
-      ];
+      const els: El[] = [];
+      els.push(box(0, 0, 1920, 1080, tint(p.primary, '06'), 0));
+      els.push(box(0, 0, 1920, 6, p.primary, 0));
+      els.push(txt('Meet Our Team', 120, 50, 700, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }));
+      els.push(txt('The people behind the product.', 120, 118, 700, 32, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.45 }));
+      els.push(box(120, 162, 80, 3, p.primary, 2));
+
       const members = [
-        { name: 'Sarah Chen', role: 'CEO & Co-founder', bio: 'Previously VP at Google. Stanford MBA.' },
-        { name: 'Marcus Rivera', role: 'CTO', bio: '15 years in distributed systems. Ex-AWS.' },
-        { name: 'Lisa Park', role: 'Head of Design', bio: 'Design lead at Figma, Apple alumna.' },
-        { name: 'James Wilson', role: 'VP Sales', bio: '10 years enterprise sales. Ex-Salesforce.' },
+        { name: 'Sarah Chen', initials: 'SC', role: 'CEO & Co-founder', bio: 'Previously VP at Google. Stanford MBA. 12 years of leadership experience.' },
+        { name: 'Marcus Rivera', initials: 'MR', role: 'CTO', bio: '15 years in distributed systems. Ex-AWS. Built platforms serving 100M+ users.' },
+        { name: 'Lisa Park', initials: 'LP', role: 'Head of Design', bio: 'Design lead at Figma, Apple alumna. Passionate about accessible design.' },
+        { name: 'James Wilson', initials: 'JW', role: 'VP Sales', bio: '10 years enterprise sales at Salesforce. Grew ARR from $5M to $50M.' },
       ];
+      const colors = [p.primary, p.secondary, p.accent, p.primary];
+
       members.forEach((m, i) => {
         const cx = 100 + i * 440;
-        const cardBg = p.bg === '#ffffff' || p.bg === '#FFFFFF' ? '#f8fafc' : p.bg;
+        const cardW = 400;
+        const cardH = 730;
+        const color = colors[i];
+
+        const cardY = 230;
+        // Card shadow
+        els.push(box(cx + 5, cardY + 5, cardW, cardH, tint(p.text, '05'), 20));
         // Card
-        els.push(box(cx, 230, 400, 720, cardBg, 20));
-        // Photo placeholder circle
-        els.push(circle(cx + 125, 280, 150, [p.primary, p.secondary, p.accent, p.primary][i]));
-        els.push(txt(m.name[0], cx + 155, 310, 80, 80, { fontSize: 48, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' }));
+        els.push(box(cx, cardY, cardW, cardH, '#ffffff', 20));
+
+        // Colored header area
+        els.push(box(cx, 230, cardW, 140, color, 20));
+        // Overlay to square off bottom of header
+        els.push(box(cx, 330, cardW, 40, color, 0));
+
+        // Photo circle (white ring + colored circle)
+        els.push(circle(cx + 135, 330, 130, '#ffffff'));
+        els.push(circle(cx + 140, 335, 120, tint(color, '20')));
+        // Initials
+        els.push(txt(m.initials, cx + 148, 362, 104, 64, { fontSize: 40, fontWeight: 'bold', color: color, textAlign: 'center', fontFamily: t.titleFont }));
+
         // Name
-        els.push(txt(m.name, cx + 30, 470, 340, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text, textAlign: 'center' }));
-        // Role
-        els.push(txt(m.role, cx + 30, 520, 340, 30, { fontSize: 14, fontWeight: 'bold', color: p.primary, textAlign: 'center' }));
+        els.push(txt(m.name, cx + 20, 490, 360, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text, textAlign: 'center' }));
+        // Role badge
+        els.push(box(cx + 100, 542, 200, 30, tint(color, '12'), 15));
+        els.push(txt(m.role, cx + 20, 545, 360, 24, { fontSize: Math.round(t.bodySize * 0.45), fontWeight: 'bold', color: color, textAlign: 'center', fontFamily: t.bodyFont }));
+
         // Divider
-        els.push(box(cx + 150, 570, 100, 2, p.primary, 1));
+        els.push(box(cx + 60, 595, 280, 1, tint(p.text, '10'), 0));
+
         // Bio
-        els.push(txt(m.bio, cx + 30, 595, 340, 80, { fontSize: Math.round(t.bodySize * 0.54), fontFamily: t.bodyFont, color: p.text, opacity: 0.6, textAlign: 'center', lineHeight: 1.5 }));
+        els.push(txt(m.bio, cx + 35, 618, 330, 110, { fontSize: Math.round(t.bodySize * 0.45), fontFamily: t.bodyFont, color: p.text, opacity: 0.55, textAlign: 'center', lineHeight: 1.6 }));
+
+        // Social placeholder circles
+        const socY = 750;
+        [0, 1, 2].forEach((si) => {
+          els.push(circle(cx + 145 + si * 44, socY, 32, tint(color, '12')));
+        });
       });
       return els;
     },
