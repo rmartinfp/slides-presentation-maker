@@ -368,9 +368,214 @@ function buildPrysma(): Slide[] {
   return slides;
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: VIKTORY (Investor Deck — 5 slides)
+// ════════════════════════════════════════════
+// Black bg, Aeonik font, HLS Mux videos, fade-through-black transitions.
+// Each slide: full video bg + big cinematic text + metadata.
+
+function buildViktory(): Slide[] {
+  const fH = 'Aeonik', fB = 'Aeonik';
+  const fg = '#FFFFFF', sub = '#80838e';
+  const bg = { type: 'solid', value: '#000000' };
+  const ov = { vignette: true, vignetteIntensity: 0.3, filmGrain: true, filmGrainOpacity: 0.03, scrim: 'none' as const, scrimOpacity: 0 };
+  const btmOv = { ...ov, scrim: 'bottom' as const, scrimOpacity: 0.4 };
+  const slides: Slide[] = [];
+
+  // Mux HLS video URLs
+  const V1 = 'https://stream.mux.com/Aa02T7oM1wH5Mk5EEVDYhbZ1ChcdhRsS2m1NYyx4Ua1g.m3u8';
+  const V2 = 'https://stream.mux.com/s8pMcOvMQXc4GD6AX4e1o01xFogFxipmuKltNfSYza0200.m3u8';
+  const V3 = 'https://stream.mux.com/Gs3wZfrtz6ZfqZqQ02c02Z7lugV00FGZvRpcqFTel66r3g.m3u8';
+  const V4 = 'https://stream.mux.com/PkFsoKeakRLgL01gjf02CRcSbsJ600Z00NvLr9eRZ92pLbA.m3u8';
+  const V5 = 'https://stream.mux.com/BuGGTsiXq1T00WUb8qfURrHkTCbhrkfFLSv4uAOZzdhw.m3u8';
+
+  // ─── S1: Title — "Innovation and Growth" ───
+  // Full video bg, metadata bar top, two-line heading at bottom
+  {
+    const ids = Array.from({length: 8}, () => gid());
+    slides.push({ id: gid(), elements: [
+      // Metadata items (top-right) — Type, Investor, Date, Industry
+      txt(ids[0], '{{meta_type_label}}', 920, 38, 100, 16, { fontSize: 10, color: sub, fontFamily: fB, zIndex: 20, textShadow: 'none' }),
+      txt(ids[1], '{{meta_type_value}}', 920, 56, 180, 18, { fontSize: 10, color: fg, fontFamily: fB, zIndex: 20, textShadow: 'none' }),
+      txt(ids[2], '{{meta_investor_label}}', 1150, 38, 100, 16, { fontSize: 10, color: sub, fontFamily: fB, zIndex: 20, textShadow: 'none' }),
+      txt(ids[3], '{{meta_investor_value}}', 1150, 56, 180, 18, { fontSize: 10, color: fg, fontFamily: fB, zIndex: 20, textShadow: 'none' }),
+      // Divider
+      shp(ids[4], 96, 90, 1728, 1, { fill: 'rgba(255,255,255,0.15)', zIndex: 5 }),
+      // Two-line title — bottom-left, massive
+      txt(ids[5], '{{title_line1}}', 96, 700, 1400, 160, {
+        fontSize: 120, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 0.9, letterSpacing: -2,
+        textShadow: '0 4px 40px rgba(0,0,0,0.5)', zIndex: 15,
+      }),
+      txt(ids[6], '{{title_line2}}', 96, 850, 1400, 140, {
+        fontSize: 120, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 0.9, letterSpacing: -2,
+        textShadow: '0 4px 40px rgba(0,0,0,0.5)', zIndex: 15,
+      }),
+    ], background: bg, videoBackground: { url: V1, type: 'hls', opacity: 1.0 },
+    animationConfig: animCfg({
+      [ids[4]]: { type: 'fade-in', delay: 0.05, duration: 0.4, easing: E.smooth },
+      [ids[0]]: { type: 'blur-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
+      [ids[1]]: { type: 'blur-in', delay: 0.12, duration: 0.6, easing: E.expoOut },
+      [ids[2]]: { type: 'blur-in', delay: 0.14, duration: 0.6, easing: E.expoOut },
+      [ids[3]]: { type: 'blur-in', delay: 0.16, duration: 0.6, easing: E.expoOut },
+      [ids[5]]: { type: 'slide-up', delay: 0.3, duration: 0.7, easing: E.expoOut },
+      [ids[6]]: { type: 'slide-up', delay: 0.4, duration: 0.7, easing: E.expoOut },
+    }, { overlays: btmOv, transition: 'fade-through-black', transitionDuration: 0.35 }) });
+  }
+
+  // ─── S2: Problem Statement + Stat Cards ───
+  // Subtitle + big heading top, 3 stat cards at bottom
+  {
+    const ids = Array.from({length: 10}, () => gid());
+    slides.push({ id: gid(), elements: [
+      // Slide number top-right
+      txt(ids[0], '02', 1780, 38, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+      // Divider
+      shp(ids[9], 96, 90, 1728, 1, { fill: 'rgba(255,255,255,0.15)', zIndex: 5 }),
+      // Subtitle
+      txt(ids[1], '{{problem_label}}', 96, 130, 400, 25, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      // Main heading — big, flowing text
+      txt(ids[2], '{{problem_statement}}', 96, 180, 1600, 260, {
+        fontSize: 48, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 1.04, letterSpacing: -0.5,
+        textShadow: '0 2px 20px rgba(0,0,0,0.3)', zIndex: 15,
+      }),
+      // 3 Stat cards at bottom — massive numbers
+      txt(ids[3], '{{stat1_value}}', 96, 660, 560, 140, {
+        fontSize: 96, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 0.96, letterSpacing: -2, zIndex: 15,
+      }),
+      txt(ids[4], '{{stat1_label}}', 96, 810, 500, 40, { fontSize: 16, color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(ids[5], '{{stat2_value}}', 700, 660, 560, 140, {
+        fontSize: 96, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 0.96, letterSpacing: -2, zIndex: 15,
+      }),
+      txt(ids[6], '{{stat2_label}}', 700, 810, 500, 40, { fontSize: 16, color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(ids[7], '{{stat3_value}}', 1300, 660, 560, 140, {
+        fontSize: 96, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 0.96, letterSpacing: -2, zIndex: 15,
+      }),
+      txt(ids[8], '{{stat3_label}}', 1300, 810, 500, 40, { fontSize: 16, color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: V2, type: 'hls', opacity: 1.0 },
+    animationConfig: animCfg({
+      [ids[1]]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [ids[2]]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [ids[3]]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut },
+      [ids[4]]: { type: 'fade-in', delay: 0.7, duration: 0.5, easing: E.quintOut },
+      [ids[5]]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut },
+      [ids[6]]: { type: 'fade-in', delay: 0.8, duration: 0.5, easing: E.quintOut },
+      [ids[7]]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut },
+      [ids[8]]: { type: 'fade-in', delay: 0.9, duration: 0.5, easing: E.quintOut },
+    }, { overlays: btmOv, transition: 'fade-through-black', transitionDuration: 0.35 }) });
+  }
+
+  // ─── S3: Market Opportunity ───
+  // Text on left half, video at 50% opacity (flipped), gradient accent
+  {
+    const ids = Array.from({length: 6}, () => gid());
+    slides.push({ id: gid(), elements: [
+      txt(ids[0], '03', 1780, 38, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+      shp(ids[5], 96, 90, 1728, 1, { fill: 'rgba(255,255,255,0.15)', zIndex: 5 }),
+      // Subtitle
+      txt(ids[1], '{{market_label}}', 96, 140, 400, 25, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      // Heading — left half only
+      txt(ids[2], '{{market_heading}}', 96, 190, 1000, 260, {
+        fontSize: 44, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 1.04, letterSpacing: -0.5,
+        textShadow: '0 2px 20px rgba(0,0,0,0.3)', zIndex: 15,
+      }),
+      // Body paragraph
+      txt(ids[3], '{{market_body}}', 96, 500, 900, 200, {
+        fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+      // Gradient accent shape — represents chart area (right side)
+      shp(ids[4], 1050, 400, 800, 500, {
+        fill: 'rgba(130, 56, 220, 0.08)', borderRadius: 20, zIndex: 3,
+        boxShadow: '0 0 120px rgba(130, 56, 220, 0.15)',
+      }),
+    ], background: bg, videoBackground: { url: V3, type: 'hls', opacity: 0.5, filter: 'none', transform: 'scale(-1, -1)' },
+    animationConfig: animCfg({
+      [ids[1]]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [ids[2]]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [ids[3]]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut },
+      [ids[4]]: { type: 'fade-in', delay: 0.7, duration: 1.0, easing: E.quintOut },
+    }, { overlays: btmOv, transition: 'fade-through-black', transitionDuration: 0.35 }) });
+  }
+
+  // ─── S4: Sales & Distribution ───
+  // Vertically centered text, video on right half (offset)
+  {
+    const ids = Array.from({length: 5}, () => gid());
+    slides.push({ id: gid(), elements: [
+      txt(ids[0], '04', 1780, 38, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+      shp(ids[4], 96, 90, 1728, 1, { fill: 'rgba(255,255,255,0.15)', zIndex: 5 }),
+      // Subtitle
+      txt(ids[1], '{{sales_label}}', 96, 340, 500, 25, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      // Big heading — vertically centered, takes left 65%
+      txt(ids[2], '{{sales_heading}}', 96, 390, 1200, 300, {
+        fontSize: 64, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 1.04, letterSpacing: -1,
+        textShadow: '0 4px 40px rgba(0,0,0,0.5)', zIndex: 15,
+      }),
+      // Body
+      txt(ids[3], '{{sales_body}}', 96, 730, 780, 150, {
+        fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg, videoBackground: { url: V4, type: 'hls', opacity: 1.0 },
+    animationConfig: animCfg({
+      [ids[1]]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [ids[2]]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [ids[3]]: { type: 'blur-in', delay: 1.2, duration: 0.8, easing: E.expoOut },
+    }, { overlays: btmOv, transition: 'fade-through-black', transitionDuration: 0.35 }) });
+  }
+
+  // ─── S5: Global Expansion ───
+  // bg-[#131318], video 200% anchored bottom-left, text at bottom
+  {
+    const ids = Array.from({length: 5}, () => gid());
+    slides.push({ id: gid(), elements: [
+      txt(ids[0], '05', 1780, 38, 50, 28, { fontSize: 18, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+      shp(ids[4], 96, 90, 1728, 1, { fill: 'rgba(255,255,255,0.15)', zIndex: 5 }),
+      // Subtitle at bottom
+      txt(ids[1], '{{global_label}}', 96, 700, 500, 25, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      // Big heading at bottom
+      txt(ids[2], '{{global_heading}}', 96, 750, 1000, 200, {
+        fontSize: 64, fontWeight: '400', fontFamily: fH, color: fg,
+        lineHeight: 1.04, letterSpacing: -1,
+        textShadow: '0 4px 40px rgba(0,0,0,0.5)', zIndex: 15,
+      }),
+      // Body
+      txt(ids[3], '{{global_body}}', 96, 940, 680, 80, {
+        fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: { type: 'solid', value: '#131318' },
+    videoBackground: { url: V5, type: 'hls', opacity: 0.8 },
+    animationConfig: animCfg({
+      [ids[1]]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
+      [ids[2]]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [ids[3]]: { type: 'blur-in', delay: 0.6, duration: 0.8, easing: E.expoOut },
+    }, { overlays: { ...btmOv, scrimOpacity: 0.6 }, transition: 'fade-through-black', transitionDuration: 0.35 }) });
+  }
+
+  return slides;
+}
+
 // ══════════════════════════════
 // THEME BUILDERS
 // ══════════════════════════════
+
+function viktoryTheme() {
+  return {
+    id: 'midnight', name: 'Viktory', category: 'Cinematic',
+    tokens: {
+      palette: { primary: '#8238DC', secondary: '#80838e', accent: '#8238DC', bg: '#000000', text: '#FFFFFF' },
+      typography: { titleFont: 'Aeonik', bodyFont: 'Aeonik', titleSize: 56, bodySize: 16 },
+      radii: '0px', shadows: 'none',
+    },
+    previewColors: ['#8238DC', '#80838e', '#000000'],
+  };
+}
 
 function nexusTheme() {
   return {
@@ -410,6 +615,17 @@ const TEMPLATES = [
     theme: nexusTheme(),
     tags: ['data', 'growth', 'analytics', 'quarterly'],
     sort_order: 2,
+  },
+  {
+    name: 'Viktory',
+    slug: 'viktory',
+    category: 'Investor Deck',
+    description: 'Pure black investor presentation with HLS video backgrounds, Aeonik font, and cinematic stat cards.',
+    preset_id: 'midnight',
+    slides: buildViktory(),
+    theme: viktoryTheme(),
+    tags: ['investor', 'pitch', 'startup', 'ai', 'enterprise'],
+    sort_order: 3,
   },
 ];
 
