@@ -1832,51 +1832,49 @@ async function main() {
           }
         }
 
-        // Extract pics from layout (background images, decorations)
-        const layoutPicMatches = layoutXml.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g);
-        for (const m of layoutPicMatches) {
-          // Skip placeholder images
-          if (m[1].includes('<p:ph')) continue;
-
-          const result = parseImageFromSpTree(m[1], layoutRelsMap, themeColors);
-          if (result && result.imageRef) {
-            result.element.zIndex = zIndex++;
-            const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slideLayouts/');
-            result.element.content = url;
-
-            // If full-bleed image, make it the background
-            if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
-              background = { type: 'image', value: url };
-              console.log(`  Layout bg image uploaded`);
-            } else if (url) {
-              result.element.locked = true; // Layout elements are not editable
-              elements.push(result.element);
-              console.log(`  Layout decoration image uploaded`);
-            }
-          }
-        }
-
-        // Extract non-placeholder shapes from layout (decorative lines, shapes, border frames)
-        // IMPORTANT: strip groups first to avoid extracting shapes inside groups twice
-        // (groups are handled separately below with proper coordinate transforms)
+        // Extract ALL non-placeholder elements from layout IN XML ORDER (preserves z-ordering)
+        // This handles both shapes and images interleaved correctly
         const layoutXmlNoGroups = stripBalancedTags(layoutXml, 'p:grpSp');
-        const layoutSpMatches = layoutXmlNoGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
-        for (const m of layoutSpMatches) {
-          // Skip placeholders
-          if (m[1].includes('<p:ph')) continue;
-          // Skip text boxes that have real text content (not empty/residual text)
-          if (m[1].includes('<p:txBody>') && m[1].includes('<a:t>')) {
-            const textContent = (m[1].match(/<a:t>([\s\S]*?)<\/a:t>/g) || [])
-              .map(t => t.replace(/<\/?a:t>/g, '').replace(/[""''"\s]/g, ''))
-              .join('');
-            if (textContent.length > 0) continue; // has real text — skip (it's a text placeholder)
-          }
+        const layoutElementMatches = layoutXmlNoGroups.matchAll(/<p:(sp|pic)>([\s\S]*?)<\/p:\1>/g);
+        for (const m of layoutElementMatches) {
+          const tagType = m[1]; // 'sp' or 'pic'
+          const content = m[2];
 
-          const shapeEl = parseShapeFromSpTree(m[1], themeColors);
-          if (shapeEl) {
-            shapeEl.locked = true;
-            shapeEl.zIndex = zIndex++;
-            elements.push(shapeEl);
+          // Skip placeholders
+          if (content.includes('<p:ph')) continue;
+
+          if (tagType === 'pic') {
+            // Image element
+            const result = parseImageFromSpTree(content, layoutRelsMap, themeColors);
+            if (result && result.imageRef) {
+              result.element.zIndex = zIndex++;
+              const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slideLayouts/');
+              result.element.content = url;
+
+              if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
+                background = { type: 'image', value: url };
+                console.log(`  Layout bg image uploaded`);
+              } else if (url) {
+                result.element.locked = true;
+                elements.push(result.element);
+                console.log(`  Layout decoration image uploaded`);
+              }
+            }
+          } else {
+            // Shape element — skip text boxes with real content
+            if (content.includes('<p:txBody>') && content.includes('<a:t>')) {
+              const textContent = (content.match(/<a:t>([\s\S]*?)<\/a:t>/g) || [])
+                .map(t => t.replace(/<\/?a:t>/g, '').replace(/[""''"\s]/g, ''))
+                .join('');
+              if (textContent.length > 0) continue;
+            }
+
+            const shapeEl = parseShapeFromSpTree(content, themeColors);
+            if (shapeEl) {
+              shapeEl.locked = true;
+              shapeEl.zIndex = zIndex++;
+              elements.push(shapeEl);
+            }
           }
         }
 
