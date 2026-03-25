@@ -1274,6 +1274,145 @@ function apexTheme() {
   return { id: 'midnight', name: 'Apex', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#94a3b8', accent: '#FFFFFF', bg: '#21346e', text: '#FFFFFF' }, typography: { titleFont: 'Rubik', bodyFont: 'Rubik', titleSize: 60, bodySize: 16 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#21346e', '#000000'] };
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: NEXORA (Light SaaS — 5 slides)
+// ════════════════════════════════════════════
+
+function buildNexora(): Slide[] {
+  const fSerif = 'Instrument Serif', fB = 'Inter';
+  const fg = '#2b3544', sub = '#7a8a9e', accent = '#4f46e5';
+  const bg = { type: 'solid', value: '#FFFFFF' };
+  const VN = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260319_015952_e1deeb12-8fb7-4071-a42a-60779fc64ab6.mp4';
+  const slides: Slide[] = [];
+
+  function lightSkel2(num: string): SlideElement[] {
+    return [
+      txt(gid(), '{{logo}}', 96, 38, 200, 28, { fontSize: 16, fontWeight: '600', color: fg, fontFamily: fB, letterSpacing: -0.5, zIndex: 20, textShadow: 'none' }),
+      txt(gid(), num, 1790, 38, 40, 28, { fontSize: 16, color: sub, fontFamily: fB, textAlign: 'right', zIndex: 20, textShadow: 'none' }),
+      shp(gid(), 96, 80, 1728, 1, { fill: 'rgba(0,0,0,0.06)', zIndex: 5 }),
+    ];
+  }
+  function lightA(ov: Record<string, any> = {}): Record<string, any> {
+    return animCfg(ov, { transition: 'fade-cross', transitionDuration: 0.4, overlays: { vignette: false, vignetteIntensity: 0, filmGrain: false, filmGrainOpacity: 0, scrim: 'none' as const, scrimOpacity: 0 } });
+  }
+
+  // S1: Centered serif headline + badge + subtitle
+  { const badge = gid(), h = gid(), sub2 = gid();
+    slides.push({ id: gid(), elements: [...lightSkel2(''),
+      txt(badge, '{{badge}}', 710, 240, 500, 30, { fontSize: 13, fontWeight: '500', color: sub, fontFamily: fB, textAlign: 'center', zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{headline}}', 260, 300, 1400, 260, { fontSize: 72, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -1, zIndex: 15, textShadow: 'none' }),
+      txt(sub2, '{{subtitle}}', 410, 590, 1100, 100, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 0.25, filter: 'brightness(1.1) saturate(0.8)' },
+    animationConfig: lightA({ [badge]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.expoOut }, [h]: { type: 'scale-up', delay: 0.15, duration: 0.6, easing: E.expoOut }, [sub2]: { type: 'fade-in', delay: 0.4, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S2: Problem + 2 stats right
+  { const l = gid(), h = gid(), sv = gid(), sl = gid(), sv2 = gid(), sl2 = gid();
+    slides.push({ id: gid(), elements: [...lightSkel2('02'),
+      txt(l, '{{label}}', 96, 260, 400, 22, { fontSize: 13, fontWeight: '500', color: accent, fontFamily: fB, letterSpacing: 0.5, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{heading}}', 96, 310, 900, 320, { fontSize: 46, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.08, zIndex: 15, textShadow: 'none' }),
+      txt(sv, '{{stat1_value}}', 1100, 320, 700, 120, { fontSize: 80, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15, textShadow: 'none' }),
+      txt(sl, '{{stat1_label}}', 1100, 450, 600, 35, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(sv2, '{{stat2_value}}', 1100, 540, 700, 120, { fontSize: 80, fontWeight: '400', fontFamily: fSerif, color: accent, lineHeight: 0.96, letterSpacing: -2, zIndex: 15, textShadow: 'none' }),
+      txt(sl2, '{{stat2_label}}', 1100, 670, 600, 35, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    ], background: bg,
+    animationConfig: lightA({ [l]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [sv]: { type: 'slide-up', delay: 0.5, duration: 0.6, easing: E.expoOut }, [sv2]: { type: 'slide-up', delay: 0.65, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Full statement centered
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...lightSkel2('03'),
+      txt(h, '{{statement}}', 210, 340, 1500, 360, { fontSize: 52, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 0.2, filter: 'brightness(1.1)' },
+    animationConfig: lightA({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
+
+  // S4: Content left
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...lightSkel2('04'),
+      txt(l, '{{label}}', 96, 260, 400, 22, { fontSize: 13, fontWeight: '500', color: accent, fontFamily: fB, letterSpacing: 0.5, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{heading}}', 96, 310, 1200, 300, { fontSize: 46, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.08, zIndex: 15, textShadow: 'none' }),
+      txt(b, '{{body}}', 96, 670, 780, 200, { fontSize: 16, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg,
+    animationConfig: lightA({ [l]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'fade-in', delay: 0.7, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S5: Closing
+  { const h = gid(), sub2 = gid();
+    slides.push({ id: gid(), elements: [...lightSkel2('05'),
+      txt(h, '{{closing}}', 260, 370, 1400, 240, { fontSize: 60, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.0, zIndex: 15, textShadow: 'none' }),
+      txt(sub2, '{{closing_body}}', 460, 640, 1000, 80, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 0.2, filter: 'brightness(1.1)' },
+    animationConfig: lightA({ [h]: { type: 'scale-up', delay: 0.15, duration: 0.6, easing: E.expoOut }, [sub2]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut } }) }); }
+
+  return slides;
+}
+
+function nexoraTheme() {
+  return { id: 'editorial', name: 'Nexora', category: 'Cinematic', tokens: { palette: { primary: '#4f46e5', secondary: '#7a8a9e', accent: '#4f46e5', bg: '#FFFFFF', text: '#2b3544' }, typography: { titleFont: 'Instrument Serif', bodyFont: 'Inter', titleSize: 52, bodySize: 17 }, radii: '8px', shadows: 'lg' }, previewColors: ['#4f46e5', '#7a8a9e', '#FFFFFF'] };
+}
+
+// ════════════════════════════════════════════
+// TEMPLATE: VELORAH NAVY (Deep navy — 5 slides)
+// ════════════════════════════════════════════
+
+function buildVelorahNavy(): Slide[] {
+  const fSerif = 'Instrument Serif', fB = 'Inter';
+  const fg = '#FFFFFF', sub = '#9ca3af';
+  const bg = { type: 'solid', value: '#0a1628' };
+  const VVN = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260314_131748_f2ca2a28-fed7-44c8-b9a9-bd9acdd5ec31.mp4';
+  const slides: Slide[] = [];
+
+  // S1: Centered serif hero
+  { const h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('', fB),
+      txt(h, '{{hero_headline}}', 210, 280, 1500, 320, { fontSize: 88, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2.5, zIndex: 15 }),
+      txt(b, '{{hero_body}}', 510, 630, 900, 80, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VVN, type: 'mp4', opacity: 0.85, filter: 'brightness(0.65)' },
+    animationConfig: cineAnim({ [h]: { type: 'blur-in', delay: 0.15, duration: 1.0, easing: E.expoOut }, [b]: { type: 'fade-in', delay: 0.6, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S2: Problem + stats
+  { const l = gid(), h = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', fB),
+      txt(l, '{{label}}', 96, 130, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{heading}}', 96, 180, 1600, 300, { fontSize: 46, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.06, zIndex: 15 }),
+      txt(s1v, '{{s1v}}', 96, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s1l, '{{s1l}}', 96, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{s2v}}', 700, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s2l, '{{s2l}}', 700, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s3v, '{{s3v}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s3l, '{{s3l}}', 1300, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VVN, type: 'mp4', opacity: 0.75, filter: 'brightness(0.55)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut }, [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Full serif statement
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', fB),
+      txt(h, '{{statement}}', 160, 340, 1600, 360, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[3], type: 'mp4', opacity: 0.7, filter: 'brightness(0.5) hue-rotate(10deg)' },
+    animationConfig: cineAnim({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
+
+  // S4: Content
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', fB),
+      txt(l, '{{label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{heading}}', 96, 310, 1200, 320, { fontSize: 48, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.06, zIndex: 15 }),
+      txt(b, '{{body}}', 96, 690, 780, 200, { fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VVN, type: 'mp4', opacity: 0.65, filter: 'brightness(0.5)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S5: Closing bottom
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', fB),
+      txt(l, '{{label}}', 96, 640, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{heading}}', 96, 680, 1100, 240, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.04, letterSpacing: -1, zIndex: 15 }),
+      txt(b, '{{body}}', 96, 930, 700, 80, { fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VVN, type: 'mp4', opacity: 0.8, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.6, duration: 0.8, easing: E.expoOut } }) }); }
+
+  return slides;
+}
+
+function velorahNavyTheme() {
+  return { id: 'midnight', name: 'Velorah Navy', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#9ca3af', accent: '#FFFFFF', bg: '#0a1628', text: '#FFFFFF' }, typography: { titleFont: 'Instrument Serif', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#9ca3af', '#0a1628'] };
+}
+
 // ══════════════════════════════
 // MAIN SEED
 // ══════════════════════════════
@@ -1399,6 +1538,28 @@ const TEMPLATES = [
     theme: apexTheme(),
     tags: ['bold', 'creative', 'uppercase', 'brutalist', 'design'],
     sort_order: 11,
+  },
+  {
+    name: 'Nexora',
+    slug: 'nexora',
+    category: 'SaaS / Light',
+    description: 'Light SaaS with Instrument Serif italic + Inter. Indigo accent, clean product aesthetic.',
+    preset_id: 'editorial',
+    slides: buildNexora(),
+    theme: nexoraTheme(),
+    tags: ['saas', 'light', 'product', 'clean', 'automation', 'indigo'],
+    sort_order: 12,
+  },
+  {
+    name: 'Velorah Navy',
+    slug: 'velorah-navy',
+    category: 'Creative / Dark',
+    description: 'Deep navy blue Instrument Serif with muted contrast and cinematic video depth.',
+    preset_id: 'midnight',
+    slides: buildVelorahNavy(),
+    theme: velorahNavyTheme(),
+    tags: ['creative', 'dark', 'navy', 'serif', 'cinematic', 'elegant'],
+    sort_order: 13,
   },
 ];
 
