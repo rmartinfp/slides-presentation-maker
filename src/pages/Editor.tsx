@@ -157,10 +157,15 @@ export default function EditorPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Auto-save
+  // Auto-save — immediate on first load (so reload doesn't lose data), then debounced
+  const hasSavedOnce = useRef(false);
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => saveToSupabase(), 3000);
+    const delay = hasSavedOnce.current ? 3000 : 500; // Fast first save
+    saveTimerRef.current = setTimeout(() => {
+      saveToSupabase();
+      hasSavedOnce.current = true;
+    }, delay);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [presentation, saveToSupabase]);
 
