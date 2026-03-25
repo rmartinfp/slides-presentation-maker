@@ -23,6 +23,7 @@ import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
 import SmartSuggest from '@/components/editor/SmartSuggest';
 import AddSlideDialog from '@/components/editor/AddSlideDialog';
 import InfographicsDialog from '@/components/editor/InfographicsDialog';
+import AIInfographicDialog from '@/components/editor/AIInfographicDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
@@ -244,6 +245,7 @@ export default function EditorPage() {
   const [showSuggest, setShowSuggest] = React.useState(false);
   const [showAddSlide, setShowAddSlide] = React.useState(false);
   const [showInfographics, setShowInfographics] = React.useState(false);
+  const [showAIInfographic, setShowAIInfographic] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
@@ -596,6 +598,7 @@ export default function EditorPage() {
                   <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Extract Brand Kit</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowVoiceToSlides(true)}><Mic className="w-4 h-4 mr-2" />Voice to Slides</DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setShowAIInfographic(true)}><Sparkles className="w-4 h-4 mr-2" />AI Infographic</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowSuggest(true)}><Lightbulb className="w-4 h-4 mr-2" />Smart Suggestions</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Presentation Coach</DropdownMenuItem>
                 </DropdownMenuContent>
@@ -662,6 +665,7 @@ export default function EditorPage() {
         {showSuggest && <SmartSuggest onClose={() => setShowSuggest(false)} />}
         {showAddSlide && <AddSlideDialog onClose={() => setShowAddSlide(false)} />}
         {showInfographics && <InfographicsDialog onClose={() => setShowInfographics(false)} />}
+        {showAIInfographic && <AIInfographicDialog onClose={() => setShowAIInfographic(false)} />}
       </AnimatePresence>
     </>
   );
