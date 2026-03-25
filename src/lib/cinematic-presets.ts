@@ -498,6 +498,59 @@ export const CINEMATIC_PRESETS: CinematicPreset[] = [
     showProgressDots: true,
     navStyle: 'progress-bar',
   },
+  // ---- 11. Nexus ----
+  {
+    id: 'nexus',
+    name: 'Nexus',
+    description: 'Dark purple SaaS. Gradient headlines, liquid glass, Geist Sans typography.',
+    baseTheme: 'dark',
+    backgroundColor: '#0a0512',
+    primaryTextColor: '#F2F2F3',
+    secondaryTextColor: '#9CA0AE',
+    accentColor: '#7C3AED',
+    fontHeading: 'General Sans',
+    fontBody: 'Geist Sans',
+    videoCategory: 'abstract-dark',
+    videoOpacity: 0.35,
+    videoFilter: 'brightness(0.45) saturate(0.9)',
+    transition: 'fade-through-black',
+    transitionDuration: 0.35,
+    defaultOverlays: {
+      vignette: true,
+      vignetteIntensity: 0.4,
+      filmGrain: true,
+      filmGrainOpacity: 0.03,
+      scrim: 'bottom',
+      scrimOpacity: 0.55,
+    },
+    animations: {
+      hero: [
+        { target: 'title', animation: 'blur-in', duration: 1.0, delay: 0.2, easing: EXPO_OUT },
+        { target: 'subtitle', animation: 'blur-in', duration: 0.8, delay: 0.6, easing: EXPO_OUT },
+      ],
+      statement: [
+        { target: 'title', animation: 'word-by-word', duration: 0.5, delay: 0.15, stagger: 0.035, easing: EXPO_OUT },
+      ],
+      stats: [
+        { target: 'title', animation: 'blur-in', duration: 0.7, delay: 0.15, easing: EXPO_OUT },
+        { target: 'stat', animation: 'scale-up', duration: 0.6, delay: 0.4, stagger: 0.12, easing: BOUNCE },
+      ],
+      content: [
+        { target: 'title', animation: 'blur-in', duration: 0.7, delay: 0.2, easing: EXPO_OUT },
+        { target: 'body', animation: 'blur-in', duration: 0.7, delay: 0.5, easing: EXPO_OUT },
+      ],
+      split: contentAnimations,
+      'image-full': heroAnimations,
+      section: [
+        { target: 'title', animation: 'blur-in', duration: 0.9, delay: 0.2, easing: EXPO_OUT },
+      ],
+      closing: closingAnimations,
+    },
+    showSlideNumbers: true,
+    showMetadata: false,
+    showProgressDots: true,
+    navStyle: 'progress-bar',
+  },
 ];
 
 export function getPresetById(id: string): CinematicPreset | undefined {
