@@ -1354,6 +1354,163 @@ function velorahNavyTheme() {
   return { id: 'midnight', name: 'Velorah Navy', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#9ca3af', accent: '#FFFFFF', bg: '#0a1628', text: '#FFFFFF' }, typography: { titleFont: 'Instrument Serif', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#9ca3af', '#0a1628'] };
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: MINDLOOP (Monochrome newsletter — 5 slides)
+// ════════════════════════════════════════════
+// Pure black #000 + white. Inter + Instrument Serif italic accents.
+// Monochrome only. No colors. Video 100%.
+
+function buildMindloop(): Slide[] {
+  const fSans = 'Inter', fSerif = 'Instrument Serif';
+  const fg = '#FFFFFF', sub = '#a0a0a0';
+  const bg = { type: 'solid', value: '#000000' };
+  const S = STRONG_SHADOW;
+  const VM1 = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_120549_0cd82c36-56b3-4dd9-b190-069cfc3a623f.mp4';
+  const VM2 = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_132944_a0d124bb-eaa1-4082-aa30-2310efb42b4b.mp4';
+  const VM3 = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_125119_8e5ae31c-0021-4396-bc08-f7aebeb877a2.mp4';
+  const VHL = 'https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8';
+  const slides: Slide[] = [];
+
+  // S1: HERO — Centered heading with serif italic accent word. Video 100%
+  {
+    const h1 = gid(), h2 = gid(), sub1 = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('', fSans),
+      // "Get Inspired" — sans medium
+      txt(h1, '{{hero_line1}}', 260, 300, 1400, 130, {
+        fontSize: 88, fontWeight: '500', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 0.95, letterSpacing: -2, zIndex: 15, textShadow: S,
+      }),
+      // "with Us" — serif italic accent
+      txt(h2, '{{hero_line2}}', 260, 430, 1400, 120, {
+        fontSize: 88, fontWeight: '400', fontFamily: fSerif, color: fg,
+        textAlign: 'center', lineHeight: 0.95, letterSpacing: -1, zIndex: 15, textShadow: S,
+      }),
+      // Subtitle
+      txt(sub1, '{{hero_subtitle}}', 460, 590, 1000, 80, {
+        fontSize: 17, fontWeight: '400', fontFamily: fSans, color: sub,
+        textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VM1, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({
+      [h1]: { type: 'blur-in', delay: 0.15, duration: 1.0, easing: E.expoOut },
+      [h2]: { type: 'blur-in', delay: 0.3, duration: 1.0, easing: E.expoOut },
+      [sub1]: { type: 'fade-in', delay: 0.7, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  // S2: STATEMENT — Sans question + serif italic answer. Centered full-width.
+  {
+    const h1 = gid(), h2 = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('02', fSans),
+      // Sans part
+      txt(h1, '{{statement_sans}}', 160, 320, 1600, 150, {
+        fontSize: 72, fontWeight: '500', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 1.0, letterSpacing: -2, zIndex: 15, textShadow: S,
+      }),
+      // Serif italic part
+      txt(h2, '{{statement_serif}}', 160, 480, 1600, 140, {
+        fontSize: 72, fontWeight: '400', fontFamily: fSerif, color: fg,
+        textAlign: 'center', lineHeight: 1.0, letterSpacing: -1, zIndex: 15, textShadow: S,
+      }),
+    ], background: bg,
+    videoBackground: { url: VM2, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({
+      [h1]: { type: 'word-by-word', delay: 0.15, duration: 0.55, easing: E.expoOut, stagger: 0.04 },
+      [h2]: { type: 'word-by-word', delay: 0.4, duration: 0.55, easing: E.expoOut, stagger: 0.04 },
+    }) });
+  }
+
+  // S3: SPLIT — Heading left 55%, body below. Big stat right.
+  {
+    const lab = gid(), head = gid(), body = gid(), sv = gid(), sl = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('03', fSans),
+      txt(lab, '{{content_label}}', 96, 180, 400, 20, { fontSize: 11, fontWeight: '600', color: sub, fontFamily: fSans, letterSpacing: 3, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{content_heading}}', 96, 230, 900, 350, {
+        fontSize: 48, fontWeight: '500', fontFamily: fSans, color: fg,
+        lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15, textShadow: S,
+      }),
+      txt(body, '{{content_body}}', 96, 650, 750, 180, {
+        fontSize: 15, fontWeight: '400', fontFamily: fSans, color: sub,
+        lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+      // Big stat right side
+      txt(sv, '{{stat_value}}', 1150, 300, 650, 150, {
+        fontSize: 96, fontWeight: '500', fontFamily: fSans, color: fg,
+        lineHeight: 0.96, letterSpacing: -3, zIndex: 15, textShadow: S,
+      }),
+      txt(sl, '{{stat_label}}', 1150, 460, 600, 35, {
+        fontSize: 15, fontWeight: '400', fontFamily: fSans, color: sub,
+        zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VM3, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({
+      [lab]: { type: 'blur-in', delay: 0.1, duration: 0.5, easing: E.expoOut },
+      [head]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [body]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut },
+      [sv]: { type: 'slide-up', delay: 0.4, duration: 0.6, easing: E.expoOut },
+      [sl]: { type: 'fade-in', delay: 0.55, duration: 0.5, easing: E.quintOut },
+    }) });
+  }
+
+  // S4: TOP-HEAVY — Big heading fills top, tiny body bottom-left
+  {
+    const head = gid(), body = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('04', fSans),
+      txt(head, '{{platform_heading}}', 96, 140, 1600, 500, {
+        fontSize: 64, fontWeight: '500', fontFamily: fSans, color: fg,
+        lineHeight: 1.0, letterSpacing: -1.5, zIndex: 15, textShadow: S,
+      }),
+      txt(body, '{{platform_body}}', 96, 820, 700, 120, {
+        fontSize: 15, fontWeight: '400', fontFamily: fSans, color: sub,
+        lineHeight: 1.7, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VM1, type: 'mp4', opacity: 0.8 },
+    animationConfig: cineAnim({
+      [head]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
+      [body]: { type: 'blur-in', delay: 0.9, duration: 0.8, easing: E.expoOut },
+    }) });
+  }
+
+  // S5: CLOSING — Centered serif + sans mix, bottom anchor
+  {
+    const h1 = gid(), h2 = gid(), sub1 = gid();
+    slides.push({ id: gid(), elements: [
+      ...skeleton('05', fSans),
+      txt(h1, '{{closing_sans}}', 360, 580, 1200, 100, {
+        fontSize: 56, fontWeight: '500', fontFamily: fSans, color: fg,
+        textAlign: 'center', lineHeight: 1.0, letterSpacing: -1.5, zIndex: 15, textShadow: S,
+      }),
+      txt(h2, '{{closing_serif}}', 360, 680, 1200, 100, {
+        fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg,
+        textAlign: 'center', lineHeight: 1.0, zIndex: 15, textShadow: S,
+      }),
+      txt(sub1, '{{closing_body}}', 460, 810, 1000, 60, {
+        fontSize: 15, fontWeight: '400', fontFamily: fSans, color: sub,
+        textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none',
+      }),
+    ], background: bg,
+    videoBackground: { url: VHL, type: 'hls', opacity: 0.7 },
+    animationConfig: cineAnim({
+      [h1]: { type: 'blur-in', delay: 0.15, duration: 1.0, easing: E.expoOut },
+      [h2]: { type: 'blur-in', delay: 0.35, duration: 1.0, easing: E.expoOut },
+      [sub1]: { type: 'fade-in', delay: 0.7, duration: 0.6, easing: E.quintOut },
+    }) });
+  }
+
+  return slides;
+}
+
+function mindloopTheme() {
+  return { id: 'midnight', name: 'Mindloop', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#a0a0a0', accent: '#FFFFFF', bg: '#000000', text: '#FFFFFF' }, typography: { titleFont: 'Inter', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#a0a0a0', '#000000'] };
+}
+
 // ══════════════════════════════
 // MAIN SEED
 // ══════════════════════════════
@@ -1501,6 +1658,17 @@ const TEMPLATES = [
     theme: velorahNavyTheme(),
     tags: ['creative', 'dark', 'navy', 'serif', 'cinematic', 'elegant'],
     sort_order: 13,
+  },
+  {
+    name: 'Mindloop',
+    slug: 'mindloop',
+    category: 'Newsletter / Content',
+    description: 'Pure monochrome black+white. Inter + Instrument Serif italic accents. Video 100%, no overlays.',
+    preset_id: 'midnight',
+    slides: buildMindloop(),
+    theme: mindloopTheme(),
+    tags: ['monochrome', 'newsletter', 'content', 'minimal', 'black', 'serif'],
+    sort_order: 14,
   },
 ];
 
