@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, X, Plus, Trash2, TrendingUp, PieChart, AreaChart } from 'lucide-react';
+import { BarChart3, X, Plus, Trash2, TrendingUp, PieChart, AreaChart, Target, Radar, CircleDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { toast } from 'sonner';
@@ -12,6 +12,9 @@ const CHART_TYPES: { value: ChartType; label: string; icon: React.ReactNode }[] 
   { value: 'line', label: 'Line', icon: <TrendingUp className="w-4 h-4" /> },
   { value: 'area', label: 'Area', icon: <AreaChart className="w-4 h-4" /> },
   { value: 'pie', label: 'Pie', icon: <PieChart className="w-4 h-4" /> },
+  { value: 'doughnut', label: 'Donut', icon: <Target className="w-4 h-4" /> },
+  { value: 'radar', label: 'Radar', icon: <Radar className="w-4 h-4" /> },
+  { value: 'scatter', label: 'Scatter', icon: <CircleDot className="w-4 h-4" /> },
 ];
 
 const DEFAULT_COLORS = ['#4F46E5', '#9333EA', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
@@ -21,6 +24,14 @@ const SAMPLE_DATA = [
   { name: 'Q2', value: 1800 },
   { name: 'Q3', value: 1500 },
   { name: 'Q4', value: 2200 },
+];
+
+const DATA_PRESETS = [
+  { label: 'Quarterly', data: [{ name: 'Q1', values: [1200] }, { name: 'Q2', values: [1800] }, { name: 'Q3', values: [1500] }, { name: 'Q4', values: [2200] }], series: ['Revenue'] },
+  { label: 'Monthly', data: [{ name: 'Jan', values: [400] }, { name: 'Feb', values: [550] }, { name: 'Mar', values: [620] }, { name: 'Apr', values: [710] }, { name: 'May', values: [800] }, { name: 'Jun', values: [920] }], series: ['Sales'] },
+  { label: 'Comparison', data: [{ name: '2024', values: [850, 1200] }, { name: '2025', values: [1400, 1600] }, { name: '2026', values: [2100, 1900] }], series: ['Revenue', 'Expenses'] },
+  { label: 'Market Share', data: [{ name: 'Product A', values: [45] }, { name: 'Product B', values: [30] }, { name: 'Product C', values: [25] }], series: ['Share'] },
+  { label: 'Ratings', data: [{ name: 'Quality', values: [85] }, { name: 'Service', values: [90] }, { name: 'Price', values: [70] }, { name: 'Speed', values: [95] }, { name: 'UX', values: [80] }], series: ['Score'] },
 ];
 
 interface Props {
@@ -95,6 +106,28 @@ export default function ChartDialog({ onClose, editElementId }: Props) {
     values[valIdx] = parseFloat(value) || 0;
     updated[rowIdx] = { ...updated[rowIdx], values };
     setRows(updated);
+  };
+
+  const loadPreset = (preset: typeof DATA_PRESETS[number]) => {
+    setRows(preset.data.map(d => ({ name: d.name, values: d.values })));
+    setSeriesNames(preset.series);
+    setColors(DEFAULT_COLORS.slice(0, preset.series.length));
+  };
+
+  const handlePasteCSV = (text: string) => {
+    const lines = text.trim().split('\n').map(l => l.split(/[,\t]/));
+    if (lines.length < 2) return;
+    // First row = headers (series names)
+    const headers = lines[0].slice(1).map(h => h.trim());
+    const newRows = lines.slice(1).map(cols => ({
+      name: cols[0]?.trim() || '',
+      values: cols.slice(1).map(v => parseFloat(v.trim()) || 0),
+    }));
+    if (newRows.length > 0 && headers.length > 0) {
+      setSeriesNames(headers);
+      setRows(newRows);
+      setColors(DEFAULT_COLORS.slice(0, headers.length));
+    }
   };
 
   const addSeries = () => {
@@ -204,6 +237,31 @@ export default function ChartDialog({ onClose, editElementId }: Props) {
                 placeholder="$, %, ..."
                 className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
               />
+            </div>
+          </div>
+
+          {/* Quick presets */}
+          <div>
+            <label className="text-[10px] text-slate-500 font-medium mb-1 block">Quick Start</label>
+            <div className="flex gap-1.5 flex-wrap mb-3">
+              {DATA_PRESETS.map(preset => (
+                <button
+                  key={preset.label}
+                  onClick={() => loadPreset(preset)}
+                  className="px-2.5 py-1 rounded-md text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-[#4F46E5]/10 hover:text-[#4F46E5] transition-colors"
+                >
+                  {preset.label}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  const csv = prompt('Paste CSV data (first row = headers):\n\nExample:\nLabel,Sales,Costs\nQ1,1200,800\nQ2,1800,1100');
+                  if (csv) handlePasteCSV(csv);
+                }}
+                className="px-2.5 py-1 rounded-md text-[10px] font-medium bg-slate-50 text-slate-600 hover:bg-[#4F46E5]/10 hover:text-[#4F46E5] transition-colors"
+              >
+                Paste CSV
+              </button>
             </div>
           </div>
 

@@ -317,7 +317,10 @@ function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationThe
       const pptxChartType = chartType === 'bar' ? 'bar' :
         chartType === 'line' ? 'line' :
         chartType === 'area' ? 'area' :
-        chartType === 'pie' ? 'pie' : 'bar';
+        chartType === 'pie' ? 'pie' :
+        chartType === 'doughnut' ? 'doughnut' :
+        chartType === 'radar' ? 'radar' :
+        chartType === 'scatter' ? 'scatter' : 'bar';
 
       // Build chart data in pptxgenjs format
       const chartData: any[] = dataKeys.map((key, i) => ({

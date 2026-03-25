@@ -2,7 +2,7 @@
 
 export type ElementType = 'text' | 'image' | 'shape' | 'icon' | 'video' | 'table' | 'chart';
 
-export type ChartType = 'bar' | 'line' | 'area' | 'pie';
+export type ChartType = 'bar' | 'line' | 'area' | 'pie' | 'doughnut' | 'radar' | 'scatter';
 
 export interface ChartData {
   chartType: ChartType;
