@@ -22,6 +22,7 @@ import RedesignDialog from '@/components/editor/RedesignDialog';
 import BrandKitDialog from '@/components/editor/BrandKitDialog';
 import ChartDialog from '@/components/editor/ChartDialog';
 import SaveAsTemplateDialog from '@/components/editor/SaveAsTemplateDialog';
+import TemplateModePicker from '@/components/editor/TemplateModePicker';
 import ImageEditDialog from '@/components/editor/ImageEditDialog';
 import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
 import SmartSuggest from '@/components/editor/SmartSuggest';
@@ -60,6 +61,8 @@ export default function EditorPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const idFromUrl = searchParams.get('id');
+  const isTemplateMode = searchParams.get('mode') === 'template';
+  const [showTemplatePicker, setShowTemplatePicker] = useState(isTemplateMode && !idFromUrl);
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const initializedRef = useRef(false);
@@ -399,6 +402,9 @@ export default function EditorPage() {
                 {presentation.title || 'Untitled'}
               </button>
             )}
+            {isTemplateMode && (
+              <span className="text-[10px] text-white bg-[#9333EA] px-2 py-0.5 rounded-full font-medium">TEMPLATE STUDIO</span>
+            )}
             {saveStatus !== 'idle' && (
               <span className={cn('text-[10px] px-2 py-0.5 rounded-full', saveStatus === 'saving' ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50')}>
                 {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
@@ -430,6 +436,12 @@ export default function EditorPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {isTemplateMode && (
+              <Button size="sm" onClick={() => setShowSaveTemplate(true)}
+                className="h-8 gap-1.5 ml-1 bg-gradient-to-r from-[#9333EA] to-[#7E22CE] text-white text-xs">
+                <Upload className="w-3.5 h-3.5" />Publish Template
+              </Button>
+            )}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -710,6 +722,42 @@ export default function EditorPage() {
         {showInfographics && <InfographicsDialog onClose={() => setShowInfographics(false)} />}
         {showAIInfographic && <AIInfographicDialog onClose={() => setShowAIInfographic(false)} />}
         {showSaveTemplate && <SaveAsTemplateDialog onClose={() => setShowSaveTemplate(false)} />}
+        {showTemplatePicker && (
+          <TemplateModePicker
+            onSelect={(tmpl) => {
+              const slides = (tmpl.slides || []).map((s: any) => ({
+                ...s, id: s.id || crypto.randomUUID(),
+                elements: s.elements || [],
+                background: s.background || { type: 'solid', value: '#000000' },
+              }));
+              const theme = tmpl.theme || presentation.theme;
+              setPresentation({
+                id: crypto.randomUUID(), title: tmpl.name || 'Template',
+                slides, theme: theme as any,
+                templateType: 'cinematic', cinematicPresetId: tmpl.preset_id || 'midnight',
+                createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+              });
+              setShowTemplatePicker(false);
+            }}
+            onBlank={() => {
+              setPresentation({
+                id: crypto.randomUUID(), title: 'New Template',
+                slides: Array.from({ length: 5 }, () => ({
+                  id: crypto.randomUUID(), elements: [],
+                  background: { type: 'solid' as const, value: '#000000' },
+                })),
+                theme: { id: 'custom', name: 'Custom', category: 'Cinematic',
+                  tokens: { palette: { primary: '#FFFFFF', secondary: '#80838e', accent: '#FFFFFF', bg: '#000000', text: '#FFFFFF' },
+                    typography: { titleFont: 'Inter', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '0px', shadows: 'none' },
+                  previewColors: ['#FFFFFF', '#80838e', '#000000'] },
+                templateType: 'cinematic', cinematicPresetId: 'midnight',
+                createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+              });
+              setShowTemplatePicker(false);
+            }}
+            onClose={() => setShowTemplatePicker(false)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
