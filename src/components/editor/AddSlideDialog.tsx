@@ -137,20 +137,42 @@ export default function AddSlideDialog({ onClose }: Props) {
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
 
-      const elements = (data.elements || []).map((el: any) => ({
-        id: uid(),
-        type: el.type || 'text',
-        content: el.content || '',
-        x: el.x || 100, y: el.y || 100,
-        width: el.width || 400, height: el.height || 200,
-        rotation: el.rotation || 0, opacity: el.opacity ?? 1,
-        locked: false, visible: true, zIndex: 0,
-        style: {
-          ...el.style,
-          fontFamily: el.style?.fontFamily || (el.style?.fontSize > 20 ? theme.typography.titleFont : theme.typography.bodyFont),
-          color: el.style?.color || theme.palette.text,
-        },
-      }));
+      const titleSize = theme.typography.titleSize || 42;
+      const bodySize = theme.typography.bodySize || 24;
+
+      const elements = (data.elements || []).map((el: any, idx: number) => {
+        const isText = (el.type || 'text') === 'text';
+        const rawFontSize = el.style?.fontSize || 14;
+        // Detect if this is a title (first text, or large font, or bold)
+        const isTitle = isText && (idx === 0 || rawFontSize >= 28 || el.style?.fontWeight === 'bold');
+
+        // Force correct font sizes from theme — AI often generates too small
+        const fontSize = isText
+          ? (isTitle ? titleSize : Math.max(bodySize, rawFontSize))
+          : rawFontSize;
+
+        // Force minimum dimensions for text elements
+        const width = isText ? Math.max(el.width || 400, isTitle ? 800 : 600) : (el.width || 400);
+        const height = isText ? Math.max(el.height || 100, isTitle ? 120 : 80) : (el.height || 200);
+
+        return {
+          id: uid(),
+          type: el.type || 'text',
+          content: el.content || '',
+          x: Math.max(80, el.x || 120),
+          y: Math.max(40, el.y || 100),
+          width, height,
+          rotation: el.rotation || 0, opacity: el.opacity ?? 1,
+          locked: false, visible: true, zIndex: 0,
+          style: {
+            ...el.style,
+            fontSize,
+            fontFamily: isTitle ? theme.typography.titleFont : theme.typography.bodyFont,
+            fontWeight: isTitle ? 'bold' : (el.style?.fontWeight || 'normal'),
+            color: el.style?.color || theme.palette.text,
+          },
+        };
+      });
 
       // Copy locked decorations from current slide
       const decorations = (currentSlide?.elements || [])
