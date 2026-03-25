@@ -151,9 +151,13 @@ export default function AddSlideDialog({ onClose }: Props) {
           ? (isTitle ? titleSize : Math.max(bodySize, rawFontSize))
           : rawFontSize;
 
-        // Force minimum dimensions for text elements
-        const width = isText ? Math.max(el.width || 400, isTitle ? 800 : 600) : (el.width || 400);
-        const height = isText ? Math.max(el.height || 100, isTitle ? 120 : 80) : (el.height || 200);
+        // Force minimum dimensions proportional to font size
+        // fontSize in pt × 2.666 = px. A line needs ~1.4× that height.
+        const fontPx = fontSize * 2.666;
+        const minH = isText ? Math.max(fontPx * 2, 80) : 50;
+        const minW = isText ? Math.max(300, isTitle ? 800 : 400) : 100;
+        const width = isText ? Math.max(el.width || 400, minW) : (el.width || 400);
+        const height = isText ? Math.max(el.height || 100, minH) : (el.height || 200);
 
         return {
           id: uid(),
