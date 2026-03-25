@@ -487,7 +487,7 @@ export default function EditorPage() {
               <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative">
                 {activeSlide && (
                   <ErrorBoundary>
-                    <div className="relative" style={{
+                    <div className="relative overflow-hidden" style={{
                       width: 1920 * scale,
                       height: 1080 * scale,
                       margin: '0 auto',
