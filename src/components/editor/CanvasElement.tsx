@@ -582,7 +582,8 @@ export default function CanvasElement({
         try { tableData = JSON.parse(element.content); } catch { tableData = { rows: [[{ text: '' }]] }; }
         const bColor = tableData.borderColor || '#e2e8f0';
         const cellPad = Math.max(4, element.height / tableData.rows.length * 0.15);
-        const cellFontPx = s.fontSize ? s.fontSize : Math.max(10, element.height / tableData.rows.length * 0.45);
+        const cellFontPx = s.fontSize ? s.fontSize * 2.666 : Math.max(10, element.height / tableData.rows.length * 0.45);
+        const tableFontFamily = s.fontFamily ? `${s.fontFamily}, sans-serif` : 'sans-serif';
         const borderRad = s.borderRadius ?? 8;
         const numRows = tableData.rows.length;
         const numCols = tableData.rows[0]?.length || 1;
@@ -622,7 +623,7 @@ export default function CanvasElement({
         };
 
         return (
-          <table className="w-full h-full" style={{ borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', borderRadius: borderRad, overflow: 'hidden' }}>
+          <table className="w-full h-full" style={{ borderCollapse: 'separate', borderSpacing: 0, tableLayout: 'fixed', borderRadius: borderRad, overflow: 'hidden', fontFamily: tableFontFamily, pointerEvents: 'auto' }}>
             <tbody>
               {tableData.rows.map((row, ri) => (
                 <tr key={ri}>
@@ -664,8 +665,14 @@ export default function CanvasElement({
         let chartConfig: ChartData;
         try { chartConfig = JSON.parse(element.content); } catch { return <div className="w-full h-full bg-gray-100 rounded flex items-center justify-center text-slate-400 text-xs pointer-events-none">Invalid chart</div>; }
         return (
-          <div className="w-full h-full pointer-events-none" style={{ borderRadius: s.borderRadius ?? 0 }}>
+          <div className="w-full h-full pointer-events-none relative" style={{ borderRadius: s.borderRadius ?? 0 }}>
             <ChartRenderer config={chartConfig} interactive={false} />
+            {isSelected && (
+              <div className="absolute bottom-2 right-2 px-2 py-1 bg-white/90 backdrop-blur-sm rounded-md shadow-sm text-[10px] text-slate-500 pointer-events-auto cursor-pointer hover:text-[#4F46E5]"
+                onClick={() => window.dispatchEvent(new CustomEvent('slideai-edit-chart', { detail: element.id }))}>
+                Double-click to edit data
+              </div>
+            )}
           </div>
         );
       }
