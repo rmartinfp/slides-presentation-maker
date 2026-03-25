@@ -11,101 +11,104 @@ interface Props {
   onClose: () => void;
 }
 
-// Visual slide layout definitions with mini-preview blocks
-const LAYOUTS = [
+// Visual slide layouts with text previews
+interface LayoutBlock {
+  type: 'title' | 'body' | 'accent' | 'image' | 'divider' | 'number';
+  x: number; y: number; w: number; h: number;
+  text?: string;
+  fontSize?: number;
+  bold?: boolean;
+  align?: string;
+  rounded?: number;
+}
+
+const LAYOUTS: { id: string; label: string; prompt: string; blocks: LayoutBlock[] }[] = [
   {
-    id: 'blank',
-    label: 'Blank',
-    prompt: '',
-    blocks: [], // Empty — just the background
+    id: 'blank', label: 'Blank', prompt: '',
+    blocks: [],
   },
   {
-    id: 'title-content',
-    label: 'Title & Content',
+    id: 'title-content', label: 'Title & Content',
     prompt: 'Create a slide with a bold title at the top and a paragraph of body text below',
     blocks: [
-      { type: 'title', x: 8, y: 10, w: 60, h: 8 },
-      { type: 'body', x: 8, y: 25, w: 55, h: 4 },
-      { type: 'body', x: 8, y: 31, w: 50, h: 4 },
-      { type: 'body', x: 8, y: 37, w: 52, h: 4 },
+      { type: 'title', x: 8, y: 12, w: 70, h: 10, text: 'Slide Title', fontSize: 11, bold: true },
+      { type: 'body', x: 8, y: 28, w: 60, h: 4, text: 'Body text goes here with details', fontSize: 6 },
+      { type: 'body', x: 8, y: 35, w: 55, h: 4, text: 'and supporting information for', fontSize: 6 },
+      { type: 'body', x: 8, y: 42, w: 50, h: 4, text: 'your audience to understand.', fontSize: 6 },
     ],
   },
   {
-    id: 'two-column',
-    label: 'Two Columns',
+    id: 'two-column', label: 'Two Columns',
     prompt: 'Create a slide with a title and two columns of text side by side',
     blocks: [
-      { type: 'title', x: 8, y: 10, w: 84, h: 8 },
-      { type: 'body', x: 8, y: 28, w: 38, h: 4 },
-      { type: 'body', x: 8, y: 34, w: 35, h: 4 },
-      { type: 'body', x: 8, y: 40, w: 36, h: 4 },
-      { type: 'body', x: 54, y: 28, w: 38, h: 4 },
-      { type: 'body', x: 54, y: 34, w: 35, h: 4 },
-      { type: 'body', x: 54, y: 40, w: 36, h: 4 },
-      { type: 'divider', x: 49, y: 26, w: 0.3, h: 22 },
+      { type: 'title', x: 8, y: 8, w: 84, h: 10, text: 'Two Columns', fontSize: 11, bold: true },
+      { type: 'divider', x: 49.5, y: 24, w: 0.3, h: 50 },
+      { type: 'body', x: 8, y: 26, w: 38, h: 4, text: 'First column with', fontSize: 5.5 },
+      { type: 'body', x: 8, y: 33, w: 35, h: 4, text: 'key points and', fontSize: 5.5 },
+      { type: 'body', x: 8, y: 40, w: 36, h: 4, text: 'supporting details', fontSize: 5.5 },
+      { type: 'body', x: 54, y: 26, w: 38, h: 4, text: 'Second column', fontSize: 5.5 },
+      { type: 'body', x: 54, y: 33, w: 35, h: 4, text: 'with additional', fontSize: 5.5 },
+      { type: 'body', x: 54, y: 40, w: 36, h: 4, text: 'information here', fontSize: 5.5 },
     ],
   },
   {
-    id: 'stats',
-    label: 'Key Numbers',
+    id: 'stats', label: 'Key Numbers',
     prompt: 'Create a slide with 3 large key statistics with labels',
     blocks: [
-      { type: 'title', x: 8, y: 8, w: 50, h: 7 },
-      { type: 'accent', x: 10, y: 32, w: 22, h: 20 },
-      { type: 'accent', x: 39, y: 32, w: 22, h: 20 },
-      { type: 'accent', x: 68, y: 32, w: 22, h: 20 },
-      { type: 'body', x: 12, y: 58, w: 18, h: 3 },
-      { type: 'body', x: 41, y: 58, w: 18, h: 3 },
-      { type: 'body', x: 70, y: 58, w: 18, h: 3 },
+      { type: 'title', x: 8, y: 8, w: 50, h: 9, text: 'Key Metrics', fontSize: 10, bold: true },
+      { type: 'number', x: 10, y: 30, w: 22, h: 16, text: '85%', fontSize: 14, bold: true, align: 'center' },
+      { type: 'number', x: 39, y: 30, w: 22, h: 16, text: '$2.4M', fontSize: 14, bold: true, align: 'center' },
+      { type: 'number', x: 68, y: 30, w: 22, h: 16, text: '3.2x', fontSize: 14, bold: true, align: 'center' },
+      { type: 'accent', x: 16, y: 48, w: 10, h: 1.5, rounded: 1 },
+      { type: 'accent', x: 45, y: 48, w: 10, h: 1.5, rounded: 1 },
+      { type: 'accent', x: 74, y: 48, w: 10, h: 1.5, rounded: 1 },
+      { type: 'body', x: 10, y: 53, w: 22, h: 4, text: 'Satisfaction', fontSize: 5, align: 'center' },
+      { type: 'body', x: 39, y: 53, w: 22, h: 4, text: 'Revenue', fontSize: 5, align: 'center' },
+      { type: 'body', x: 68, y: 53, w: 22, h: 4, text: 'Growth', fontSize: 5, align: 'center' },
     ],
   },
   {
-    id: 'image-text',
-    label: 'Image & Text',
+    id: 'image-text', label: 'Image & Text',
     prompt: 'Create a slide with a large image placeholder on the right and title with text on the left',
     blocks: [
-      { type: 'title', x: 8, y: 15, w: 40, h: 8 },
-      { type: 'body', x: 8, y: 30, w: 38, h: 4 },
-      { type: 'body', x: 8, y: 36, w: 35, h: 4 },
-      { type: 'body', x: 8, y: 42, w: 37, h: 4 },
-      { type: 'image', x: 55, y: 10, w: 38, h: 55 },
+      { type: 'title', x: 8, y: 15, w: 42, h: 10, text: 'Visual Slide', fontSize: 10, bold: true },
+      { type: 'body', x: 8, y: 32, w: 38, h: 4, text: 'Describe the image', fontSize: 5.5 },
+      { type: 'body', x: 8, y: 39, w: 35, h: 4, text: 'context and details', fontSize: 5.5 },
+      { type: 'image', x: 55, y: 8, w: 38, h: 60, rounded: 4 },
     ],
   },
   {
-    id: 'quote',
-    label: 'Quote',
+    id: 'quote', label: 'Quote',
     prompt: 'Create a slide with a large centered quote and the author name below',
     blocks: [
-      { type: 'accent', x: 20, y: 18, w: 3, h: 15 },
-      { type: 'title', x: 27, y: 20, w: 55, h: 6 },
-      { type: 'title', x: 27, y: 28, w: 50, h: 6 },
-      { type: 'body', x: 27, y: 42, w: 25, h: 4 },
+      { type: 'accent', x: 18, y: 22, w: 1.5, h: 20 },
+      { type: 'title', x: 24, y: 22, w: 60, h: 8, text: '"A powerful quote that', fontSize: 9, bold: true },
+      { type: 'title', x: 24, y: 33, w: 55, h: 8, text: 'inspires the audience"', fontSize: 9, bold: true },
+      { type: 'body', x: 24, y: 50, w: 30, h: 4, text: '— Author Name', fontSize: 5.5 },
     ],
   },
   {
-    id: 'section',
-    label: 'Section Divider',
+    id: 'section', label: 'Section Divider',
     prompt: 'Create a section divider slide with a big centered title and a short subtitle below',
     blocks: [
-      { type: 'title', x: 20, y: 30, w: 60, h: 12 },
-      { type: 'body', x: 30, y: 48, w: 40, h: 4 },
+      { type: 'title', x: 15, y: 28, w: 70, h: 14, text: 'Section Title', fontSize: 14, bold: true, align: 'center' },
+      { type: 'body', x: 25, y: 50, w: 50, h: 5, text: 'Subtitle description here', fontSize: 6, align: 'center' },
     ],
   },
   {
-    id: 'timeline',
-    label: 'Timeline',
+    id: 'timeline', label: 'Timeline',
     prompt: 'Create a timeline slide with 4 milestones showing a progression or roadmap',
     blocks: [
-      { type: 'title', x: 8, y: 8, w: 40, h: 7 },
-      { type: 'divider', x: 8, y: 45, w: 84, h: 0.4 },
-      { type: 'accent', x: 15, y: 43, w: 4, h: 4 },
-      { type: 'accent', x: 35, y: 43, w: 4, h: 4 },
-      { type: 'accent', x: 55, y: 43, w: 4, h: 4 },
-      { type: 'accent', x: 75, y: 43, w: 4, h: 4 },
-      { type: 'body', x: 10, y: 52, w: 16, h: 3 },
-      { type: 'body', x: 30, y: 52, w: 16, h: 3 },
-      { type: 'body', x: 50, y: 52, w: 16, h: 3 },
-      { type: 'body', x: 70, y: 52, w: 16, h: 3 },
+      { type: 'title', x: 8, y: 6, w: 40, h: 9, text: 'Roadmap', fontSize: 10, bold: true },
+      { type: 'divider', x: 6, y: 46, w: 88, h: 0.6 },
+      { type: 'accent', x: 14, y: 43.5, w: 5, h: 5, rounded: 50 },
+      { type: 'accent', x: 34, y: 43.5, w: 5, h: 5, rounded: 50 },
+      { type: 'accent', x: 54, y: 43.5, w: 5, h: 5, rounded: 50 },
+      { type: 'accent', x: 74, y: 43.5, w: 5, h: 5, rounded: 50 },
+      { type: 'body', x: 8, y: 26, w: 18, h: 4, text: 'Q1 2026', fontSize: 5, align: 'center', bold: true },
+      { type: 'body', x: 28, y: 54, w: 18, h: 4, text: 'Q2 2026', fontSize: 5, align: 'center', bold: true },
+      { type: 'body', x: 48, y: 26, w: 18, h: 4, text: 'Q3 2026', fontSize: 5, align: 'center', bold: true },
+      { type: 'body', x: 68, y: 54, w: 18, h: 4, text: 'Q4 2026', fontSize: 5, align: 'center', bold: true },
     ],
   },
 ];
@@ -240,22 +243,40 @@ export default function AddSlideDialog({ onClose }: Props) {
                     {layout.blocks.map((block, i) => (
                       <div
                         key={i}
-                        className="absolute rounded-sm"
+                        className="absolute overflow-hidden"
                         style={{
                           left: `${block.x}%`,
                           top: `${block.y}%`,
                           width: `${block.w}%`,
                           height: `${block.h}%`,
                           backgroundColor:
-                            block.type === 'title' ? text :
-                            block.type === 'body' ? `${text}40` :
-                            block.type === 'accent' ? accent :
-                            block.type === 'image' ? `${text}15` :
-                            block.type === 'divider' ? `${text}20` :
-                            `${text}30`,
-                          borderRadius: block.type === 'accent' ? 3 : block.type === 'image' ? 4 : 1,
+                            block.text ? 'transparent' :
+                            block.type === 'accent' ? text :
+                            block.type === 'image' ? `${text}12` :
+                            block.type === 'divider' ? `${text}18` :
+                            block.type === 'number' ? 'transparent' :
+                            `${text}20`,
+                          borderRadius: block.rounded ?? (block.type === 'image' ? 4 : 1),
+                          border: block.type === 'image' ? `1px dashed ${text}25` : undefined,
                         }}
-                      />
+                      >
+                        {block.text && (
+                          <span
+                            className="block truncate leading-tight"
+                            style={{
+                              fontSize: block.fontSize || 6,
+                              fontWeight: block.bold ? 'bold' : 'normal',
+                              color: block.type === 'number' ? text : block.type === 'title' ? text : `${text}90`,
+                              fontFamily: block.type === 'title' || block.type === 'number'
+                                ? `${theme.typography.titleFont}, sans-serif`
+                                : `${theme.typography.bodyFont}, sans-serif`,
+                              textAlign: (block.align as any) || 'left',
+                            }}
+                          >
+                            {block.text}
+                          </span>
+                        )}
+                      </div>
                     ))}
                     {layout.id === 'blank' && (
                       <div className="absolute inset-0 flex items-center justify-center">
