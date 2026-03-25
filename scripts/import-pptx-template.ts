@@ -1876,8 +1876,8 @@ async function main() {
               const childOff = sm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
               const childExt = sm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
               if (childOff && childExt) {
-                shapeEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(childOff[1]))));
-                shapeEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(childOff[2]))));
+                shapeEl.x = emuToPxX(transform.toX(parseInt(childOff[1])));
+                shapeEl.y = emuToPxY(transform.toY(parseInt(childOff[2])));
                 shapeEl.width = safeWidth(parseInt(childExt[1]), transform);
                 shapeEl.height = safeHeight(parseInt(childExt[2]), transform);
               }
@@ -2045,8 +2045,8 @@ async function main() {
           const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
           if (cOff && cExt) {
-            shapeEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
-            shapeEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+            shapeEl.x = emuToPxX(transform.toX(parseInt(cOff[1])));
+            shapeEl.y = emuToPxY(transform.toY(parseInt(cOff[2])));
             shapeEl.width = safeWidth(parseInt(cExt[1]), transform);
             shapeEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
@@ -2062,8 +2062,8 @@ async function main() {
           const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
           if (cOff && cExt) {
-            textEl.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
-            textEl.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+            textEl.x = emuToPxX(transform.toX(parseInt(cOff[1])));
+            textEl.y = emuToPxY(transform.toY(parseInt(cOff[2])));
             textEl.width = safeWidth(parseInt(cExt[1]), transform);
             textEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
@@ -2079,8 +2079,8 @@ async function main() {
           const cOff = pm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const cExt = pm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
           if (cOff && cExt) {
-            result.element.x = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
-            result.element.y = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+            result.element.x = emuToPxX(transform.toX(parseInt(cOff[1])));
+            result.element.y = emuToPxY(transform.toY(parseInt(cOff[2])));
             result.element.width = safeWidth(parseInt(cExt[1]), transform);
             result.element.height = safeHeight(parseInt(cExt[2]), transform);
           }
@@ -2098,8 +2098,8 @@ async function main() {
         const cOff = cxnXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
         const cExt = cxnXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
         if (!cOff || !cExt) continue;
-        const cx = emuToPxX(Math.max(0, transform.toX(parseInt(cOff[1]))));
-        const cy = emuToPxY(Math.max(0, transform.toY(parseInt(cOff[2]))));
+        const cx = emuToPxX(transform.toX(parseInt(cOff[1])));
+        const cy = emuToPxY(transform.toY(parseInt(cOff[2])));
         const cw = safeWidth(parseInt(cExt[1]), transform);
         const ch = Math.max(2, safeHeight(parseInt(cExt[2]), transform));
         const srgb = cxnXml.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
