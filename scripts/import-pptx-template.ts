@@ -538,13 +538,19 @@ function parseTextFromSpTree(
         // Inherit text color: run → layout placeholder → master placeholder → theme dk1
         const isTitle = phType === 'ctrTitle' || phType === 'title';
         // 1. Layout placeholder color (from lstStyle lvl1pPr defRPr)
-        // Use idx-based layout color for ALL placeholders that have an explicit idx
-        // (numbers like "01" are title type but have high idx and need layout color)
-        // Only skip for the PRIMARY title (no idx or idx=0) which inherits from master
-        const isPrimaryTitle = isTitle && (!phIdx || phIdx === '0');
-        if (layoutPlaceholderColors && !isPrimaryTitle && phIdx) {
-          const layoutColor = layoutPlaceholderColors.get(`idx:${phIdx}`);
-          if (layoutColor) return layoutColor;
+        if (layoutPlaceholderColors) {
+          // Try idx-based first (most specific)
+          if (phIdx) {
+            const layoutColor = layoutPlaceholderColors.get(`idx:${phIdx}`);
+            if (layoutColor) return layoutColor;
+          }
+          // Type-based fallback ONLY for title/ctrTitle without idx
+          // (section header "01" uses type:title without idx in some layouts)
+          // Don't use type-based for subTitle — it mixes body text with subtitle headers
+          if (!phIdx && isTitle) {
+            const layoutColor = layoutPlaceholderColors.get(`type:${phType}`);
+            if (layoutColor) return layoutColor;
+          }
         }
         // 2. Master placeholder color
         if (masterDefaults) {
