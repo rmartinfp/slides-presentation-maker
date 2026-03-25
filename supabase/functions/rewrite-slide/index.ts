@@ -27,26 +27,47 @@ Deno.serve(async (req) => {
       );
     }
 
-    const systemPrompt = `You are a presentation content editor. You will receive a slide and an instruction to modify it.
+    // Extract text elements only — don't send images/shapes/positions to the AI
+    const elements = slide.elements || [];
+    const textElements = elements
+      .filter((el: any) => el.type === "text" && el.content?.trim())
+      .map((el: any, i: number) => ({
+        index: i,
+        id: el.id,
+        content: el.content,
+        fontSize: el.style?.fontSize,
+        fontWeight: el.style?.fontWeight,
+      }));
+
+    if (textElements.length === 0) {
+      // No text to rewrite — return original slide
+      return new Response(
+        JSON.stringify({ elements: slide.elements, notes: slide.notes }),
+        { headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
+      );
+    }
+
+    const systemPrompt = `You are a presentation text editor. You will receive text elements from a slide and an instruction.
 
 RULES:
-- Keep the same slide structure (type, layout)
-- Only modify the content as requested
-- Keep the same language as the original
-- Return ONLY valid JSON matching the exact same schema as the input slide
-- Be concise and professional
-- Bullets should be 1-2 lines each, max 5 bullets
+- ONLY modify the text content of each element as instructed
+- Keep the SAME number of elements — do NOT add or remove elements
+- Keep the same language unless told to change it
+- Return a JSON array with objects: { "id": "<same id>", "content": "<rewritten text>" }
+- Be concise — presentation text should be short and impactful
+- Preserve any HTML tags (like <br>, <b>, etc.) if present
+- If the instruction says to add a certain element, add it to the last text element or first element
 
-Return ONLY the JSON for the updated slide, no other text.`;
+Return ONLY the JSON array, no other text.`;
 
-    const userMessage = `Here is the current slide:
-${JSON.stringify(slide, null, 2)}
+    const userMessage = `${presentationContext ? `Presentation: "${presentationContext}"\n` : ""}
+Text elements on this slide:
+${JSON.stringify(textElements, null, 2)}
 
-${presentationContext ? `Presentation context: ${presentationContext}` : ''}
-
+${slide.notes ? `Speaker notes: ${slide.notes}\n` : ""}
 Instruction: ${instruction}
 
-Return the updated slide as JSON.`;
+Return the rewritten texts as a JSON array of { id, content } objects.`;
 
     const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -68,18 +89,25 @@ Return the updated slide as JSON.`;
     }
 
     const result = await response.json();
-    const content = result.content[0]?.text;
+    let content = result.content[0]?.text?.trim();
 
-    let jsonStr = content;
+    // Extract JSON
     const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1].trim();
-    }
+    if (jsonMatch) content = jsonMatch[1].trim();
 
-    const updatedSlide = JSON.parse(jsonStr);
+    const rewrittenTexts: { id: string; content: string }[] = JSON.parse(content);
+
+    // Apply rewritten texts back to the ORIGINAL elements (preserve positions, styles, images, etc.)
+    const rewriteMap = new Map(rewrittenTexts.map((t) => [t.id, t.content]));
+    const updatedElements = elements.map((el: any) => {
+      if (el.type === "text" && rewriteMap.has(el.id)) {
+        return { ...el, content: rewriteMap.get(el.id) };
+      }
+      return el;
+    });
 
     return new Response(
-      JSON.stringify(updatedSlide),
+      JSON.stringify({ elements: updatedElements, notes: slide.notes }),
       { headers: { ...CORS_HEADERS, "Content-Type": "application/json" } }
     );
   } catch (error) {

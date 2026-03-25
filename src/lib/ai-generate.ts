@@ -112,6 +112,17 @@ export async function rewriteSlide(
   if (error) throw new Error(error.message || 'Failed to rewrite slide');
   if (data.error) throw new Error(data.error);
 
+  // New format: returns { elements, notes } — elements are the original
+  // elements with only text content replaced
+  if (data.elements) {
+    return {
+      ...slide,
+      elements: data.elements,
+      notes: data.notes || slide.notes || '',
+    };
+  }
+
+  // Legacy fallback
   return {
     id: slide.id,
     layout: data.layout || slide.layout,

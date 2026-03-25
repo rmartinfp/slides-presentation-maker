@@ -229,9 +229,12 @@ export default function EditorPage() {
 
   const handleAIUpdate = (updated: Slide) => {
     const state = useEditorStore.getState();
-    const migrated = migrateSlideToElements(updated, state.presentation.theme.tokens);
+    // If the response already has elements (new rewrite format), use them directly
+    const finalSlide = updated.elements?.length
+      ? { ...state.presentation.slides[state.activeSlideIndex], elements: updated.elements, notes: updated.notes }
+      : migrateSlideToElements(updated, state.presentation.theme.tokens);
     useEditorStore.setState({
-      presentation: { ...state.presentation, slides: state.presentation.slides.map((s, i) => i === state.activeSlideIndex ? migrated : s), updatedAt: new Date().toISOString() },
+      presentation: { ...state.presentation, slides: state.presentation.slides.map((s, i) => i === state.activeSlideIndex ? finalSlide : s), updatedAt: new Date().toISOString() },
     });
   };
 
