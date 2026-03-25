@@ -1879,10 +1879,12 @@ async function main() {
               const childOff = sm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
               const childExt = sm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
               if (childOff && childExt) {
+                const dbgOldX = shapeEl.x, dbgOldY = shapeEl.y;
                 shapeEl.x = emuToPxX(transform.toX(parseInt(childOff[1])));
                 shapeEl.y = emuToPxY(transform.toY(parseInt(childOff[2])));
                 shapeEl.width = safeWidth(parseInt(childExt[1]), transform);
                 shapeEl.height = safeHeight(parseInt(childExt[2]), transform);
+                console.log(`    GRP child: raw(${dbgOldX},${dbgOldY}) → transformed(${shapeEl.x},${shapeEl.y}) ${shapeEl.width}x${shapeEl.height} fill=${shapeEl.style?.shapeFill||'?'}`);
               }
               shapeEl.locked = true;
               shapeEl.zIndex = zIndex++;

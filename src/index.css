@@ -160,7 +160,8 @@
   .slide-stage {
     width: 1920px;
     height: 1080px;
-    overflow: hidden;
+    overflow: hidden !important;
+    clip-path: inset(0 0 0 0) !important;
   }
 
   /* Ensure interact.js elements are draggable */
