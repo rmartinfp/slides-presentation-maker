@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useEditorStore } from '@/stores/editor-store';
 import SlideCanvas from '@/components/editor/SlideCanvas';
-import SlideList from '@/components/editor/SlideList';
+// SlideList not used — we render slide thumbnails manually with SlideCanvas
 import CinematicPresentation from '@/components/cinematic/CinematicPresentation';
 import { getPresetById } from '@/lib/cinematic-presets';
 import { loadGoogleFont } from '@/lib/font-loader';
@@ -10,7 +10,7 @@ import { supabase } from '@/lib/supabase';
 import { Presentation, Slide, SlideElement } from '@/types/presentation';
 import { CinematicPreset } from '@/types/cinematic';
 import { toast } from 'sonner';
-import { DragDropContext, Droppable, DropResult } from '@hello-pangea/dnd';
+// DragDropContext removed — simple click-to-select for slide list
 import {
   ArrowLeft, Plus, Play, Search, Loader2, Upload, Eye, Type, Video,
   Palette, ChevronDown, Trash2, Copy, X,
@@ -411,10 +411,7 @@ export default function TemplateStudio() {
     return () => observer.disconnect();
   }, [setScale]);
 
-  const handleDragEnd = (result: DropResult) => {
-    if (!result.destination || result.source.index === result.destination.index) return;
-    reorderSlides(result.source.index, result.destination.index);
-  };
+  // Drag-and-drop for slides not needed in studio — just click to select
 
   const handleFontSelect = (font: string) => {
     loadGoogleFont(font);
@@ -480,7 +477,7 @@ export default function TemplateStudio() {
 
         {/* Main area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Slide list */}
+          {/* Slide list — manual rendering with props */}
           <div className="w-32 bg-white border-r border-slate-200 flex flex-col overflow-hidden">
             <div className="p-2 flex items-center justify-between">
               <span className="text-[10px] text-slate-400">{presentation.slides.length} slides</span>
@@ -488,21 +485,43 @@ export default function TemplateStudio() {
                 <Plus className="w-3 h-3" />
               </Button>
             </div>
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="studio-slides">
-                {(provided) => (
-                  <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1 overflow-y-auto px-2 pb-2">
-                    {initialized && <SlideList />}
-                    {provided.placeholder}
+            <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+              {initialized && presentation.slides.map((slide, idx) => (
+                <div
+                  key={slide.id}
+                  onClick={() => setActiveSlideIndex(idx)}
+                  className={cn(
+                    'relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all',
+                    idx === activeSlideIndex ? 'border-[#4F46E5] shadow-md' : 'border-transparent hover:border-slate-300'
+                  )}
+                >
+                  <div className="w-full aspect-[16/9] relative overflow-hidden">
+                    <div style={{ width: 1920 * 0.058, height: 1080 * 0.058, transformOrigin: 'top left' }}>
+                      <SlideCanvas slide={slide} theme={presentation.theme} scale={0.058} isEditing={false} />
+                    </div>
                   </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                  <div className="absolute bottom-0.5 left-1 text-[8px] text-white/60 font-mono bg-black/40 px-1 rounded">
+                    {idx + 1}
+                  </div>
+                  {/* Delete/duplicate on hover */}
+                  <div className="absolute top-0.5 right-0.5 flex gap-0.5 opacity-0 hover:opacity-100 transition-opacity">
+                    <button onClick={(e) => { e.stopPropagation(); duplicateSlide(idx); }} className="w-4 h-4 rounded bg-white/80 flex items-center justify-center" title="Duplicate">
+                      <Copy className="w-2.5 h-2.5 text-slate-600" />
+                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); deleteSlide(idx); }} className="w-4 h-4 rounded bg-white/80 flex items-center justify-center" title="Delete">
+                      <Trash2 className="w-2.5 h-2.5 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Canvas — only render after store is initialized */}
+          {/* Canvas */}
           <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-slate-100 overflow-hidden">
-            {initialized && <SlideCanvas />}
+            {initialized && activeSlide && (
+              <SlideCanvas slide={activeSlide} theme={presentation.theme} scale={scale} isEditing={true} />
+            )}
           </div>
 
           {/* Right panel — Tools */}
