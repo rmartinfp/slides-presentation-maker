@@ -302,9 +302,11 @@ function parseTextFromSpTree(
 
   if (width < 5 || height < 5) return null;
 
-  // Extract rotation from xfrm
+  // Extract rotation and flip from xfrm
   const rotMatch = spXml.match(/<a:xfrm[^>]*\brot="(-?\d+)"/);
   const rotation = rotMatch ? Math.round(parseInt(rotMatch[1]) / 60000) : 0;
+  const flipH = /<a:xfrm[^>]*\bflipH="1"/.test(spXml);
+  const flipV = /<a:xfrm[^>]*\bflipV="1"/.test(spXml);
 
   // Check if it's a placeholder — get type and idx for layout inheritance
   const phMatch = spXml.match(/<p:ph([^/]*)\/?>/);
@@ -732,9 +734,11 @@ function parseShapeFromSpTree(
 
   if (width < 5 || height < 5) return null;
 
-  // Extract rotation from xfrm
+  // Extract rotation and flip from xfrm
   const rotMatch = spXml.match(/<a:xfrm[^>]*\brot="(-?\d+)"/);
   const rotation = rotMatch ? Math.round(parseInt(rotMatch[1]) / 60000) : 0;
+  const flipH = /<a:xfrm[^>]*\bflipH="1"/.test(spXml);
+  const flipV = /<a:xfrm[^>]*\bflipV="1"/.test(spXml);
 
   // Determine shape type
   const prstGeom = spXml.match(/<a:prstGeom\s+prst="(\w+)"/);
@@ -844,6 +848,8 @@ function parseShapeFromSpTree(
       })() : 0,
       svgPath: svgPath || undefined,
       svgViewBox: svgViewBox || undefined,
+      flipH: flipH || undefined,
+      flipV: flipV || undefined,
     },
   };
 }

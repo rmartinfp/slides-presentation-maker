@@ -237,7 +237,11 @@ function StaticElement({ element }: { element: SlideElement }) {
     top: element.y,
     width: element.width,
     height: element.height,
-    transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+    transform: [
+      element.rotation ? `rotate(${element.rotation}deg)` : '',
+      element.style.flipH ? 'scaleX(-1)' : '',
+      element.style.flipV ? 'scaleY(-1)' : '',
+    ].filter(Boolean).join(' ') || undefined,
     opacity: element.opacity,
     zIndex: element.zIndex,
     overflow: 'hidden',

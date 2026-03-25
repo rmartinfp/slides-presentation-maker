@@ -78,7 +78,11 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
       top: `${element.y * scaleY}vh`,
       width: `${element.width * scaleX}vw`,
       height: `${element.height * scaleY}vh`,
-      transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+      transform: [
+        element.rotation ? `rotate(${element.rotation}deg)` : '',
+        element.style.flipH ? 'scaleX(-1)' : '',
+        element.style.flipV ? 'scaleY(-1)' : '',
+      ].filter(Boolean).join(' ') || undefined,
       opacity: element.opacity,
       zIndex: element.zIndex,
       overflow: 'hidden',

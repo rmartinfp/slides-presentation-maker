@@ -237,7 +237,11 @@ export default function CanvasElement({
     width: Math.max(1, element.width),
     height: Math.max(1, element.height),
     overflow: isEditing ? 'visible' : 'hidden',
-    transform: element.rotation ? `rotate(${element.rotation}deg)` : undefined,
+    transform: [
+      element.rotation ? `rotate(${element.rotation}deg)` : '',
+      element.style.flipH ? 'scaleX(-1)' : '',
+      element.style.flipV ? 'scaleY(-1)' : '',
+    ].filter(Boolean).join(' ') || undefined,
     opacity: element.opacity,
     zIndex: (isEditing || isCropping) ? 9999 : element.zIndex,
     cursor: isCropping ? 'grab' : isEditing ? 'text' : element.locked ? 'default' : 'move',
