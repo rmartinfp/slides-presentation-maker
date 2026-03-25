@@ -507,14 +507,14 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                         className="aspect-video relative overflow-hidden"
                         style={{ backgroundColor: preset?.backgroundColor || '#0a0a0f' }}
                       >
-                        {firstSlide?.videoUrl && (
+                        {(firstSlide?.videoBackground?.url || firstSlide?.videoUrl) && (
                           <video
-                            src={firstSlide.videoUrl}
+                            src={firstSlide.videoBackground?.url || firstSlide.videoUrl}
                             muted
                             loop
                             playsInline
                             className="absolute inset-0 w-full h-full object-cover"
-                            style={{ opacity: firstSlide.videoOpacity || 0.3 }}
+                            style={{ opacity: firstSlide.videoBackground?.opacity || firstSlide.videoOpacity || 0.3, filter: firstSlide.videoBackground?.filter || undefined }}
                             onMouseEnter={e => (e.target as HTMLVideoElement).play()}
                             onMouseLeave={e => { (e.target as HTMLVideoElement).pause(); (e.target as HTMLVideoElement).currentTime = 0; }}
                           />
@@ -552,34 +552,16 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                         )}
                       </div>
 
-                      {/* Info bar */}
-                      <div className="p-3 bg-white/80 backdrop-blur-sm">
-                        {/* Slide type dots */}
-                        <div className="flex gap-1 flex-wrap">
-                          {slides.map((s: any, i: number) => (
-                            <span key={i} className={cn(
-                              'text-[8px] px-1.5 py-0.5 rounded font-medium',
-                              s.type === 'hero' ? 'bg-indigo-100 text-indigo-600' :
-                              s.type === 'stats' ? 'bg-amber-100 text-amber-600' :
-                              s.type === 'statement' ? 'bg-purple-100 text-purple-600' :
-                              s.type === 'closing' ? 'bg-emerald-100 text-emerald-600' :
-                              s.type === 'section' ? 'bg-slate-100 text-slate-500' :
-                              'bg-blue-50 text-blue-500'
-                            )}>
-                              {s.type}
-                            </span>
-                          ))}
-                        </div>
-                        {/* Preset color palette */}
-                        {preset && (
-                          <div className="flex gap-1 mt-2 items-center">
-                            <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.backgroundColor }} />
-                            <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.accentColor }} />
-                            <div className="w-3 h-3 rounded-full border border-white shadow-sm" style={{ backgroundColor: preset.primaryTextColor }} />
-                            <span className="ml-auto text-[9px] text-slate-400">{preset.name}</span>
+                      {/* Preset color dots overlay */}
+                      {preset && (
+                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
+                          <div className="flex gap-1 items-center">
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.accentColor }} />
+                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.primaryTextColor, opacity: 0.6 }} />
+                            <span className="ml-auto text-[9px] text-white/50">{preset.name}</span>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </motion.div>
                   );
                 })}

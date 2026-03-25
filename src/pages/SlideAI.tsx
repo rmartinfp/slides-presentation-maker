@@ -36,7 +36,10 @@ export default function SlideAIPage() {
 
   const handleSelectCinematic = (preset: CinematicPreset, templateData?: any) => {
     setCinematicPreset(preset);
-    setSelectedTheme({
+
+    // Use theme from DB template if available, otherwise build from preset
+    const dbTheme = templateData?.theme;
+    setSelectedTheme(dbTheme || {
       id: preset.id,
       name: preset.name,
       category: 'Cinematic',
@@ -59,7 +62,16 @@ export default function SlideAIPage() {
       },
       previewColors: [preset.accentColor, preset.secondaryTextColor, preset.backgroundColor],
     });
-    setTemplateSlides(null);
+
+    // Use real template slides if available (new format with positioned elements)
+    const realSlides = templateData?.slides;
+    if (Array.isArray(realSlides) && realSlides.length > 0 && realSlides[0]?.elements) {
+      // New format: real Slide[] with elements, videoBackground, animationConfig
+      setTemplateSlides(realSlides as Slide[]);
+    } else {
+      setTemplateSlides(null);
+    }
+
     setStep('content');
   };
 
