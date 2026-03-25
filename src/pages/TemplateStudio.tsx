@@ -67,15 +67,60 @@ function createBlankPresentation(): Presentation {
   };
 }
 
-// ─── Font Picker Panel ───
-function FontPicker({ onSelect }: { onSelect: (font: string) => void }) {
-  const [search, setSearch] = useState('');
-  const [customFont, setCustomFont] = useState('');
-  const [loadedPreviews, setLoadedPreviews] = useState<Set<string>>(new Set());
+// ─── Google Fonts API ───
+const GFONTS_KEY = 'AIzaSyCwTdPG-aVi_r94P8DuoFzk8rGR2LO7F0E';
 
-  const filtered = CURATED_FONTS.filter(f =>
-    f.toLowerCase().includes(search.toLowerCase())
-  );
+interface GFont {
+  family: string;
+  category: string;
+  variants: string[];
+}
+
+function useGoogleFonts() {
+  const [fonts, setFonts] = useState<GFont[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check cache first
+    const cached = sessionStorage.getItem('gfonts-cache');
+    if (cached) {
+      try { setFonts(JSON.parse(cached)); setLoading(false); return; } catch {}
+    }
+
+    fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${GFONTS_KEY}&sort=popularity`)
+      .then(r => r.json())
+      .then(data => {
+        const items = (data.items || [])
+          .filter((f: any) => !f.family.startsWith('Material') && !f.family.startsWith('Noto'))
+          .map((f: any) => ({ family: f.family, category: f.category, variants: f.variants }));
+        setFonts(items);
+        sessionStorage.setItem('gfonts-cache', JSON.stringify(items));
+      })
+      .catch(() => {
+        // Fallback to curated list
+        setFonts(CURATED_FONTS.map(f => ({ family: f, category: 'sans-serif', variants: ['regular', '700'] })));
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  return { fonts, loading };
+}
+
+// ─── Font Picker Panel (API-powered, 1700+ fonts) ───
+function FontPicker({ onSelect }: { onSelect: (font: string) => void }) {
+  const { fonts, loading } = useGoogleFonts();
+  const [search, setSearch] = useState('');
+  const [category, setCategory] = useState<string>('all');
+  const [loadedPreviews, setLoadedPreviews] = useState<Set<string>>(new Set());
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const filtered = React.useMemo(() => {
+    return fonts.filter(f => {
+      if (search && !f.family.toLowerCase().includes(search.toLowerCase())) return false;
+      if (category !== 'all' && f.category !== category) return false;
+      return true;
+    }).slice(0, 200); // Cap at 200 for perf
+  }, [fonts, search, category]);
 
   const handleLoadPreview = (font: string) => {
     if (!loadedPreviews.has(font)) {
@@ -84,10 +129,23 @@ function FontPicker({ onSelect }: { onSelect: (font: string) => void }) {
     }
   };
 
+  const CATS = [
+    { id: 'all', label: 'All' },
+    { id: 'sans-serif', label: 'Sans' },
+    { id: 'serif', label: 'Serif' },
+    { id: 'display', label: 'Display' },
+    { id: 'handwriting', label: 'Script' },
+    { id: 'monospace', label: 'Mono' },
+  ];
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 border-b border-slate-200/60">
-        <p className="text-[10px] text-slate-500 font-semibold mb-2 uppercase tracking-wider">Google Fonts</p>
+      {/* Search + category filters */}
+      <div className="p-3 border-b border-slate-200/60 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">Google Fonts</p>
+          <span className="text-[10px] text-slate-400">{fonts.length} fonts</span>
+        </div>
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
           <input
@@ -98,62 +156,51 @@ function FontPicker({ onSelect }: { onSelect: (font: string) => void }) {
             className="w-full h-8 pl-8 pr-3 bg-white border border-slate-200 rounded-lg text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#4F46E5]/30"
           />
         </div>
+        <div className="flex gap-1 flex-wrap">
+          {CATS.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setCategory(c.id)}
+              className={cn(
+                'px-2 py-0.5 rounded-full text-[10px] transition-all',
+                category === c.id ? 'bg-[#4F46E5] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
+              )}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-2">
-        {filtered.map(font => (
+      {/* Font list */}
+      <div ref={listRef} className="flex-1 overflow-y-auto p-1.5">
+        {loading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-4 h-4 animate-spin text-[#4F46E5]" />
+            <span className="ml-2 text-xs text-slate-400">Loading fonts...</span>
+          </div>
+        )}
+        {!loading && filtered.map(font => (
           <button
-            key={font}
-            onClick={() => { handleLoadPreview(font); onSelect(font); }}
-            onMouseEnter={() => handleLoadPreview(font)}
-            className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-slate-100 transition-colors group"
+            key={font.family}
+            onClick={() => { handleLoadPreview(font.family); onSelect(font.family); }}
+            onMouseEnter={() => handleLoadPreview(font.family)}
+            className="w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors group"
           >
             <span
               className="text-sm text-slate-800 block truncate"
-              style={{ fontFamily: loadedPreviews.has(font) ? `'${font}', sans-serif` : 'inherit' }}
+              style={{ fontFamily: loadedPreviews.has(font.family) ? `'${font.family}', sans-serif` : 'inherit' }}
             >
-              {font}
+              {font.family}
             </span>
-            <span className="text-[10px] text-slate-400 group-hover:text-slate-500">
-              {font.includes('Serif') || font.includes('Cormorant') || font.includes('Lora') || font.includes('Baskerville') || font.includes('Fraunces') ? 'Serif' : font.includes('Mono') || font.includes('Code') ? 'Mono' : 'Sans-serif'}
+            <span className="text-[9px] text-slate-400 group-hover:text-slate-500">
+              {font.category} · {font.variants.filter(v => !v.includes('italic')).length} weights
             </span>
           </button>
         ))}
-      </div>
-
-      {/* Custom font input */}
-      <div className="p-3 border-t border-slate-200/60">
-        <p className="text-[10px] text-slate-500 mb-1">Custom Google Font</p>
-        <div className="flex gap-1.5">
-          <input
-            type="text"
-            value={customFont}
-            onChange={e => setCustomFont(e.target.value)}
-            placeholder="Font name..."
-            className="flex-1 h-7 px-2 bg-white border border-slate-200 rounded text-xs"
-            onKeyDown={e => {
-              if (e.key === 'Enter' && customFont.trim()) {
-                loadGoogleFont(customFont.trim());
-                onSelect(customFont.trim());
-                setCustomFont('');
-              }
-            }}
-          />
-          <Button
-            size="sm"
-            variant="ghost"
-            className="h-7 text-xs px-2"
-            onClick={() => {
-              if (customFont.trim()) {
-                loadGoogleFont(customFont.trim());
-                onSelect(customFont.trim());
-                setCustomFont('');
-              }
-            }}
-          >
-            Add
-          </Button>
-        </div>
+        {!loading && filtered.length === 0 && (
+          <p className="text-xs text-slate-400 text-center py-6">No fonts found</p>
+        )}
       </div>
     </div>
   );
