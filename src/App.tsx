@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Entry from "./pages/Entry";
 import SlideAI from "./pages/SlideAI";
 import Editor from "./pages/Editor";
+import TemplateStudio from "./pages/TemplateStudio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -20,6 +21,7 @@ const App = () => (
           <Route path="/" element={<Entry />} />
           <Route path="/create" element={<SlideAI />} />
           <Route path="/editor" element={<Editor />} />
+          <Route path="/template-studio" element={<TemplateStudio />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
