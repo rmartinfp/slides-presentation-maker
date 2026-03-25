@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import type { SlideElement } from '@/types/presentation';
 
 type P = { primary: string; secondary: string; accent: string; text: string; bg: string };
+type Typo = { titleFont: string; bodyFont: string; titleSize: number; bodySize: number };
 type El = Partial<SlideElement>;
 
 interface Template {
@@ -14,7 +15,7 @@ interface Template {
   name: string;
   category: string;
   description: string;
-  generate: (p: P) => El[];
+  generate: (p: P, t: Typo) => El[];
 }
 
 // ── Helpers ──
@@ -38,12 +39,12 @@ const TEMPLATES: Template[] = [
     name: 'Process Flow',
     category: 'Process',
     description: '4 steps with arrows — edit each step title and description',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
         // Full-slide background card
         box(60, 40, 1800, 1000, p.bg === '#ffffff' || p.bg === '#FFFFFF' ? '#f8fafc' : p.bg, 24),
-        txt('Your Process Title', 100, 80, 800, 70, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('Describe the overall process in one line.', 100, 155, 800, 40, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Your Process Title', 100, 80, 800, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('Describe the overall process in one line.', 100, 155, 800, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
       ];
       const steps = [
         { num: '01', title: 'Research', desc: 'Gather data and insights from your target audience.' },
@@ -59,7 +60,7 @@ const TEMPLATES: Template[] = [
         // Number
         els.push(txt(s.num, cx + 30, cy + 30, 100, 70, { fontSize: 48, fontWeight: 'bold', color: '#ffffff', opacity: 0.3 }));
         // Title
-        els.push(txt(s.title, cx + 30, cy + 120, 310, 50, { fontSize: 24, fontWeight: 'bold', color: '#ffffff' }));
+        els.push(txt(s.title, cx + 30, cy + 120, 310, 50, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
         // Divider
         els.push(box(cx + 30, cy + 185, 60, 3, '#ffffff', 2));
         // Description
@@ -77,10 +78,10 @@ const TEMPLATES: Template[] = [
     name: 'Key Metrics',
     category: 'Statistics',
     description: '4 big numbers with labels — just replace the values',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('Key Metrics', 100, 80, 600, 70, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('Performance overview for the current quarter.', 100, 155, 600, 40, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Key Metrics', 100, 80, 600, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('Performance overview for the current quarter.', 100, 155, 600, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
       ];
       const stats = [
         { value: '$2.4M', label: 'Revenue', change: '+24% vs last quarter' },
@@ -111,29 +112,29 @@ const TEMPLATES: Template[] = [
     name: 'Before / After',
     category: 'Comparison',
     description: 'Two columns to compare — edit titles and bullet points',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('Before vs After', 100, 80, 800, 70, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('See the transformation at a glance.', 100, 155, 800, 40, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Before vs After', 100, 80, 800, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('See the transformation at a glance.', 100, 155, 800, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
         // VS circle
         circle(900, 480, 80, p.accent),
-        txt('VS', 912, 497, 56, 40, { fontSize: 18, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' }),
+        txt('VS', 912, 497, 56, 40, { fontSize: Math.round(t.bodySize * 0.75), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff', textAlign: 'center' }),
       ];
       // Left column — Before
       els.push(box(80, 260, 800, 700, p.primary, 20));
-      els.push(txt('Before', 130, 300, 700, 50, { fontSize: 26, fontWeight: 'bold', color: '#ffffff' }));
+      els.push(txt('Before', 130, 300, 700, 50, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
       els.push(box(130, 370, 60, 3, '#ffffff', 2));
       const beforeItems = ['Manual data entry', 'Slow decision making', 'Scattered communication', 'No real-time visibility'];
       beforeItems.forEach((item, i) => {
-        els.push(txt(`×  ${item}`, 130, 400 + i * 65, 700, 40, { fontSize: 17, color: '#ffffff', opacity: 0.9 }));
+        els.push(txt(`×  ${item}`, 130, 400 + i * 65, 700, 40, { fontSize: Math.round(t.bodySize * 0.7), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.9 }));
       });
       // Right column — After
       els.push(box(1040, 260, 800, 700, p.secondary, 20));
-      els.push(txt('After', 1090, 300, 700, 50, { fontSize: 26, fontWeight: 'bold', color: '#ffffff' }));
+      els.push(txt('After', 1090, 300, 700, 50, { fontSize: Math.round(t.titleSize * 0.6), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
       els.push(box(1090, 370, 60, 3, '#ffffff', 2));
       const afterItems = ['Automated workflows', 'AI-powered insights', 'Unified platform', 'Real-time dashboards'];
       afterItems.forEach((item, i) => {
-        els.push(txt(`✓  ${item}`, 1090, 400 + i * 65, 700, 40, { fontSize: 17, color: '#ffffff', opacity: 0.9 }));
+        els.push(txt(`✓  ${item}`, 1090, 400 + i * 65, 700, 40, { fontSize: Math.round(t.bodySize * 0.7), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.9 }));
       });
       return els;
     },
@@ -143,10 +144,10 @@ const TEMPLATES: Template[] = [
     name: 'Roadmap Timeline',
     category: 'Timeline',
     description: 'Horizontal roadmap with milestones — edit dates and titles',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('Product Roadmap', 100, 80, 600, 70, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('Key milestones for the next 12 months.', 100, 155, 600, 40, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Product Roadmap', 100, 80, 600, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('Key milestones for the next 12 months.', 100, 155, 600, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
         // Main timeline line
         box(140, 520, 1640, 4, p.primary, 2),
       ];
@@ -170,9 +171,9 @@ const TEMPLATES: Template[] = [
         // Date
         els.push(txt(m.date, cx - 30, cardY + 20, 260, 30, { fontSize: 12, fontWeight: 'bold', color: p.primary, textAlign: 'center' }));
         // Title
-        els.push(txt(m.title, cx - 30, cardY + 55, 260, 40, { fontSize: 18, fontWeight: 'bold', color: p.text, textAlign: 'center' }));
+        els.push(txt(m.title, cx - 30, cardY + 55, 260, 40, { fontSize: Math.round(t.bodySize * 0.75), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text, textAlign: 'center' }));
         // Description
-        els.push(txt(m.desc, cx - 30, cardY + 105, 260, 70, { fontSize: 12, color: p.text, opacity: 0.6, textAlign: 'center', lineHeight: 1.5 }));
+        els.push(txt(m.desc, cx - 30, cardY + 105, 260, 70, { fontSize: Math.round(t.bodySize * 0.5), fontFamily: t.bodyFont, color: p.text, opacity: 0.6, textAlign: 'center', lineHeight: 1.5 }));
       });
       return els;
     },
@@ -182,10 +183,10 @@ const TEMPLATES: Template[] = [
     name: 'Conversion Funnel',
     category: 'Conversion',
     description: 'Funnel showing conversion stages — edit labels and numbers',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('Conversion Funnel', 100, 80, 600, 70, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('How visitors become customers.', 100, 155, 600, 40, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Conversion Funnel', 100, 80, 600, 70, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('How visitors become customers.', 100, 155, 600, 40, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
       ];
       const stages = [
         { label: 'Visitors', value: '50,000', pct: '100%', w: 1600 },
@@ -198,10 +199,10 @@ const TEMPLATES: Template[] = [
         const cx = 960 - s.w / 2;
         const cy = 260 + i * 180;
         els.push(box(cx, cy, s.w, 140, colors[i], 16));
-        els.push(txt(s.label, cx + 40, cy + 20, 300, 40, { fontSize: 20, fontWeight: 'bold', color: '#ffffff' }));
+        els.push(txt(s.label, cx + 40, cy + 20, 300, 40, { fontSize: Math.round(t.titleSize * 0.48), fontWeight: 'bold', fontFamily: t.titleFont, color: '#ffffff' }));
         els.push(txt(s.value, cx + s.w - 300, cy + 15, 260, 50, { fontSize: 36, fontWeight: 'bold', color: '#ffffff', textAlign: 'right' }));
         els.push(txt(s.pct, cx + s.w - 300, cy + 70, 260, 30, { fontSize: 14, color: '#ffffff', opacity: 0.7, textAlign: 'right' }));
-        els.push(txt('Description of this stage.', cx + 40, cy + 75, 500, 30, { fontSize: 13, color: '#ffffff', opacity: 0.7 }));
+        els.push(txt('Description of this stage.', cx + 40, cy + 75, 500, 30, { fontSize: Math.round(t.bodySize * 0.54), fontFamily: t.bodyFont, color: '#ffffff', opacity: 0.7 }));
       });
       return els;
     },
@@ -211,10 +212,10 @@ const TEMPLATES: Template[] = [
     name: 'Feature Grid',
     category: 'Features',
     description: '6 feature cards in a grid — edit icon, title and description',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('What We Offer', 100, 60, 600, 60, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('Everything you need in one platform.', 100, 125, 600, 35, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('What We Offer', 100, 60, 600, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('Everything you need in one platform.', 100, 125, 600, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
       ];
       const features = [
         { icon: '⚡', title: 'Lightning Fast', desc: 'Sub-second response times across all features.' },
@@ -238,9 +239,9 @@ const TEMPLATES: Template[] = [
         els.push(circle(cx + 40, cy + 40, 60, [p.primary, p.secondary, p.accent, p.primary, p.secondary, p.accent][i]));
         els.push(txt(f.icon, cx + 48, cy + 50, 44, 40, { fontSize: 24, textAlign: 'center', color: '#ffffff' }));
         // Title
-        els.push(txt(f.title, cx + 40, cy + 130, 470, 40, { fontSize: 20, fontWeight: 'bold', color: p.text }));
+        els.push(txt(f.title, cx + 40, cy + 130, 470, 40, { fontSize: Math.round(t.titleSize * 0.48), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text }));
         // Desc
-        els.push(txt(f.desc, cx + 40, cy + 185, 470, 80, { fontSize: 14, color: p.text, opacity: 0.6, lineHeight: 1.6 }));
+        els.push(txt(f.desc, cx + 40, cy + 185, 470, 80, { fontSize: Math.round(t.bodySize * 0.58), color: p.text, fontFamily: t.bodyFont, opacity: 0.6, lineHeight: 1.6 }));
       });
       return els;
     },
@@ -250,10 +251,10 @@ const TEMPLATES: Template[] = [
     name: 'Pricing Cards',
     category: 'Pricing',
     description: '3 pricing tiers side by side — edit plan names, prices and features',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('Simple, Transparent Pricing', 100, 60, 800, 60, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('No hidden fees. Cancel anytime.', 100, 125, 600, 35, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Simple, Transparent Pricing', 100, 60, 800, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('No hidden fees. Cancel anytime.', 100, 125, 600, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
       ];
       const plans = [
         { name: 'Starter', price: '$9', period: '/month', features: ['5 projects', '10GB storage', 'Email support', 'Basic analytics'], cta: 'Get Started', featured: false },
@@ -272,15 +273,15 @@ const TEMPLATES: Template[] = [
           els.push(txt('MOST POPULAR', cx + 160, cy + 20, 220, 25, { fontSize: 10, fontWeight: 'bold', color: '#ffffff', textAlign: 'center', opacity: 0.7 }));
         }
         // Plan name
-        els.push(txt(plan.name, cx + 40, cy + (plan.featured ? 55 : 35), 460, 40, { fontSize: 20, fontWeight: 'bold', color: textColor }));
+        els.push(txt(plan.name, cx + 40, cy + (plan.featured ? 55 : 35), 460, 40, { fontSize: Math.round(t.titleSize * 0.48), fontWeight: 'bold', fontFamily: t.titleFont, color: textColor }));
         // Price
         els.push(txt(plan.price, cx + 40, cy + (plan.featured ? 105 : 85), 200, 80, { fontSize: 56, fontWeight: 'bold', color: textColor }));
-        els.push(txt(plan.period, cx + 200, cy + (plan.featured ? 140 : 120), 100, 30, { fontSize: 16, color: textColor, opacity: 0.6 }));
+        els.push(txt(plan.period, cx + 200, cy + (plan.featured ? 140 : 120), 100, 30, { fontSize: Math.round(t.bodySize * 0.67), fontFamily: t.bodyFont, color: textColor, opacity: 0.6 }));
         // Divider
         els.push(box(cx + 40, cy + (plan.featured ? 200 : 180), 460, 1, plan.featured ? '#ffffff30' : '#e2e8f0', 0));
         // Features
         plan.features.forEach((feat, fi) => {
-          els.push(txt(`✓  ${feat}`, cx + 40, cy + (plan.featured ? 220 : 200) + fi * 45, 460, 35, { fontSize: 15, color: textColor, opacity: plan.featured ? 0.9 : 0.7 }));
+          els.push(txt(`✓  ${feat}`, cx + 40, cy + (plan.featured ? 220 : 200) + fi * 45, 460, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: textColor, opacity: plan.featured ? 0.9 : 0.7 }));
         });
         // CTA button shape
         const btnY = cy + cardH - 80;
@@ -295,10 +296,10 @@ const TEMPLATES: Template[] = [
     name: 'Team Showcase',
     category: 'Team',
     description: '4 team member cards — replace names, roles and photos',
-    generate: (p) => {
+    generate: (p, t) => {
       const els: El[] = [
-        txt('Meet Our Team', 100, 60, 600, 60, { fontSize: 32, fontWeight: 'bold', color: p.text }),
-        txt('The people behind the product.', 100, 125, 600, 35, { fontSize: 15, color: p.text, opacity: 0.5 }),
+        txt('Meet Our Team', 100, 60, 600, 60, { fontSize: t.titleSize, fontWeight: 'bold', color: p.text, fontFamily: t.titleFont }),
+        txt('The people behind the product.', 100, 125, 600, 35, { fontSize: Math.round(t.bodySize * 0.63), fontFamily: t.bodyFont, color: p.text, opacity: 0.5 }),
       ];
       const members = [
         { name: 'Sarah Chen', role: 'CEO & Co-founder', bio: 'Previously VP at Google. Stanford MBA.' },
@@ -315,13 +316,13 @@ const TEMPLATES: Template[] = [
         els.push(circle(cx + 125, 280, 150, [p.primary, p.secondary, p.accent, p.primary][i]));
         els.push(txt(m.name[0], cx + 155, 310, 80, 80, { fontSize: 48, fontWeight: 'bold', color: '#ffffff', textAlign: 'center' }));
         // Name
-        els.push(txt(m.name, cx + 30, 470, 340, 40, { fontSize: 22, fontWeight: 'bold', color: p.text, textAlign: 'center' }));
+        els.push(txt(m.name, cx + 30, 470, 340, 40, { fontSize: Math.round(t.titleSize * 0.5), fontWeight: 'bold', fontFamily: t.titleFont, color: p.text, textAlign: 'center' }));
         // Role
         els.push(txt(m.role, cx + 30, 520, 340, 30, { fontSize: 14, fontWeight: 'bold', color: p.primary, textAlign: 'center' }));
         // Divider
         els.push(box(cx + 150, 570, 100, 2, p.primary, 1));
         // Bio
-        els.push(txt(m.bio, cx + 30, 595, 340, 80, { fontSize: 13, color: p.text, opacity: 0.6, textAlign: 'center', lineHeight: 1.5 }));
+        els.push(txt(m.bio, cx + 30, 595, 340, 80, { fontSize: Math.round(t.bodySize * 0.54), fontFamily: t.bodyFont, color: p.text, opacity: 0.6, textAlign: 'center', lineHeight: 1.5 }));
       });
       return els;
     },
@@ -335,11 +336,12 @@ export default function InfographicsDialog({ onClose }: Props) {
   const [selected, setSelected] = useState<string | null>(null);
   const { addElement, presentation } = useEditorStore();
   const palette = presentation.theme.tokens.palette;
+  const typo: Typo = presentation.theme.tokens.typography;
 
   const handleInsert = () => {
     const template = TEMPLATES.find(t => t.id === selected);
     if (!template) return;
-    const elements = template.generate(palette);
+    const elements = template.generate(palette, typo);
     elements.forEach(el => {
       addElement({
         type: (el.type as any) || 'text',
@@ -397,7 +399,7 @@ export default function InfographicsDialog({ onClose }: Props) {
                   {/* Mini live preview */}
                   <div className="w-full aspect-[16/9] bg-slate-100 rounded-lg mb-3 relative overflow-hidden p-2">
                     {(() => {
-                      const els = t.generate(palette);
+                      const els = t.generate(palette, typo);
                       return els.map((el, i) => {
                         if (el.type === 'shape') {
                           return (

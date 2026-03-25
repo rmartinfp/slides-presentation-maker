@@ -48,8 +48,10 @@ Return a JSON object: { "variants": [ { "name": "Optimized", "elements": [...] }
 
 DESIGN RULES:
 - Canvas: 1920×1080. Safe margins: 80px all sides.
-- Title: top area, large font (${typography.titleSize || 42}pt), bold
-- Body text: below title, readable font (${typography.bodySize || 24}pt)
+- Title font: "${typography.titleFont || 'sans-serif'}" at ${typography.titleSize || 42}pt, bold
+- Body font: "${typography.bodyFont || 'sans-serif'}" at ${typography.bodySize || 24}pt
+- IMPORTANT: preserve the ORIGINAL fontSize, fontFamily, fontWeight, and color of each element
+- Only change: x, y, width, height, textAlign positions
 - Images: can be full-bleed, half-slide, or accent-sized
 - Shapes: use as decorative accents or containers
 - Visual hierarchy: largest element = most important
@@ -58,7 +60,7 @@ DESIGN RULES:
 - Theme colors: primary=${palette.primary || "#4F46E5"}, bg=${palette.bg || "#ffffff"}, text=${palette.text || "#1e293b"}
 
 Each element in the output must have:
-{ "id": "<keep original id>", "type": "<keep original>", "content": "<keep original>", "x": number, "y": number, "width": number, "height": number, "rotation": number, "opacity": number, "style": { ...keep original style but can adjust fontSize, textAlign, color } }
+{ "id": "<keep original id>", "type": "<keep original>", "content": "<keep original>", "x": number, "y": number, "width": number, "height": number, "rotation": number, "opacity": number, "style": { ...KEEP original fontSize, fontFamily, fontWeight, color — only adjust textAlign if needed } }
 
 IMPORTANT: Keep the SAME element IDs, types, and content. Only change positions, sizes, and layout-related styles.
 You CAN add NEW elements (with new IDs) if it improves the design:
