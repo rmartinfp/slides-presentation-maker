@@ -724,6 +724,261 @@ function luminaTheme() {
   };
 }
 
+// ════════════════════════════════════════════
+// TEMPLATE: VELORAH (Instrument Serif hero — 5 slides)
+// ════════════════════════════════════════════
+
+function buildVelorah(): Slide[] {
+  const fSerif = 'Instrument Serif', fBody = 'Inter';
+  const fg = '#FFFFFF', sub = '#80838e';
+  const bg = { type: 'solid', value: '#000000' };
+  const VV = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260324_151826_c7218672-6e92-402c-9e45-f1e0f454bdc4.mp4';
+  const slides: Slide[] = [];
+
+  // S1: Centered hero — serif headline + body + CTA feel
+  { const h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('', fBody),
+      txt(h, '{{hero_headline}}', 210, 300, 1500, 300, { fontSize: 96, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2.5, zIndex: 15 }),
+      txt(b, '{{hero_body}}', 510, 630, 900, 80, { fontSize: 17, color: fg, fontFamily: fBody, textAlign: 'center', lineHeight: 1.65, opacity: 0.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VV, type: 'mp4', opacity: 0.9, filter: 'brightness(0.7)' },
+    animationConfig: cineAnim({ [h]: { type: 'blur-in', delay: 0.15, duration: 1.0, easing: E.expoOut }, [b]: { type: 'fade-in', delay: 0.6, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S2: Problem — label + heading + body
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', fBody),
+      txt(l, '{{problem_label}}', 96, 250, 500, 22, { fontSize: 13, color: sub, fontFamily: fBody, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{problem_heading}}', 96, 300, 1400, 320, { fontSize: 52, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.04, letterSpacing: -1, zIndex: 15 }),
+      txt(b, '{{problem_body}}', 96, 680, 780, 200, { fontSize: 15, color: sub, fontFamily: fBody, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VV, type: 'mp4', opacity: 0.7, filter: 'brightness(0.55)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S3: Statement — full centered serif
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', fBody),
+      txt(h, '{{statement}}', 160, 340, 1600, 360, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, letterSpacing: -0.5, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.8, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
+
+  // S4: Content + stats right
+  { const l = gid(), h = gid(), sv = gid(), sl = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', fBody),
+      txt(l, '{{content_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fBody, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{content_heading}}', 96, 310, 900, 320, { fontSize: 48, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.06, zIndex: 15 }),
+      txt(sv, '{{stat_value}}', 1100, 350, 700, 140, { fontSize: 96, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(sl, '{{stat_label}}', 1100, 500, 600, 35, { fontSize: 15, color: sub, fontFamily: fBody, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[0], type: 'mp4', opacity: 0.75, filter: 'brightness(0.55)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [sv]: { type: 'slide-up', delay: 0.5, duration: 0.6, easing: E.expoOut }, [sl]: { type: 'fade-in', delay: 0.65, duration: 0.5, easing: E.quintOut } }) }); }
+
+  // S5: Closing bottom
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', fBody),
+      txt(l, '{{closing_label}}', 96, 640, 500, 22, { fontSize: 13, color: sub, fontFamily: fBody, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{closing_heading}}', 96, 680, 1100, 240, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg, lineHeight: 1.04, letterSpacing: -1, zIndex: 15 }),
+      txt(b, '{{closing_body}}', 96, 930, 700, 80, { fontSize: 15, color: sub, fontFamily: fBody, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: { type: 'solid', value: '#050505' }, videoBackground: { url: VV, type: 'mp4', opacity: 0.85, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.6, duration: 0.8, easing: E.expoOut } }) }); }
+
+  return slides;
+}
+
+function velorahTheme() {
+  return { id: 'midnight', name: 'Velorah', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#80838e', accent: '#FFFFFF', bg: '#000000', text: '#FFFFFF' }, typography: { titleFont: 'Instrument Serif', bodyFont: 'Inter', titleSize: 56, bodySize: 17 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#80838e', '#000000'] };
+}
+
+// ════════════════════════════════════════════
+// TEMPLATE: BLOOM (Floral AI / Poppins — 5 slides)
+// ════════════════════════════════════════════
+
+function buildBloom(): Slide[] {
+  const fH = 'Poppins', fSerif = 'Source Serif 4', fB = 'Poppins';
+  const fg = '#FFFFFF', sub = '#80838e';
+  const bg = { type: 'solid', value: '#000000' };
+  const VB = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260315_073750_51473149-4350-4920-ae24-c8214286f323.mp4';
+  const slides: Slide[] = [];
+
+  // S1: Centered hero — mixed serif/sans heading
+  { const h1 = gid(), h2 = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('', fB),
+      txt(h1, '{{hero_line1}}', 260, 280, 1400, 120, { fontSize: 72, fontWeight: '500', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2, zIndex: 15 }),
+      txt(h2, '{{hero_line2}}', 260, 400, 1400, 120, { fontSize: 72, fontWeight: '400', fontFamily: fSerif, color: `${fg}cc`, textAlign: 'center', lineHeight: 0.95, letterSpacing: -1, zIndex: 15 }),
+      txt(b, '{{hero_body}}', 510, 560, 900, 80, { fontSize: 16, color: `${fg}99`, fontFamily: fB, textAlign: 'center', lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VB, type: 'mp4', opacity: 0.85, filter: 'brightness(0.65)' },
+    animationConfig: cineAnim({ [h1]: { type: 'blur-in', delay: 0.15, duration: 1.0, easing: E.expoOut }, [h2]: { type: 'blur-in', delay: 0.3, duration: 1.0, easing: E.expoOut }, [b]: { type: 'fade-in', delay: 0.7, duration: 0.6, easing: E.quintOut } }) }); }
+
+  // S2: Problem — heading + stats
+  { const l = gid(), h = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', fB),
+      txt(l, '{{problem_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{problem_heading}}', 96, 310, 900, 300, { fontSize: 46, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15 }),
+      txt(s1v, '{{stat1_value}}', 1100, 320, 700, 130, { fontSize: 88, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s1l, '{{stat1_label}}', 1100, 460, 600, 35, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 1100, 550, 700, 130, { fontSize: 88, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s2l, '{{stat2_label}}', 1100, 690, 600, 35, { fontSize: 15, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VB, type: 'mp4', opacity: 0.7, filter: 'brightness(0.5)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.5, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.65, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Full statement (serif)
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', fB),
+      txt(h, '{{statement}}', 160, 340, 1600, 360, { fontSize: 54, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[3], type: 'mp4', opacity: 0.8, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
+
+  // S4: Content
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', fB),
+      txt(l, '{{content_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{content_heading}}', 96, 310, 1200, 320, { fontSize: 48, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15 }),
+      txt(b, '{{content_body}}', 96, 690, 780, 200, { fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VB, type: 'mp4', opacity: 0.65, filter: 'brightness(0.5)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S5: Closing
+  { const h1 = gid(), h2 = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', fB),
+      txt(h1, '{{closing_line1}}', 260, 380, 1400, 120, { fontSize: 68, fontWeight: '500', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -1.5, zIndex: 15 }),
+      txt(h2, '{{closing_line2}}', 260, 500, 1400, 100, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: `${fg}cc`, textAlign: 'center', lineHeight: 1.0, zIndex: 15 }),
+      txt(b, '{{closing_body}}', 510, 630, 900, 80, { fontSize: 16, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
+    ], background: { type: 'solid', value: '#050505' }, videoBackground: { url: VB, type: 'mp4', opacity: 0.85, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [h1]: { type: 'blur-in', delay: 0.15, duration: 1.0, easing: E.expoOut }, [h2]: { type: 'blur-in', delay: 0.35, duration: 1.0, easing: E.expoOut }, [b]: { type: 'fade-in', delay: 0.7, duration: 0.6, easing: E.quintOut } }) }); }
+
+  return slides;
+}
+
+function bloomTheme() {
+  return { id: 'midnight', name: 'Bloom', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#80838e', accent: '#FFFFFF', bg: '#000000', text: '#FFFFFF' }, typography: { titleFont: 'Poppins', bodyFont: 'Poppins', titleSize: 56, bodySize: 16 }, radii: '0px', shadows: 'none' }, previewColors: ['#FFFFFF', '#80838e', '#000000'] };
+}
+
+// ════════════════════════════════════════════
+// TEMPLATE: LOGOISUM (Video Agency / Barlow — 5 slides)
+// ════════════════════════════════════════════
+
+function buildLogoisum(): Slide[] {
+  const fH = 'Barlow', fSerif = 'Instrument Serif', fB = 'Barlow';
+  const fg = '#FFFFFF', sub = '#80838e';
+  const bg = { type: 'solid', value: '#000000' };
+  const VLo = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260228_065522_522e2295-ba22-457e-8fdb-fbcd68109c73.mp4';
+  const slides: Slide[] = [];
+
+  // S1: Hero — Bold Barlow + Italic Instrument Serif mixed
+  { const h1 = gid(), h2 = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('', fB),
+      txt(h1, '{{hero_line1}}', 210, 300, 1500, 140, { fontSize: 72, fontWeight: '500', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -3, zIndex: 15 }),
+      txt(h2, '{{hero_line2}}', 210, 440, 1500, 140, { fontSize: 72, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -1, zIndex: 15 }),
+      txt(b, '{{hero_body}}', 510, 620, 900, 60, { fontSize: 16, fontWeight: '500', color: fg, fontFamily: fB, textAlign: 'center', lineHeight: 1.5, opacity: 0.8, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VLo, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [h1]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut }, [h2]: { type: 'slide-up', delay: 0.3, duration: 0.7, easing: E.expoOut }, [b]: { type: 'fade-in', delay: 0.6, duration: 0.5, easing: E.quintOut } }) }); }
+
+  // S2: Problem + stats
+  { const l = gid(), h = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', fB),
+      txt(l, '{{problem_label}}', 96, 130, 500, 22, { fontSize: 13, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{problem_heading}}', 96, 180, 1600, 300, { fontSize: 46, fontWeight: '400', fontFamily: fB, color: fg, lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15 }),
+      txt(s1v, '{{stat1_value}}', 96, 680, 540, 140, { fontSize: 88, fontWeight: '300', fontFamily: fB, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s1l, '{{stat1_label}}', 96, 830, 500, 35, { fontSize: 15, fontWeight: '500', color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 700, 680, 540, 140, { fontSize: 88, fontWeight: '300', fontFamily: fB, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s2l, '{{stat2_label}}', 700, 830, 500, 35, { fontSize: 15, fontWeight: '500', color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(s3v, '{{stat3_value}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '300', fontFamily: fB, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s3l, '{{stat3_label}}', 1300, 830, 500, 35, { fontSize: 15, fontWeight: '500', color: fg, fontFamily: fB, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: ABSTRACT_VIDEOS[0], type: 'mp4', opacity: 0.85, filter: 'brightness(0.6)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut }, [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Statement (italic serif)
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', fB),
+      txt(h, '{{statement}}', 160, 340, 1600, 360, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.08, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VLo, type: 'mp4', opacity: 0.9 },
+    animationConfig: cineAnim({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
+
+  // S4: Content
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', fB),
+      txt(l, '{{content_label}}', 96, 290, 500, 22, { fontSize: 13, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{content_heading}}', 96, 330, 1200, 320, { fontSize: 54, fontWeight: '400', fontFamily: fB, color: fg, lineHeight: 1.04, letterSpacing: -0.5, zIndex: 15 }),
+      txt(b, '{{content_body}}', 96, 700, 780, 200, { fontSize: 15, fontWeight: '500', color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VLo, type: 'mp4', opacity: 0.8 },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S5: Closing
+  { const h1 = gid(), h2 = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', fB),
+      txt(h1, '{{closing_line1}}', 210, 380, 1500, 130, { fontSize: 68, fontWeight: '300', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -2, zIndex: 15 }),
+      txt(h2, '{{closing_line2}}', 210, 510, 1500, 130, { fontSize: 68, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VLo, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [h1]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut }, [h2]: { type: 'slide-up', delay: 0.35, duration: 0.7, easing: E.expoOut } }) }); }
+
+  return slides;
+}
+
+function logoisumTheme() {
+  return { id: 'midnight', name: 'Logoisum', category: 'Cinematic', tokens: { palette: { primary: '#FFFFFF', secondary: '#80838e', accent: '#f8f8f8', bg: '#000000', text: '#FFFFFF' }, typography: { titleFont: 'Barlow', bodyFont: 'Barlow', titleSize: 56, bodySize: 16 }, radii: '2px', shadows: 'none' }, previewColors: ['#f8f8f8', '#80838e', '#000000'] };
+}
+
+// ════════════════════════════════════════════
+// TEMPLATE: FORTUNE (Agency / Barlow+IS — 5 slides)
+// ════════════════════════════════════════════
+
+function buildFortune(): Slide[] {
+  const fH = 'Barlow', fSerif = 'Instrument Serif', fB = 'Barlow';
+  const fg = '#FFFFFF', sub = '#80838e';
+  const bg = { type: 'solid', value: '#000000' };
+  const VF = 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260306_074215_04640ca7-042c-45d6-bb56-58b1e8a42489.mp4';
+  const slides: Slide[] = [];
+
+  // S1: Hero — Light Barlow + Italic Serif, featured badge feel
+  { const h1 = gid(), h2 = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('', fB),
+      txt(h1, '{{hero_line1}}', 260, 300, 1400, 120, { fontSize: 64, fontWeight: '300', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, zIndex: 15 }),
+      txt(h2, '{{hero_line2}}', 260, 420, 1400, 120, { fontSize: 64, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, zIndex: 15 }),
+      txt(b, '{{hero_body}}', 510, 580, 900, 60, { fontSize: 16, fontWeight: '500', color: `${fg}bf`, fontFamily: fB, textAlign: 'center', lineHeight: 1.5, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VF, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [h1]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut }, [h2]: { type: 'slide-up', delay: 0.3, duration: 0.7, easing: E.expoOut }, [b]: { type: 'fade-in', delay: 0.6, duration: 0.5, easing: E.quintOut } }) }); }
+
+  // S2: Problem + 3 stats
+  { const l = gid(), h = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    slides.push({ id: gid(), elements: [...skeleton('02', fB),
+      txt(l, '{{problem_label}}', 96, 130, 500, 22, { fontSize: 13, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{problem_heading}}', 96, 180, 1600, 300, { fontSize: 46, fontWeight: '300', fontFamily: fH, color: fg, lineHeight: 1.06, zIndex: 15 }),
+      txt(s1v, '{{stat1_value}}', 96, 680, 540, 140, { fontSize: 88, fontWeight: '300', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s1l, '{{stat1_label}}', 96, 830, 500, 35, { fontSize: 14, fontWeight: '500', color: `${fg}bf`, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 700, 680, 540, 140, { fontSize: 88, fontWeight: '300', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s2l, '{{stat2_label}}', 700, 830, 500, 35, { fontSize: 14, fontWeight: '500', color: `${fg}bf`, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(s3v, '{{stat3_value}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '300', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
+      txt(s3l, '{{stat3_label}}', 1300, 830, 500, 35, { fontSize: 14, fontWeight: '500', color: `${fg}bf`, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VF, type: 'mp4', opacity: 0.85, filter: 'brightness(0.65)' },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut }, [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut } }) }); }
+
+  // S3: Centered statement
+  { const h = gid();
+    slides.push({ id: gid(), elements: [...skeleton('03', fB),
+      txt(h, '{{statement}}', 160, 340, 1600, 360, { fontSize: 56, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.08, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VF, type: 'mp4', opacity: 0.9 },
+    animationConfig: cineAnim({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
+
+  // S4: Content
+  { const l = gid(), h = gid(), b = gid();
+    slides.push({ id: gid(), elements: [...skeleton('04', fB),
+      txt(l, '{{content_label}}', 96, 280, 500, 22, { fontSize: 13, fontWeight: '500', color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
+      txt(h, '{{content_heading}}', 96, 320, 1200, 320, { fontSize: 52, fontWeight: '300', fontFamily: fH, color: fg, lineHeight: 1.04, zIndex: 15 }),
+      txt(b, '{{content_body}}', 96, 700, 780, 200, { fontSize: 15, fontWeight: '500', color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
+    ], background: bg, videoBackground: { url: VF, type: 'mp4', opacity: 0.8 },
+    animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
+
+  // S5: Closing
+  { const h1 = gid(), h2 = gid();
+    slides.push({ id: gid(), elements: [...skeleton('05', fB),
+      txt(h1, '{{closing_line1}}', 210, 400, 1500, 120, { fontSize: 64, fontWeight: '300', fontFamily: fH, color: fg, textAlign: 'center', lineHeight: 0.95, zIndex: 15 }),
+      txt(h2, '{{closing_line2}}', 210, 520, 1500, 120, { fontSize: 64, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, zIndex: 15 }),
+    ], background: bg, videoBackground: { url: VF, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [h1]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut }, [h2]: { type: 'slide-up', delay: 0.35, duration: 0.7, easing: E.expoOut } }) }); }
+
+  return slides;
+}
+
+function fortuneTheme() {
+  return { id: 'midnight', name: 'Fortune', category: 'Cinematic', tokens: { palette: { primary: '#f8f8f8', secondary: '#80838e', accent: '#f8f8f8', bg: '#000000', text: '#FFFFFF' }, typography: { titleFont: 'Barlow', bodyFont: 'Barlow', titleSize: 52, bodySize: 16 }, radii: '2px', shadows: 'none' }, previewColors: ['#f8f8f8', '#80838e', '#000000'] };
+}
+
 // ══════════════════════════════
 // MAIN SEED
 // ══════════════════════════════
@@ -772,6 +1027,50 @@ const TEMPLATES = [
     theme: luminaTheme(),
     tags: ['ai', 'saas', 'product', 'builder', 'landing'],
     sort_order: 4,
+  },
+  {
+    name: 'Velorah',
+    slug: 'velorah',
+    category: 'Creative / Brand',
+    description: 'Elegant serif typography with Instrument Serif headlines over full cinematic video backgrounds.',
+    preset_id: 'midnight',
+    slides: buildVelorah(),
+    theme: velorahTheme(),
+    tags: ['creative', 'brand', 'elegant', 'serif', 'minimal'],
+    sort_order: 5,
+  },
+  {
+    name: 'Bloom',
+    slug: 'bloom',
+    category: 'Design / AI',
+    description: 'Poppins + Source Serif 4 mixed typography. Floral AI aesthetic with dual-font headings.',
+    preset_id: 'midnight',
+    slides: buildBloom(),
+    theme: bloomTheme(),
+    tags: ['design', 'ai', 'creative', 'floral', 'modern'],
+    sort_order: 6,
+  },
+  {
+    name: 'Logoisum',
+    slug: 'logoisum',
+    category: 'Agency / Video',
+    description: 'Video agency style with Barlow + Instrument Serif. Bold meets elegant with full-opacity video.',
+    preset_id: 'midnight',
+    slides: buildLogoisum(),
+    theme: logoisumTheme(),
+    tags: ['agency', 'video', 'production', 'creative', 'reels'],
+    sort_order: 7,
+  },
+  {
+    name: 'Fortune',
+    slug: 'fortune',
+    category: 'Agency / Corporate',
+    description: 'Ultra-light Barlow + Italic Serif. Featured badge aesthetic with sharp corners and clean hierarchy.',
+    preset_id: 'midnight',
+    slides: buildFortune(),
+    theme: fortuneTheme(),
+    tags: ['agency', 'corporate', 'fortune', 'featured', 'premium'],
+    sort_order: 8,
   },
 ];
 
