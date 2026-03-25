@@ -225,25 +225,33 @@ IMPORTANT: Pick varied layouts from the catalog. Don't repeat the same layout mo
 Generate the slides JSON now.`;
     }
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-20250514",
-        max_tokens: 8192,
-        system: systemPrompt,
-        messages: [{ role: "user", content: userMessage }],
-      }),
-    });
+    // Retry with backoff for 429/529 (rate limit / overloaded)
+    let response: Response | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 8192,
+          system: systemPrompt,
+          messages: [{ role: "user", content: userMessage }],
+        }),
+      });
 
-    if (!response.ok) {
-      const error = await response.text();
+      if (response.ok || (response.status !== 429 && response.status !== 529)) break;
+      console.log(`Anthropic ${response.status}, retry ${attempt + 1}/3 in ${(attempt + 1) * 5}s...`);
+      await new Promise(r => setTimeout(r, (attempt + 1) * 5000));
+    }
+
+    if (!response || !response.ok) {
+      const error = response ? await response.text() : "No response";
       console.error("Anthropic API error:", error);
-      throw new Error(`Anthropic API error: ${response.status}`);
+      throw new Error(`Anthropic API error: ${response?.status || 0}`);
     }
 
     const result = await response.json();
