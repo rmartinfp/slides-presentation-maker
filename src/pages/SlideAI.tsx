@@ -185,15 +185,36 @@ export default function SlideAIPage() {
           return true;
         });
 
-        // Deduplicate similar layouts — keep only one of each layout type
-        // (Slidesgo templates often have 2 variants: 4-item and 6-item version of same slide)
+        // Deduplicate similar slides:
+        // 1. Same layout name → keep first only
+        // 2. Similar structure (same text count, similar sizes) → keep first
+        // 3. Max 1 section header per presentation
         const seenLayouts = new Set<string>();
+        let sectionCount = 0;
         const deduped = cleanSlides.filter((s, idx) => {
           if (idx === 0 || (s as any).layout === 'cover' || (s as any).layout === 'closing') return true;
           const layoutKey = (s as any).layout || 'unknown';
-          // For content slides with same layout, keep first only
-          if (layoutKey !== 'unknown' && layoutKey !== 'content' && seenLayouts.has(layoutKey)) return false;
-          seenLayouts.add(layoutKey);
+          const isSection = layoutKey === 'section';
+
+          // Max 1 section header
+          if (isSection) {
+            sectionCount++;
+            if (sectionCount > 1) return false;
+          }
+
+          // Dedup by layout name (skip 'content' and 'unknown' — too generic)
+          if (layoutKey !== 'unknown' && layoutKey !== 'content') {
+            if (seenLayouts.has(layoutKey)) return false;
+            seenLayouts.add(layoutKey);
+          }
+
+          // Dedup by structure fingerprint: text count + number of large texts
+          const texts = (s.elements || []).filter(e => e.type === 'text');
+          const bigTexts = texts.filter(t => (t.style?.fontSize || 0) > 30).length;
+          const structKey = `${texts.length}-${bigTexts}`;
+          if (seenLayouts.has('struct:' + structKey) && layoutKey === 'content') return false;
+          seenLayouts.add('struct:' + structKey);
+
           return true;
         });
 
