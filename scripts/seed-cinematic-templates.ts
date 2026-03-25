@@ -306,7 +306,7 @@ function buildPrysma(): Slide[] {
         fontSize: 16, color: sub, fontFamily: f, textAlign: 'center', lineHeight: 1.6, zIndex: 15, textShadow: 'none',
       }),
     ], background: bg,
-    videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.85, filter: 'brightness(0.6)' },
+    videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.85, filter: 'brightness(0.6)' },
     animationConfig: cineAnim({
       [head]: { type: 'blur-in', delay: 0.2, duration: 1.2, easing: E.expoOut },
       [sub2]: { type: 'blur-in', delay: 0.7, duration: 0.8, easing: E.expoOut },

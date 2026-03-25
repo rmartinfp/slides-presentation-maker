@@ -502,7 +502,7 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                           : 'hover:ring-1 hover:ring-slate-300 shadow-sm'
                       )}
                     >
-                      {/* Video preview area */}
+                      {/* Video cover — NO overlays, NO text, pure video */}
                       <div
                         className="aspect-video relative overflow-hidden"
                         style={{ backgroundColor: preset?.backgroundColor || '#0a0a0f' }}
@@ -519,48 +519,23 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                           />
                         )}
 
-                        {/* Gradient overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-                        {/* Template name overlay */}
-                        <div className="absolute inset-0 flex flex-col justify-end p-4">
-                          <h3
-                            className="text-lg font-bold leading-tight text-white mb-0.5"
+                        {/* Template name — subtle, bottom-left */}
+                        <div className="absolute bottom-2 left-3 z-10">
+                          <span
+                            className="text-xs font-medium text-white/70"
                             style={{ fontFamily: preset ? `'${preset.fontHeading}', sans-serif` : undefined }}
                           >
                             {tmpl.name}
-                          </h3>
-                          <p className="text-[11px] text-white/60 line-clamp-1">{tmpl.description}</p>
+                          </span>
                         </div>
-
-                        {/* Category badge */}
-                        <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-white/10 backdrop-blur text-white/80 font-medium">
-                          {tmpl.category}
-                        </span>
-
-                        {/* Slide count */}
-                        <span className="absolute top-2 right-2 text-[10px] px-2 py-0.5 rounded-full bg-black/40 backdrop-blur text-white/70 font-medium">
-                          {slides.length} slides
-                        </span>
 
                         {/* Selected check */}
                         {isSelected && (
-                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute bottom-3 right-3 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg">
+                          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg z-10">
                             <Check className="w-4 h-4 text-white" />
                           </motion.div>
                         )}
                       </div>
-
-                      {/* Preset color dots overlay */}
-                      {preset && (
-                        <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/60 to-transparent pointer-events-none">
-                          <div className="flex gap-1 items-center">
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.accentColor }} />
-                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: preset.primaryTextColor, opacity: 0.6 }} />
-                            <span className="ml-auto text-[9px] text-white/50">{preset.name}</span>
-                          </div>
-                        </div>
-                      )}
                     </motion.div>
                   );
                 })}
