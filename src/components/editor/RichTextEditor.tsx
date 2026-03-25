@@ -45,7 +45,7 @@ export default function RichTextEditor({ element, scale, onBlur }: Props) {
         class: 'outline-none w-full h-full',
         style: [
           `font-family: ${element.style.fontFamily ? `${element.style.fontFamily}, sans-serif` : 'sans-serif'}`,
-          `font-size: ${(element.style.fontSize || 24) * 2.666}px`,
+          `font-size: ${(element.style.fontSize ?? 12) * 2.666}px`,
           `color: ${element.style.color || '#000000'}`,
           `font-weight: ${element.style.fontWeight || 'normal'}`,
           `font-style: ${element.style.fontStyle || 'normal'}`,

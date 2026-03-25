@@ -266,11 +266,18 @@ export default function CanvasElement({
       case 'text': {
         if (isEditing) {
           return (
-            <RichTextEditor
-              element={element}
-              scale={scale}
-              onBlur={handleBlur}
-            />
+            <div style={shrinkScale < 1 ? {
+              transform: `scale(${shrinkScale})`,
+              transformOrigin: 'top left',
+              width: `${100 / shrinkScale}%`,
+              height: `${100 / shrinkScale}%`,
+            } : undefined}>
+              <RichTextEditor
+                element={element}
+                scale={scale}
+                onBlur={handleBlur}
+              />
+            </div>
           );
         }
 
