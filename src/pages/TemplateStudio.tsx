@@ -67,8 +67,8 @@ function createBlankPresentation(): Presentation {
   };
 }
 
-// ─── Google Fonts API ───
-const GFONTS_KEY = 'AIzaSyCwTdPG-aVi_r94P8DuoFzk8rGR2LO7F0E';
+// ─── Google Fonts API (key from env, not hardcoded) ───
+const GFONTS_KEY = import.meta.env.VITE_GOOGLE_FONTS_API_KEY || '';
 
 interface GFont {
   family: string;
@@ -381,13 +381,15 @@ export default function TemplateStudio() {
   const activeSlide = presentation.slides[activeSlideIndex];
   const selectedElements = activeSlide?.elements?.filter(e => selectedElementIds.includes(e.id)) ?? [];
 
-  // Initialize with blank template
+  // Initialize with blank template — must happen before first render of SlideCanvas
+  const [initialized, setInitialized] = useState(false);
   useEffect(() => {
     const stored = sessionStorage.getItem('templateStudioPresentation');
     if (stored) {
-      try { setPresentation(JSON.parse(stored)); return; } catch {}
+      try { setPresentation(JSON.parse(stored)); setInitialized(true); return; } catch {}
     }
     setPresentation(createBlankPresentation());
+    setInitialized(true);
   }, []);
 
   // Auto-save to sessionStorage
@@ -490,7 +492,7 @@ export default function TemplateStudio() {
               <Droppable droppableId="studio-slides">
                 {(provided) => (
                   <div ref={provided.innerRef} {...provided.droppableProps} className="flex-1 overflow-y-auto px-2 pb-2">
-                    <SlideList />
+                    {initialized && <SlideList />}
                     {provided.placeholder}
                   </div>
                 )}
@@ -498,9 +500,9 @@ export default function TemplateStudio() {
             </DragDropContext>
           </div>
 
-          {/* Canvas */}
+          {/* Canvas — only render after store is initialized */}
           <div ref={canvasContainerRef} className="flex-1 flex items-center justify-center bg-slate-100 overflow-hidden">
-            <SlideCanvas />
+            {initialized && <SlideCanvas />}
           </div>
 
           {/* Right panel — Tools */}
