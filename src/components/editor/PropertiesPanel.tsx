@@ -548,16 +548,62 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
 
 // ── Slide Properties (no element selected) ──
 function SlidePropertiesPanel({ slide }: { slide: Slide | undefined }) {
-  const { setSlideVideoBackground } = useEditorStore();
+  const { setSlideVideoBackground, setSlideBackground, presentation } = useEditorStore();
   const [showVideoPicker, setShowVideoPicker] = useState(false);
   const video = slide?.videoBackground;
 
   const categories = [...new Set(VIDEO_POOL.map(v => v.category))];
 
+  // Collect unique backgrounds from all slides in the presentation
+  const uniqueBackgrounds = useMemo(() => {
+    const seen = new Set<string>();
+    const bgs: { type: string; value: string }[] = [];
+    for (const sl of presentation.slides) {
+      if (!sl.background) continue;
+      const key = `${sl.background.type}:${sl.background.value}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        bgs.push(sl.background);
+      }
+    }
+    return bgs;
+  }, [presentation.slides]);
+
   return (
     <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
       <p className="text-[11px] text-slate-500 mb-4">{slide?.elements?.length || 0} elements</p>
+
+      {/* Slide Background Picker */}
+      {uniqueBackgrounds.length > 1 && (
+        <Section icon={<Palette className="w-3 h-3" />} title="Slide Background">
+          <div className="grid grid-cols-3 gap-1.5">
+            {uniqueBackgrounds.map((bg, i) => {
+              const isActive = slide?.background?.type === bg.type && slide?.background?.value === bg.value;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSlideBackground(bg as any)}
+                  className={cn(
+                    'aspect-video rounded-md overflow-hidden border-2 transition-all',
+                    isActive ? 'border-[#4F46E5] shadow-sm' : 'border-transparent hover:border-slate-300'
+                  )}
+                >
+                  {bg.type === 'solid' && (
+                    <div className="w-full h-full" style={{ backgroundColor: bg.value }} />
+                  )}
+                  {bg.type === 'gradient' && (
+                    <div className="w-full h-full" style={{ background: bg.value }} />
+                  )}
+                  {bg.type === 'image' && (
+                    <img src={bg.value} alt="" className="w-full h-full object-cover" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+      )}
 
       {/* Video Background Section */}
       <Section icon={<Video className="w-3 h-3" />} title="Video Background">
