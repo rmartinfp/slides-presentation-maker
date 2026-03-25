@@ -370,6 +370,7 @@ export default function TemplateStudio() {
   const navigate = useNavigate();
   const [activePanel, setActivePanel] = useState<'fonts' | 'video' | 'bg' | 'save'>('fonts');
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [showPicker, setShowPicker] = useState(true); // Show template picker on load
 
   const {
     presentation, activeSlideIndex, selectedElementIds,
@@ -381,16 +382,45 @@ export default function TemplateStudio() {
   const activeSlide = presentation.slides[activeSlideIndex];
   const selectedElements = activeSlide?.elements?.filter(e => selectedElementIds.includes(e.id)) ?? [];
 
-  // Initialize with blank template — must happen before first render of SlideCanvas
-  const [initialized, setInitialized] = useState(false);
+  // Fetch existing cinematic templates from Supabase
+  const [dbTemplates, setDbTemplates] = useState<any[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(true);
   useEffect(() => {
-    const stored = sessionStorage.getItem('templateStudioPresentation');
-    if (stored) {
-      try { setPresentation(JSON.parse(stored)); setInitialized(true); return; } catch {}
-    }
+    supabase.from('cinematic_templates').select('*').eq('is_active', true).order('sort_order')
+      .then(({ data }) => { setDbTemplates(data || []); setLoadingTemplates(false); });
+  }, []);
+
+  const [initialized, setInitialized] = useState(false);
+
+  // Load a template into the editor
+  const loadTemplate = (tmpl: any) => {
+    const slides = (tmpl.slides || []).map((s: any) => ({
+      ...s,
+      id: s.id || crypto.randomUUID(),
+      elements: s.elements || [],
+      background: s.background || { type: 'solid', value: '#000000' },
+    }));
+    const theme = tmpl.theme || createBlankPresentation().theme;
+    setPresentation({
+      id: crypto.randomUUID(),
+      title: tmpl.name || 'Template',
+      slides,
+      theme,
+      templateType: 'cinematic',
+      cinematicPresetId: tmpl.preset_id || 'midnight',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    setInitialized(true);
+    setShowPicker(false);
+  };
+
+  // Start blank
+  const startBlank = () => {
     setPresentation(createBlankPresentation());
     setInitialized(true);
-  }, []);
+    setShowPicker(false);
+  };
 
   // Auto-save to sessionStorage
   useEffect(() => {
@@ -445,6 +475,7 @@ export default function TemplateStudio() {
   return (
     <>
       {/* Cinematic Preview */}
+      {/* Cinematic Preview */}
       {isPreviewing && preset && (
         <CinematicPresentation
           slides={presentation.slides}
@@ -452,6 +483,75 @@ export default function TemplateStudio() {
           presentationTitle={presentation.title}
           onExit={() => setIsPreviewing(false)}
         />
+      )}
+
+      {/* Template Picker — shown on load */}
+      {showPicker && (
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col">
+          <div className="h-12 flex items-center justify-between px-6 border-b border-slate-200 shrink-0">
+            <div className="flex items-center gap-3">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/')} className="h-8 w-8 p-0">
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+              <span className="text-sm font-semibold text-slate-700">Template Studio</span>
+              <span className="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">Choose a template to edit or start blank</span>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto p-8">
+            <div className="max-w-5xl mx-auto">
+              {/* Start blank option */}
+              <button
+                onClick={startBlank}
+                className="w-full mb-8 p-6 rounded-2xl border-2 border-dashed border-slate-300 hover:border-[#4F46E5] hover:bg-slate-50 transition-all text-center group"
+              >
+                <Plus className="w-8 h-8 mx-auto mb-2 text-slate-400 group-hover:text-[#4F46E5]" />
+                <p className="text-sm font-medium text-slate-600 group-hover:text-[#4F46E5]">Start from scratch</p>
+                <p className="text-xs text-slate-400 mt-1">5 blank black slides</p>
+              </button>
+
+              {/* Existing templates */}
+              <h2 className="text-sm font-semibold text-slate-700 mb-4">Edit existing template</h2>
+              {loadingTemplates && (
+                <div className="flex items-center gap-2 text-sm text-slate-400 py-8 justify-center">
+                  <Loader2 className="w-4 h-4 animate-spin" /> Loading templates...
+                </div>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {dbTemplates.map((tmpl: any) => {
+                  const firstSlide = tmpl.slides?.[0];
+                  const videoUrl = firstSlide?.videoBackground?.url || firstSlide?.videoUrl;
+                  const bgColor = firstSlide?.background?.value || tmpl.theme?.tokens?.palette?.bg || '#000';
+
+                  return (
+                    <button
+                      key={tmpl.id}
+                      onClick={() => loadTemplate(tmpl)}
+                      className="rounded-xl overflow-hidden border border-slate-200 hover:border-[#4F46E5] hover:shadow-lg transition-all text-left group"
+                    >
+                      <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: bgColor }}>
+                        {videoUrl && (
+                          <video
+                            src={videoUrl}
+                            autoPlay muted loop playsInline
+                            className="absolute inset-0 w-full h-full object-cover"
+                            style={{ opacity: firstSlide?.videoBackground?.opacity || 0.5 }}
+                          />
+                        )}
+                        <div className="absolute bottom-1.5 left-2 text-[10px] text-white/80 font-medium drop-shadow">
+                          {tmpl.slides?.length || 0} slides
+                        </div>
+                      </div>
+                      <div className="p-3">
+                        <p className="text-sm font-medium text-slate-800 truncate">{tmpl.name}</p>
+                        <p className="text-[11px] text-slate-400 truncate">{tmpl.category}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className="h-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden">
