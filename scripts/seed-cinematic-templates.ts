@@ -133,15 +133,18 @@ function skeleton(slideNum: string, font: string): SlideElement[] {
   ];
 }
 
-/** Standard animation config for cinematic slides */
+/** Standard animation config — NO overlays by default. Video shines through. */
 function cineAnim(overrides: Record<string, any> = {}, opts: any = {}): Record<string, any> {
   return animCfg(overrides, {
     transition: 'fade-through-black',
     transitionDuration: 0.35,
-    overlays: { vignette: true, vignetteIntensity: 0.25, filmGrain: true, filmGrainOpacity: 0.025, scrim: 'bottom' as const, scrimOpacity: 0.35 },
+    overlays: opts.overlays ?? { vignette: false, vignetteIntensity: 0, filmGrain: false, filmGrainOpacity: 0, scrim: 'none' as const, scrimOpacity: 0 },
     ...opts,
   });
 }
+
+// Strong text shadow for readability over bright video (instead of darkening the video)
+const STRONG_SHADOW = '0 2px 8px rgba(0,0,0,0.8), 0 4px 24px rgba(0,0,0,0.5), 0 8px 48px rgba(0,0,0,0.3)';
 
 // ════════════════════════════════════════════
 // TEMPLATE: NEXUS (SaaS Pitch — 5 slides)
@@ -151,132 +154,70 @@ function buildNexus(): Slide[] {
   const f = 'Inter';
   const fg = '#FFFFFF', sub = '#80838e';
   const bg = { type: 'solid', value: '#000000' };
+  const S = STRONG_SHADOW;
   const slides: Slide[] = [];
 
-  // ─── S1: TITLE — Massive heading bottom-left, metadata top-right, full video ───
+  // ─── S1: HERO — Video 100% NO filter. Bold 700 text bottom-left with strong shadow ───
   {
-    const tl1 = gid(), tl2 = gid(), ml = gid(), mv = gid(), ml2 = gid(), mv2 = gid();
+    const tl1 = gid(), tl2 = gid();
     slides.push({ id: gid(), elements: [
       ...skeleton('', f),
-      // Metadata row (top-right, small gray labels + white values)
-      txt(ml, '{{meta_label_1}}', 1100, 36, 140, 16, { fontSize: 10, color: sub, fontFamily: f, zIndex: 20, textShadow: 'none' }),
-      txt(mv, '{{meta_value_1}}', 1100, 52, 180, 16, { fontSize: 10, fontWeight: '500', color: fg, fontFamily: f, zIndex: 20, textShadow: 'none' }),
-      txt(ml2, '{{meta_label_2}}', 1340, 36, 140, 16, { fontSize: 10, color: sub, fontFamily: f, zIndex: 20, textShadow: 'none' }),
-      txt(mv2, '{{meta_value_2}}', 1340, 52, 180, 16, { fontSize: 10, fontWeight: '500', color: fg, fontFamily: f, zIndex: 20, textShadow: 'none' }),
-      // Title — MASSIVE, bottom-left, 2 lines
-      txt(tl1, '{{title_line1}}', 96, 700, 1500, 160, {
-        fontSize: 110, fontWeight: '400', fontFamily: f, color: fg,
-        lineHeight: 0.92, letterSpacing: -2, zIndex: 15,
-      }),
-      txt(tl2, '{{title_line2}}', 96, 860, 1500, 140, {
-        fontSize: 110, fontWeight: '400', fontFamily: f, color: fg,
-        lineHeight: 0.92, letterSpacing: -2, zIndex: 15,
-      }),
+      txt(tl1, '{{title_line1}}', 96, 680, 1400, 170, { fontSize: 120, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.9, letterSpacing: -3, zIndex: 15, textShadow: S }),
+      txt(tl2, '{{title_line2}}', 96, 850, 1400, 150, { fontSize: 120, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.9, letterSpacing: -3, zIndex: 15, textShadow: S }),
     ], background: bg,
-    videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.9, filter: 'brightness(0.7)' },
-    animationConfig: cineAnim({
-      [tl1]: { type: 'slide-up', delay: 0.3, duration: 0.7, easing: E.expoOut },
-      [tl2]: { type: 'slide-up', delay: 0.4, duration: 0.7, easing: E.expoOut },
-      [ml]: { type: 'blur-in', delay: 0.1, duration: 0.6, easing: E.expoOut },
-      [mv]: { type: 'blur-in', delay: 0.12, duration: 0.6, easing: E.expoOut },
-    }) });
+    videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [tl1]: { type: 'slide-up', delay: 0.3, duration: 0.7, easing: E.expoOut }, [tl2]: { type: 'slide-up', delay: 0.4, duration: 0.7, easing: E.expoOut } }) });
   }
 
-  // ─── S2: PROBLEM + STATS — Heading upper, 3 massive stat columns bottom ───
+  // ─── S2: SPLIT — Heading LEFT 55%, 2 big stats stacked RIGHT. Video 100% ───
   {
-    const lab = gid(), head = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid(), s3v = gid(), s3l = gid();
+    const lab = gid(), head = gid(), s1v = gid(), s1l = gid(), s2v = gid(), s2l = gid();
     slides.push({ id: gid(), elements: [
       ...skeleton('02', f),
-      txt(lab, '{{problem_label}}', 96, 120, 500, 22, { fontSize: 13, color: sub, fontFamily: f, zIndex: 15, textShadow: 'none' }),
-      txt(head, '{{problem_statement}}', 96, 170, 1600, 300, {
-        fontSize: 46, fontWeight: '400', fontFamily: f, color: fg,
-        lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15,
-      }),
-      // 3 stat columns — massive numbers
-      txt(s1v, '{{stat1_value}}', 96, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
-      txt(s1l, '{{stat1_label}}', 96, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: f, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
-      txt(s2v, '{{stat2_value}}', 700, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
-      txt(s2l, '{{stat2_label}}', 700, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: f, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
-      txt(s3v, '{{stat3_value}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '400', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -2, zIndex: 15 }),
-      txt(s3l, '{{stat3_label}}', 1300, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: f, lineHeight: 1.4, zIndex: 15, textShadow: 'none' }),
+      txt(lab, '{{problem_label}}', 96, 180, 400, 22, { fontSize: 12, fontWeight: '600', color: sub, fontFamily: f, letterSpacing: 2, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{problem_heading}}', 96, 230, 900, 450, { fontSize: 44, fontWeight: '500', fontFamily: f, color: fg, lineHeight: 1.08, letterSpacing: -0.5, zIndex: 15, textShadow: S }),
+      txt(s1v, '{{stat1_value}}', 1150, 250, 650, 150, { fontSize: 96, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -3, zIndex: 15, textShadow: S }),
+      txt(s1l, '{{stat1_label}}', 1150, 410, 650, 35, { fontSize: 15, color: fg, fontFamily: f, opacity: 0.8, zIndex: 15, textShadow: 'none' }),
+      txt(s2v, '{{stat2_value}}', 1150, 520, 650, 150, { fontSize: 96, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.96, letterSpacing: -3, zIndex: 15, textShadow: S }),
+      txt(s2l, '{{stat2_label}}', 1150, 680, 650, 35, { fontSize: 15, color: fg, fontFamily: f, opacity: 0.8, zIndex: 15, textShadow: 'none' }),
     ], background: bg,
-    videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 0.85, filter: 'brightness(0.65)' },
-    animationConfig: cineAnim({
-      [lab]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
-      [head]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
-      [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut },
-      [s1l]: { type: 'fade-in', delay: 0.7, duration: 0.5, easing: E.quintOut },
-      [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut },
-      [s2l]: { type: 'fade-in', delay: 0.8, duration: 0.5, easing: E.quintOut },
-      [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut },
-      [s3l]: { type: 'fade-in', delay: 0.9, duration: 0.5, easing: E.quintOut },
-    }) });
+    videoBackground: { url: ABSTRACT_VIDEOS[1], type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [lab]: { type: 'blur-in', delay: 0.1, duration: 0.5, easing: E.expoOut }, [head]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.5, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.65, duration: 0.6, easing: E.expoOut } }) });
   }
 
-  // ─── S3: CONTENT — Label + heading left, body below, video half-opacity ───
+  // ─── S3: FULL STATEMENT — One giant bold line, centered. Video 100% ───
   {
-    const lab = gid(), head = gid(), body = gid();
+    const head = gid();
     slides.push({ id: gid(), elements: [
       ...skeleton('03', f),
-      txt(lab, '{{content_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: f, zIndex: 15, textShadow: 'none' }),
-      txt(head, '{{content_heading}}', 96, 310, 1200, 320, {
-        fontSize: 48, fontWeight: '400', fontFamily: f, color: fg,
-        lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15,
-      }),
-      txt(body, '{{content_body}}', 96, 680, 760, 200, {
-        fontSize: 15, color: sub, fontFamily: f, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
-      }),
+      txt(head, '{{statement}}', 160, 320, 1600, 400, { fontSize: 72, fontWeight: '700', fontFamily: f, color: fg, textAlign: 'center', lineHeight: 1.0, letterSpacing: -2, zIndex: 15, textShadow: S }),
     ], background: bg,
-    videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 0.7, filter: 'brightness(0.55) saturate(0.9)' },
-    animationConfig: cineAnim({
-      [lab]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
-      [head]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
-      [body]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut },
-    }) });
+    videoBackground: { url: ABSTRACT_VIDEOS[2], type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [head]: { type: 'word-by-word', delay: 0.15, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) });
   }
 
-  // ─── S4: CENTERED HEADING — Big text vertically centered, body below ───
+  // ─── S4: TOP-HEAVY — Heading fills top 60%, tiny body at bottom. Video 100% ───
   {
-    const lab = gid(), head = gid(), body = gid();
+    const head = gid(), body = gid();
     slides.push({ id: gid(), elements: [
       ...skeleton('04', f),
-      txt(lab, '{{centered_label}}', 96, 290, 500, 22, { fontSize: 13, color: sub, fontFamily: f, zIndex: 15, textShadow: 'none' }),
-      txt(head, '{{centered_heading}}', 96, 330, 1200, 360, {
-        fontSize: 58, fontWeight: '400', fontFamily: f, color: fg,
-        lineHeight: 1.04, letterSpacing: -1, zIndex: 15,
-      }),
-      txt(body, '{{centered_body}}', 96, 740, 780, 160, {
-        fontSize: 15, color: sub, fontFamily: f, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
-      }),
+      txt(head, '{{content_heading}}', 96, 140, 1600, 500, { fontSize: 64, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 1.0, letterSpacing: -1.5, zIndex: 15, textShadow: S }),
+      txt(body, '{{content_body}}', 96, 820, 700, 120, { fontSize: 15, color: fg, fontFamily: f, lineHeight: 1.7, opacity: 0.8, zIndex: 15, textShadow: 'none' }),
     ], background: bg,
-    videoBackground: { url: ABSTRACT_VIDEOS[3], type: 'mp4', opacity: 0.8, filter: 'brightness(0.6)' },
-    animationConfig: cineAnim({
-      [lab]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
-      [head]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
-      [body]: { type: 'blur-in', delay: 1.0, duration: 0.8, easing: E.expoOut },
-    }) });
+    videoBackground: { url: ABSTRACT_VIDEOS[3], type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [head]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [body]: { type: 'blur-in', delay: 0.9, duration: 0.8, easing: E.expoOut } }) });
   }
 
-  // ─── S5: CLOSING — Label + heading bottom-left, video prominent ───
+  // ─── S5: BOTTOM ANCHOR — Bold heading pinned to bottom, video dominates top 75% ───
   {
-    const lab = gid(), head = gid(), body = gid();
+    const lab = gid(), head = gid();
     slides.push({ id: gid(), elements: [
       ...skeleton('05', f),
-      txt(lab, '{{closing_label}}', 96, 660, 500, 22, { fontSize: 13, color: sub, fontFamily: f, zIndex: 15, textShadow: 'none' }),
-      txt(head, '{{closing_heading}}', 96, 700, 1100, 240, {
-        fontSize: 58, fontWeight: '400', fontFamily: f, color: fg,
-        lineHeight: 1.04, letterSpacing: -1, zIndex: 15,
-      }),
-      txt(body, '{{closing_body}}', 96, 940, 680, 80, {
-        fontSize: 15, color: sub, fontFamily: f, lineHeight: 1.7, zIndex: 15, textShadow: 'none',
-      }),
-    ], background: { type: 'solid', value: '#0a0a12' },
-    videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 0.85, filter: 'brightness(0.6)' },
-    animationConfig: cineAnim({
-      [lab]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut },
-      [head]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 },
-      [body]: { type: 'blur-in', delay: 0.6, duration: 0.8, easing: E.expoOut },
-    }) });
+      txt(lab, '{{closing_label}}', 96, 780, 400, 22, { fontSize: 12, fontWeight: '600', color: sub, fontFamily: f, letterSpacing: 2, zIndex: 15, textShadow: 'none' }),
+      txt(head, '{{closing_heading}}', 96, 820, 1400, 200, { fontSize: 72, fontWeight: '700', fontFamily: f, color: fg, lineHeight: 0.95, letterSpacing: -2, zIndex: 15, textShadow: S }),
+    ], background: bg,
+    videoBackground: { url: NEXUS_VIDEO, type: 'mp4', opacity: 1.0 },
+    animationConfig: cineAnim({ [lab]: { type: 'blur-in', delay: 0.1, duration: 0.5, easing: E.expoOut }, [head]: { type: 'slide-up', delay: 0.2, duration: 0.7, easing: E.expoOut } }) });
   }
 
   return slides;
