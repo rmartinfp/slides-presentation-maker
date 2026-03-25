@@ -164,7 +164,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
 
       whileHover={{ y: -6 }}
       onHoverStart={() => {
-        hoverTimer.current = setTimeout(() => setIsHovering(true), 2000);
+        hoverTimer.current = setTimeout(() => setIsHovering(true), 500);
       }}
       onHoverEnd={() => {
         if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
@@ -188,7 +188,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
           </div>
         )}
 
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+        {/* hover gradient removed — name overlay has its own gradient */}
 
         {(template.slides?.length || imageCount) > 0 && (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur text-white text-[10px] font-medium rounded-full">
@@ -207,18 +207,9 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
         )}
       </div>
 
-      <div className="p-3 bg-white/80 backdrop-blur-sm">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-slate-800 text-sm truncate">{template.name}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{template.category}</p>
-          </div>
-          <div className="flex gap-1 flex-shrink-0">
-            {[template.colors.primary, template.colors.secondary].map((color, idx) => (
-              <div key={idx} className="w-3 h-3 rounded-full ring-1 ring-slate-300" style={{ backgroundColor: color }} />
-            ))}
-          </div>
-        </div>
+      {/* Template name overlay on the cover */}
+      <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
+        <h3 className="font-medium text-white text-sm truncate drop-shadow-sm">{template.name}</h3>
       </div>
     </motion.div>
 
