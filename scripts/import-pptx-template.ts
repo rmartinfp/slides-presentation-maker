@@ -1889,6 +1889,7 @@ async function main() {
         function extractGroupShapes(
           grpXml: string,
           parentTransform?: Transform,
+          parentGroupId?: string,
         ): void {
           // Parse this group's transform
           const grpSpPr = grpXml.match(/<p:grpSpPr>([\s\S]*?)<\/p:grpSpPr>/);
@@ -1898,6 +1899,9 @@ async function main() {
           const chOff = grpSpPr[1].match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const chExt = grpSpPr[1].match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
           if (!grpOff || !grpExt) return;
+
+          // Assign a unique groupId for all children of this group
+          const groupId = parentGroupId || `grp-${genId()}`;
 
           let gx = parseInt(grpOff[1]), gy = parseInt(grpOff[2]);
           let gw = parseInt(grpExt[1]), gh = parseInt(grpExt[2]);
@@ -1941,15 +1945,16 @@ async function main() {
                 console.log(`    GRP child: raw(${dbgOldX},${dbgOldY}) → transformed(${shapeEl.x},${shapeEl.y}) ${shapeEl.width}x${shapeEl.height} fill=${shapeEl.style?.shapeFill||'?'}`);
               }
               shapeEl.locked = true;
+              shapeEl.groupId = groupId;
               shapeEl.zIndex = zIndex++;
               elements.push(shapeEl);
             }
           }
 
-          // Recursively process nested groups
+          // Recursively process nested groups (share same groupId)
           const nestedGroups = extractBalancedTags(grpXml, 'p:grpSp');
           for (const nestedGrp of nestedGroups) {
-            extractGroupShapes(nestedGrp, transform);
+            extractGroupShapes(nestedGrp, transform, groupId);
           }
         }
 
@@ -2061,6 +2066,7 @@ async function main() {
     async function extractSlideGroupShapes(
       grpXml: string,
       parentTransform?: Transform,
+      parentGroupId?: string,
     ): Promise<void> {
       const grpSpPr = grpXml.match(/<p:grpSpPr>([\s\S]*?)<\/p:grpSpPr>/);
       if (!grpSpPr) return;
@@ -2069,6 +2075,8 @@ async function main() {
       const chOffM = grpSpPr[1].match(/<a:chOff\s+x="(-?\d+)"\s+y="(-?\d+)"/);
       const chExtM = grpSpPr[1].match(/<a:chExt\s+cx="(\d+)"\s+cy="(\d+)"/);
       if (!grpOff || !grpExt) return;
+
+      const groupId = parentGroupId || `grp-${genId()}`;
 
       let gx = parseInt(grpOff[1]), gy = parseInt(grpOff[2]);
       let gw = parseInt(grpExt[1]), gh = parseInt(grpExt[2]);
@@ -2112,6 +2120,7 @@ async function main() {
           // Lock small decorative shapes from groups (dots, toggles, icons)
           // These are design elements, not user-editable content
           if (Math.min(shapeEl.width, shapeEl.height) < 20) shapeEl.locked = true;
+          shapeEl.groupId = groupId;
           shapeEl.zIndex = zIndex++;
           elements.push(shapeEl);
           continue;
@@ -2126,6 +2135,7 @@ async function main() {
             textEl.width = safeWidth(parseInt(cExt[1]), transform);
             textEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
+          textEl.groupId = groupId;
           textEl.zIndex = zIndex++;
           elements.push(textEl);
         }
@@ -2144,6 +2154,7 @@ async function main() {
             result.element.height = safeHeight(parseInt(cExt[2]), transform);
           }
           result.element.zIndex = zIndex++;
+          result.element.groupId = groupId;
           if (result.imageRef) {
             result.element.content = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slides/');
           }
@@ -2184,7 +2195,7 @@ async function main() {
 
       // Recurse into nested groups
       for (const nestedGrp of extractBalancedTags(grpXml, 'p:grpSp')) {
-        await extractSlideGroupShapes(nestedGrp, transform);
+        await extractSlideGroupShapes(nestedGrp, transform, groupId);
       }
     }
 
