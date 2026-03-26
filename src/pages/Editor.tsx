@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAssetUpload } from '@/hooks/useAssetUpload';
-import { Presentation, Slide } from '@/types/presentation';
+import { Presentation, Slide, SlideBackground } from '@/types/presentation';
 import { THEME_CATALOG } from '@/lib/themes';
 import { createSampleSlides } from '@/lib/slide-utils';
 import { migrateAllSlides, migrateSlideToElements } from '@/lib/slide-migration';
@@ -73,6 +73,7 @@ export default function EditorPage() {
   const [skeletonCount, setSkeletonCount] = useState(0);
   const [revealedSlideIds, setRevealedSlideIds] = useState<Set<string>>(new Set());
   const [isRevealing, setIsRevealing] = useState(false);
+  const [templateBackgrounds, setTemplateBackgrounds] = useState<SlideBackground[]>([]);
 
   const {
     presentation, activeSlideIndex, selectedElementIds,
@@ -180,6 +181,9 @@ export default function EditorPage() {
         const resolved = resolveTemplate(templateJson);
         setIsGenerating(true);
         setSkeletonCount(slideCount);
+        if (resolved.templateSlides) {
+          setTemplateBackgrounds(resolved.templateSlides.map(s => s.background));
+        }
         setPresentation({
           id: 'generating', title: 'Generating...',
           slides: [], theme: resolved.theme,
@@ -192,6 +196,7 @@ export default function EditorPage() {
         runSlideGeneration({ prompt, slideCount, templateJson }).then(result => {
           setPresentation(result);
           setIsGenerating(false);
+          setTemplateBackgrounds([]);
           // Reveal slides one by one in the sidebar
           setIsRevealing(true);
           result.slides.forEach((slide, idx) => {
@@ -714,6 +719,15 @@ export default function EditorPage() {
                 }}
               >
                 {isGenerating && !activeSlide ? (
+                  (() => {
+                    const canvasBg = templateBackgrounds[0] || null;
+                    const hasCanvasBg = canvasBg && (canvasBg.type === 'image' || canvasBg.type === 'gradient');
+                    const canvasBgStyle: React.CSSProperties = hasCanvasBg
+                      ? canvasBg.type === 'image'
+                        ? { backgroundImage: `url(${canvasBg.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+                        : { background: canvasBg.value }
+                      : { backgroundColor: canvasBg?.value || theme.palette.bg };
+                    return (
                   <div className="relative overflow-hidden" style={{
                     backgroundColor: theme.palette.bg,
                     width: 1920 * scale,
@@ -723,32 +737,37 @@ export default function EditorPage() {
                     boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
                     borderRadius: 4,
                   }}>
-                    <div className="absolute inset-0 flex flex-col" style={{ padding: `${60 * scale}px ${96 * scale}px` }}>
+                    {/* Template background with blur */}
+                    <div
+                      className="absolute inset-0"
+                      style={{ ...canvasBgStyle, filter: hasCanvasBg ? 'blur(20px)' : 'none', transform: 'scale(1.1)' }}
+                    />
+                    {/* Shimmer overlay */}
+                    <div className="absolute inset-0 skeleton-shimmer" />
+                    {/* Breathing overlay */}
+                    <motion.div
+                      className="absolute inset-0"
+                      style={{ backgroundColor: hasCanvasBg ? 'rgba(0,0,0,0.1)' : 'transparent' }}
+                      animate={{ opacity: [0.1, 0.2, 0.1] }}
+                      transition={{ duration: 2.5, repeat: Infinity }}
+                    />
+                    {/* Generating indicator */}
+                    <div className="absolute inset-0 flex items-center justify-center">
                       <motion.div
-                        className="rounded"
-                        style={{ backgroundColor: theme.palette.text, width: '55%', height: 40 * scale, marginBottom: 20 * scale }}
-                        animate={{ opacity: [0.1, 0.22, 0.1] }}
-                        transition={{ duration: 1.8, repeat: Infinity }}
-                      />
-                      <motion.div
-                        className="rounded"
-                        style={{ backgroundColor: theme.palette.text, width: '35%', height: 20 * scale, marginBottom: 50 * scale }}
-                        animate={{ opacity: [0.06, 0.15, 0.06] }}
-                        transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
-                      />
-                      <div className="flex-1 flex flex-col gap-2">
-                        {[1, 0.9, 0.75, 0.6].map((w, i) => (
-                          <motion.div
-                            key={i}
-                            className="rounded"
-                            style={{ backgroundColor: theme.palette.text, width: `${w * 80}%`, height: 14 * scale }}
-                            animate={{ opacity: [0.05, 0.14, 0.05] }}
-                            transition={{ duration: 1.8, repeat: Infinity, delay: 0.3 + i * 0.15 }}
-                          />
-                        ))}
-                      </div>
+                        className="flex items-center gap-3 px-5 py-3 rounded-2xl"
+                        style={{ backgroundColor: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(12px)' }}
+                        animate={{ opacity: [0.7, 1, 0.7] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      >
+                        <Sparkles className="w-5 h-5" style={{ color: hasCanvasBg ? '#fff' : theme.palette.primary }} />
+                        <span className="text-sm font-medium" style={{ color: hasCanvasBg ? '#fff' : theme.palette.text }}>
+                          Generating with AI...
+                        </span>
+                      </motion.div>
                     </div>
                   </div>
+                    );
+                  })()
                 ) : activeSlide ? (
                   <ErrorBoundary>
                     <div className="relative overflow-hidden" style={{

@@ -187,6 +187,30 @@
     animation: ai-pulse 2s ease-in-out infinite;
   }
 
+  /* Skeleton shimmer for generating slides */
+  @keyframes skeleton-shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  .skeleton-shimmer {
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .skeleton-shimmer::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 35%,
+      rgba(255, 255, 255, 0.09) 50%,
+      rgba(255, 255, 255, 0.04) 65%,
+      transparent 100%
+    );
+    animation: skeleton-shimmer 3s ease-in-out infinite;
+  }
+
   /* Slide thumbnail active ring */
   .thumbnail-active {
     @apply ring-2 ring-primary ring-offset-2 ring-offset-background;
