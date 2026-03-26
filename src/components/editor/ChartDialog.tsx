@@ -180,7 +180,7 @@ export default function ChartDialog({ onClose, editElementId }: Props) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between shrink-0">
@@ -203,12 +203,12 @@ export default function ChartDialog({ onClose, editElementId }: Props) {
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="text-[10px] text-slate-500 mb-1 block font-medium">Chart Type</label>
-              <div className="flex gap-1">
+              <div className="grid grid-cols-4 gap-1.5">
                 {CHART_TYPES.map(ct => (
                   <button
                     key={ct.value}
                     onClick={() => setChartType(ct.value)}
-                    className={`flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1 ${
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1 ${
                       chartType === ct.value
                         ? 'bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white shadow-sm'
                         : 'bg-slate-50 text-slate-500 hover:bg-slate-100'

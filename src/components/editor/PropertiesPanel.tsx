@@ -394,6 +394,13 @@ export default function PropertiesPanel() {
           </Section>
         )}
 
+        {/* Chart properties — editable inline */}
+        {el.type === 'chart' && (
+          <Section icon={<Palette className="w-3 h-3" />} title="Chart">
+            <ChartPropsSection el={el} updateElement={updateElement} />
+          </Section>
+        )}
+
         {/* Shadow — for shapes and images */}
         {(el.type === 'shape' || el.type === 'image') && (
           <Section icon={<BoxSelect className="w-3 h-3" />} title="Shadow">
@@ -1045,6 +1052,104 @@ function PropInput({ label, value, onChange }: { label: string; value: number; o
         onChange={e => onChange(parseInt(e.target.value) || 0)}
         className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-900 focus:outline-none focus:border-[#4F46E5] tabular-nums"
       />
+    </div>
+  );
+}
+
+// ─── Chart Properties Section ───
+const CHART_TYPE_OPTIONS = [
+  { value: 'bar', label: 'Bar' },
+  { value: 'line', label: 'Line' },
+  { value: 'area', label: 'Area' },
+  { value: 'pie', label: 'Pie' },
+  { value: 'doughnut', label: 'Donut' },
+  { value: 'radar', label: 'Radar' },
+  { value: 'scatter', label: 'Scatter' },
+];
+
+function ChartPropsSection({ el, updateElement }: { el: SlideElement; updateElement: (id: string, u: Partial<SlideElement>) => void }) {
+  let chartData: any;
+  try { chartData = typeof el.content === 'string' ? JSON.parse(el.content) : el.content; } catch { chartData = { chartType: 'bar', data: [], title: '' }; }
+
+  const save = (updates: Record<string, any>) => {
+    const newData = { ...chartData, ...updates };
+    updateElement(el.id, { content: JSON.stringify(newData) });
+  };
+
+  const updateDataCell = (rowIdx: number, key: string, value: string | number) => {
+    const newData = [...(chartData.data || [])];
+    if (newData[rowIdx]) {
+      newData[rowIdx] = { ...newData[rowIdx], [key]: key === 'name' ? value : (parseFloat(value as string) || 0) };
+    }
+    save({ data: newData });
+  };
+
+  const addRow = () => {
+    const newData = [...(chartData.data || [])];
+    const template = newData[0] ? { ...newData[0] } : { name: 'New' };
+    for (const k of Object.keys(template)) template[k] = k === 'name' ? `Item ${newData.length + 1}` : 0;
+    newData.push(template);
+    save({ data: newData });
+  };
+
+  const removeRow = (idx: number) => {
+    const newData = (chartData.data || []).filter((_: any, i: number) => i !== idx);
+    save({ data: newData });
+  };
+
+  const series = chartData.data?.[0] ? Object.keys(chartData.data[0]).filter((k: string) => k !== 'name') : [];
+
+  return (
+    <div className="space-y-3">
+      {/* Chart type */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Type</label>
+        <div className="grid grid-cols-4 gap-1">
+          {CHART_TYPE_OPTIONS.map(ct => (
+            <button key={ct.value} onClick={() => save({ chartType: ct.value })}
+              className={`py-1 rounded text-[10px] font-medium transition-colors ${chartData.chartType === ct.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+              {ct.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Title */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Title</label>
+        <input value={chartData.title || ''} onChange={e => save({ title: e.target.value })}
+          placeholder="Chart title..." className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-[#4F46E5]" />
+      </div>
+
+      {/* Unit */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Unit</label>
+        <input value={chartData.unit || ''} onChange={e => save({ unit: e.target.value })}
+          placeholder="$, %, etc." className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-[#4F46E5]" />
+      </div>
+
+      {/* Data rows */}
+      <div>
+        <div className="flex items-center justify-between mb-1">
+          <label className="text-[10px] text-slate-500 font-medium">Data</label>
+          <button onClick={addRow} className="text-[10px] text-[#4F46E5] hover:underline">+ Add row</button>
+        </div>
+        <div className="space-y-1 max-h-40 overflow-y-auto">
+          {(chartData.data || []).map((row: any, i: number) => (
+            <div key={i} className="flex gap-1 items-center">
+              <input value={row.name || ''} onChange={e => updateDataCell(i, 'name', e.target.value)}
+                className="flex-1 h-6 px-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-[#4F46E5]" />
+              {series.map((s: string) => (
+                <input key={s} type="number" value={row[s] ?? 0} onChange={e => updateDataCell(i, s, e.target.value)}
+                  className="w-14 h-6 px-1 bg-slate-50 border border-slate-200 rounded text-[10px] text-right focus:outline-none focus:border-[#4F46E5]" />
+              ))}
+              <button onClick={() => removeRow(i)} className="text-slate-300 hover:text-red-500 shrink-0">
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
