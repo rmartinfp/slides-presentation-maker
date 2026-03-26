@@ -568,14 +568,9 @@ export default function EditorPage() {
           <div className="w-36 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-hidden">
             <div className="p-3 flex items-center justify-between">
               <span className="text-xs text-slate-500">
-                {isGenerating ? (
-                  <span className="flex items-center gap-1">
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
-                      <Sparkles className="w-3 h-3 text-[#4F46E5]" />
-                    </motion.div>
-                    Generating...
-                  </span>
-                ) : `${presentation.slides.length} slides`}
+                {isGenerating
+                  ? `${skeletonCount} slides`
+                  : `${presentation.slides.length} slides`}
               </span>
               {!isGenerating && (
                 <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={() => setShowAddSlide(true)}>
@@ -583,45 +578,42 @@ export default function EditorPage() {
                 </Button>
               )}
             </div>
-
-            {isGenerating ? (
-              <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
-                {Array.from({ length: skeletonCount }).map((_, idx) => (
-                  <motion.div
-                    key={`skeleton-${idx}`}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: idx * 0.1, duration: 0.3 }}
-                    className="relative rounded-lg"
+            <DragDropContext onDragEnd={handleDragEnd}>
+              <Droppable droppableId="slide-list">
+                {(provided) => (
+                  <div
+                    ref={provided.innerRef}
+                    {...provided.droppableProps}
+                    className="flex-1 overflow-y-auto px-2 pb-2 space-y-2"
                   >
-                    <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-400 bg-white/80 rounded px-1">{idx + 1}</div>
-                    <div className="w-full aspect-[16/9] rounded-md overflow-hidden bg-gradient-to-br from-slate-200 to-slate-100">
-                      <div className="h-full flex flex-col p-2 justify-end gap-1">
-                        <motion.div
-                          className="w-3/4 h-1.5 bg-slate-300/80 rounded-full"
-                          animate={{ opacity: [0.4, 0.8, 0.4] }}
-                          transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.15 }}
-                        />
-                        <motion.div
-                          className="w-1/2 h-1 bg-slate-300/50 rounded-full"
-                          animate={{ opacity: [0.3, 0.6, 0.3] }}
-                          transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.15 + 0.2 }}
-                        />
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            ) : (
-              <DragDropContext onDragEnd={handleDragEnd}>
-                <Droppable droppableId="slide-list">
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className="flex-1 overflow-y-auto px-2 pb-2 space-y-2"
-                    >
-                      {presentation.slides.map((slide, idx) => {
+                    {isGenerating ? (
+                      Array.from({ length: skeletonCount }).map((_, idx) => (
+                        <div
+                          key={`skeleton-${idx}`}
+                          className={cn(
+                            'relative rounded-lg cursor-default',
+                            idx === 0 ? 'ring-2 ring-[#4F46E5]' : '',
+                          )}
+                        >
+                          <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-400 bg-white/80 rounded px-1">{idx + 1}</div>
+                          <div className="w-full aspect-[16/9] rounded-md overflow-hidden bg-white">
+                            <div className="h-full flex flex-col p-2 justify-end gap-1">
+                              <motion.div
+                                className="w-3/4 h-1.5 bg-slate-200 rounded-full"
+                                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                                transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.12 }}
+                              />
+                              <motion.div
+                                className="w-1/2 h-1 bg-slate-200/70 rounded-full"
+                                animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.12 + 0.2 }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      presentation.slides.map((slide, idx) => {
                         const isSlideRevealed = !isRevealing || revealedSlideIds.has(slide.id);
                         return (
                           <Draggable key={slide.id} draggableId={slide.id} index={idx}>
@@ -672,15 +664,15 @@ export default function EditorPage() {
                                       />
                                     </motion.div>
                                   ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-100">
+                                    <div className="w-full h-full bg-white">
                                       <div className="h-full flex flex-col p-2 justify-end gap-1">
                                         <motion.div
-                                          className="w-3/4 h-1.5 bg-slate-300/80 rounded-full"
+                                          className="w-3/4 h-1.5 bg-slate-200 rounded-full"
                                           animate={{ opacity: [0.4, 0.8, 0.4] }}
                                           transition={{ duration: 1.5, repeat: Infinity }}
                                         />
                                         <motion.div
-                                          className="w-1/2 h-1 bg-slate-300/50 rounded-full"
+                                          className="w-1/2 h-1 bg-slate-200/70 rounded-full"
                                           animate={{ opacity: [0.3, 0.6, 0.3] }}
                                           transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
                                         />
@@ -692,13 +684,13 @@ export default function EditorPage() {
                             )}
                           </Draggable>
                         );
-                      })}
-                      {provided.placeholder}
-                    </div>
-                  )}
-                </Droppable>
-              </DragDropContext>
-            )}
+                      })
+                    )}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </DragDropContext>
           </div>
 
           {/* Canvas area */}
@@ -709,30 +701,40 @@ export default function EditorPage() {
                   if (e.target === e.currentTarget) clearSelection();
                 }}
               >
-                {isGenerating ? (
-                  <div className="flex items-center justify-center h-full">
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-white rounded-lg shadow-lg overflow-hidden"
-                      style={{ width: Math.min(1920 * scale, 800), height: Math.min(1080 * scale, 450) }}
-                    >
-                      <div className="h-full flex flex-col p-8 sm:p-12 justify-center">
-                        <div className="flex items-center gap-2.5 mb-6">
-                          <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
-                            <Sparkles className="w-5 h-5 text-[#4F46E5]" />
-                          </motion.div>
-                          <span className="text-sm font-medium text-slate-500">Creating your presentation...</span>
-                        </div>
-                        <motion.div className="w-3/4 h-6 bg-slate-200 rounded-lg mb-3" animate={{ opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 2, repeat: Infinity }} />
-                        <motion.div className="w-1/2 h-4 bg-slate-100 rounded mb-6" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }} />
-                        <div className="space-y-2.5">
-                          <motion.div className="w-full h-3 bg-slate-100 rounded" animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
-                          <motion.div className="w-5/6 h-3 bg-slate-100 rounded" animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.7 }} />
-                          <motion.div className="w-4/6 h-3 bg-slate-100 rounded" animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.9 }} />
-                        </div>
+                {isGenerating && !activeSlide ? (
+                  <div className="relative overflow-hidden bg-white" style={{
+                    width: 1920 * scale,
+                    height: 1080 * scale,
+                    margin: '0 auto',
+                    marginTop: Math.max(20, (canvasContainerRef.current?.clientHeight || 0) / 2 - (1080 * scale) / 2),
+                    boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
+                    borderRadius: 4,
+                  }}>
+                    <div className="absolute inset-0 flex flex-col" style={{ padding: `${60 * scale}px ${96 * scale}px` }}>
+                      <motion.div
+                        className="bg-slate-200 rounded"
+                        style={{ width: '55%', height: 40 * scale, marginBottom: 20 * scale }}
+                        animate={{ opacity: [0.3, 0.6, 0.3] }}
+                        transition={{ duration: 1.8, repeat: Infinity }}
+                      />
+                      <motion.div
+                        className="bg-slate-100 rounded"
+                        style={{ width: '35%', height: 20 * scale, marginBottom: 50 * scale }}
+                        animate={{ opacity: [0.25, 0.5, 0.25] }}
+                        transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
+                      />
+                      <div className="flex-1 flex flex-col gap-2">
+                        {[1, 0.9, 0.75, 0.6].map((w, i) => (
+                          <motion.div
+                            key={i}
+                            className="bg-slate-100 rounded"
+                            style={{ width: `${w * 80}%`, height: 14 * scale }}
+                            animate={{ opacity: [0.2, 0.45, 0.2] }}
+                            transition={{ duration: 1.8, repeat: Infinity, delay: 0.3 + i * 0.15 }}
+                          />
+                        ))}
                       </div>
-                    </motion.div>
+                    </div>
                   </div>
                 ) : activeSlide ? (
                   <ErrorBoundary>
