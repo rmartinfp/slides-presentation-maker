@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wand2, X, Loader2, Check, LayoutGrid, ImageIcon, Type, Columns2, BarChart3, Quote, Milestone, Users, SplitSquareHorizontal, Image as ImageLucide } from 'lucide-react';
+import { Wand2, X, Loader2, Check, LayoutGrid, ImageIcon, Type, Columns2, BarChart3, Quote, Milestone, Users, SplitSquareHorizontal, Image as ImageLucide, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
@@ -257,6 +257,10 @@ export default function RedesignDialog({ onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [appliedIndex, setAppliedIndex] = useState<number | null>(null);
+  const [fillPrompt, setFillPrompt] = useState('');
+  const [emptyBlockCount, setEmptyBlockCount] = useState(0);
+  const [fillingAI, setFillingAI] = useState(false);
+  const [pendingPreset, setPendingPreset] = useState<LayoutPreset | null>(null);
 
   const { presentation, activeSlideIndex, pushSnapshot } = useEditorStore();
   const slide = presentation.slides[activeSlideIndex];
@@ -264,11 +268,33 @@ export default function RedesignDialog({ onClose }: Props) {
   // ─── Direct layout application (no AI) ───
   const applyPresetDirectly = (preset: LayoutPreset) => {
     if (!slide?.elements) return;
-    pushSnapshot();
 
     // Deep clone all elements to avoid mutating Immer-frozen objects
     const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
-    // Classify current elements
+    const texts = elements.filter(e => e.type === 'text' && !e.locked);
+    const images = elements.filter(e => e.type === 'image' && !e.locked);
+
+    const titleBlocks = preset.blocks.filter(b => b.type === 'title');
+    const bodyBlocks = preset.blocks.filter(b => b.type === 'body');
+    const numberBlocks = preset.blocks.filter(b => b.type === 'number');
+    const allTextBlocks = [...titleBlocks, ...numberBlocks, ...bodyBlocks];
+
+    const emptyCount = Math.max(0, allTextBlocks.length - texts.length);
+
+    if (emptyCount > 0) {
+      // Not enough text elements — ask user what to fill
+      setEmptyBlockCount(emptyCount);
+      setPendingPreset(preset);
+      return;
+    }
+
+    // Enough elements — apply directly
+    commitLayout(preset, elements);
+  };
+
+  const commitLayout = (preset: LayoutPreset, elements: SlideElement[], extraTexts?: string[]) => {
+    pushSnapshot();
+
     const texts = elements.filter(e => e.type === 'text' && !e.locked);
     const images = elements.filter(e => e.type === 'image' && !e.locked);
     const locked = elements.filter(e => e.locked);
@@ -277,40 +303,70 @@ export default function RedesignDialog({ onClose }: Props) {
     // Sort texts: largest fontSize first (title → subtitle → body)
     texts.sort((a, b) => ((b.style?.fontSize || 0) - (a.style?.fontSize || 0)));
 
-    // Get layout blocks by type
     const titleBlocks = preset.blocks.filter(b => b.type === 'title');
     const bodyBlocks = preset.blocks.filter(b => b.type === 'body');
     const imageBlocks = preset.blocks.filter(b => b.type === 'image');
     const numberBlocks = preset.blocks.filter(b => b.type === 'number');
     const allTextBlocks = [...titleBlocks, ...numberBlocks, ...bodyBlocks];
 
-    // Map texts to blocks (title blocks first, then number, then body)
+    const theme = useEditorStore.getState().presentation.theme?.tokens;
+    const titleFont = theme?.typography?.titleFont || 'Inter';
+    const bodyFont = theme?.typography?.bodyFont || 'Inter';
+    const textColor = theme?.palette?.text || '#1a1a1a';
+
+    // Map texts to blocks
     const mapped: SlideElement[] = [];
     let textIdx = 0;
+    let extraIdx = 0;
     for (const block of allTextBlocks) {
-      if (textIdx >= texts.length) break;
-      const el = { ...texts[textIdx] };
-      el.x = (block.x / 100) * CANVAS_W;
-      el.y = (block.y / 100) * CANVAS_H;
-      el.width = (block.w / 100) * CANVAS_W;
-      el.height = (block.h / 100) * CANVAS_H;
-      // Make titles bigger, body smaller
-      if (block.type === 'title' && el.style) {
-        el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 28, 36), fontWeight: 'bold' };
-      } else if (block.type === 'number' && el.style) {
-        el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 40, 48), fontWeight: 'bold', textAlign: 'center' as const };
-      } else if (block.type === 'body' && el.style) {
-        el.style = { ...el.style, fontSize: Math.min(el.style.fontSize || 18, 20) };
+      if (textIdx < texts.length) {
+        const el = { ...texts[textIdx] };
+        el.x = (block.x / 100) * CANVAS_W;
+        el.y = (block.y / 100) * CANVAS_H;
+        el.width = (block.w / 100) * CANVAS_W;
+        el.height = (block.h / 100) * CANVAS_H;
+        if (block.type === 'title' && el.style) {
+          el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 28, 36), fontWeight: 'bold' };
+        } else if (block.type === 'number' && el.style) {
+          el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 40, 48), fontWeight: 'bold', textAlign: 'center' as const };
+        } else if (block.type === 'body' && el.style) {
+          el.style = { ...el.style, fontSize: Math.min(el.style.fontSize || 18, 20) };
+        }
+        mapped.push(el);
+        textIdx++;
+      } else {
+        // Create new text element for this empty block
+        const content = extraTexts?.[extraIdx] || '';
+        const fontSize = block.type === 'title' ? 36 : block.type === 'number' ? 48 : 18;
+        const font = block.type === 'title' || block.type === 'number' ? titleFont : bodyFont;
+        mapped.push({
+          id: crypto.randomUUID().slice(0, 9),
+          type: 'text',
+          content,
+          x: (block.x / 100) * CANVAS_W,
+          y: (block.y / 100) * CANVAS_H,
+          width: (block.w / 100) * CANVAS_W,
+          height: (block.h / 100) * CANVAS_H,
+          rotation: 0,
+          opacity: 1,
+          locked: false,
+          visible: true,
+          zIndex: 0,
+          style: {
+            fontSize,
+            fontFamily: font + ', sans-serif',
+            fontWeight: block.type === 'title' || block.type === 'number' ? 'bold' : '400',
+            color: textColor,
+            textAlign: (block.type === 'number' ? 'center' : 'left') as any,
+          },
+        } as SlideElement);
+        extraIdx++;
       }
-      mapped.push(el);
-      textIdx++;
     }
-    // Remaining texts go below the last block
-    for (let i = textIdx; i < texts.length; i++) {
-      mapped.push(texts[i]); // keep original position
-    }
+    // Remaining unmapped texts keep position
+    for (let i = textIdx; i < texts.length; i++) mapped.push(texts[i]);
 
-    // Map images to image blocks
+    // Map images
     let imgIdx = 0;
     for (const block of imageBlocks) {
       if (imgIdx >= images.length) break;
@@ -322,13 +378,9 @@ export default function RedesignDialog({ onClose }: Props) {
       mapped.push(el);
       imgIdx++;
     }
-    for (let i = imgIdx; i < images.length; i++) {
-      mapped.push(images[i]);
-    }
+    for (let i = imgIdx; i < images.length; i++) mapped.push(images[i]);
 
-    // Reassemble: locked (decorations) + mapped + remaining unlocked
     const final = [...locked, ...mapped, ...otherUnlocked];
-    // Reassign z-index
     final.forEach((el, i) => { el.zIndex = i + 1; });
 
     useEditorStore.setState(
@@ -338,7 +390,54 @@ export default function RedesignDialog({ onClose }: Props) {
     );
 
     toast.success(`Applied "${preset.label}" layout`);
+    setEmptyBlockCount(0);
+    setPendingPreset(null);
+    setFillPrompt('');
     setTimeout(onClose, 400);
+  };
+
+  const handleFillWithAI = async () => {
+    if (!pendingPreset || !slide?.elements) return;
+    setFillingAI(true);
+
+    try {
+      // Get existing text for context
+      const existingText = slide.elements
+        .filter(e => e.type === 'text')
+        .map(e => (e.content || '').replace(/<[^>]+>/g, ''))
+        .join(' ')
+        .slice(0, 300);
+
+      const { data, error } = await supabase.functions.invoke('redesign-slide', {
+        body: {
+          mode: 'fill-blocks',
+          blockCount: emptyBlockCount,
+          topic: fillPrompt.trim() || 'Continue the slide content',
+          existingText,
+          themeTokens: useEditorStore.getState().presentation.theme.tokens,
+        },
+      });
+
+      const texts: string[] = data?.texts || [];
+      // Pad with placeholders if AI returned fewer
+      while (texts.length < emptyBlockCount) texts.push('Add your text here');
+
+      const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
+      commitLayout(pendingPreset, elements, texts);
+    } catch {
+      // Fallback: apply with placeholder text
+      const placeholders = Array(emptyBlockCount).fill('Add your text here');
+      const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
+      commitLayout(pendingPreset, elements, placeholders);
+    } finally {
+      setFillingAI(false);
+    }
+  };
+
+  const handleApplyEmpty = () => {
+    if (!pendingPreset || !slide?.elements) return;
+    const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
+    commitLayout(pendingPreset, elements, []);
   };
 
   const handleGenerate = async () => {
@@ -456,26 +555,64 @@ export default function RedesignDialog({ onClose }: Props) {
             ))}
           </div>
 
+          {/* Fill empty blocks prompt */}
+          {emptyBlockCount > 0 && pendingPreset && (
+            <div className="mb-4 p-4 rounded-xl border-2 border-[#4F46E5]/30 bg-indigo-50/50">
+              <p className="text-sm text-slate-700 mb-2">
+                This layout needs <span className="font-bold text-[#4F46E5]">{emptyBlockCount} more text block{emptyBlockCount > 1 ? 's' : ''}</span>.
+                What should they say?
+              </p>
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={fillPrompt}
+                  onChange={(e) => setFillPrompt(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !fillingAI && handleFillWithAI()}
+                  placeholder="e.g. Key metrics about our Q4 revenue growth..."
+                  className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5]"
+                  autoFocus
+                  disabled={fillingAI}
+                />
+                <Button
+                  onClick={handleFillWithAI}
+                  disabled={fillingAI}
+                  size="sm"
+                  className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-lg shrink-0"
+                >
+                  {fillingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-3.5 h-3.5 mr-1" />Fill with AI</>}
+                </Button>
+              </div>
+              <button
+                onClick={handleApplyEmpty}
+                className="text-xs text-slate-400 hover:text-slate-600 underline"
+              >
+                Apply without filling (leave empty)
+              </button>
+            </div>
+          )}
+
           {/* Custom AI layout */}
-          <div className="flex gap-2 mb-2">
-            <input
-              type="text"
-              value={instruction}
-              onChange={(e) => setInstruction(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !loading && instruction.trim() && handleGenerate()}
-              placeholder="Or describe a custom layout..."
-              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
-              disabled={loading}
-            />
-            <Button
-              onClick={handleGenerate}
-              disabled={loading || !instruction.trim()}
-              size="sm"
-              className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-xl shrink-0"
-            >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-            </Button>
-          </div>
+          {emptyBlockCount === 0 && (
+            <div className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={instruction}
+                onChange={(e) => setInstruction(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && !loading && instruction.trim() && handleGenerate()}
+                placeholder="Or describe a custom layout..."
+                className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
+                disabled={loading}
+              />
+              <Button
+                onClick={handleGenerate}
+                disabled={loading || !instruction.trim()}
+                size="sm"
+                className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-xl shrink-0"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* Variants grid */}
