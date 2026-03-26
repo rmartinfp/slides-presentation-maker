@@ -630,137 +630,116 @@ export default function EditorPage() {
               e.target.value = '';
             }} />
 
-            {/* Bottom floating toolbar — CREATION ONLY (always the same) */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-1 px-3 py-2 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><ToolBtn icon={<Type className="w-4 h-4" />} label="Text" /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2 w-44">
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.title.font, fontSize: detectedStyles.title.size, fontWeight: detectedStyles.title.weight || 'bold', color: detectedStyles.title.color, textAlign: 'left' } })}><span className="text-lg font-bold mr-2">T</span>Title ({detectedStyles.title.size}pt)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.subtitle.font, fontSize: detectedStyles.subtitle.size, color: detectedStyles.subtitle.color, textAlign: 'left' } })}><span className="text-base font-medium mr-2">S</span>Subtitle ({detectedStyles.subtitle.size}pt)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.body.font, fontSize: detectedStyles.body.size, color: detectedStyles.body.color, textAlign: 'left' } })}><span className="text-sm mr-2">B</span>Body ({detectedStyles.body.size}pt)</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption text', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.caption.font, fontSize: detectedStyles.caption.size, color: detectedStyles.caption.color, textAlign: 'left', opacity: 0.7 } })}><span className="text-xs mr-2">c</span>Caption ({Math.round(detectedStyles.caption.size)}pt)</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><ToolBtn icon={<Square className="w-4 h-4" />} label="Shape" /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2">
-                  <DropdownMenuItem onClick={() => handleAddShape('rectangle')}><Square className="w-4 h-4 mr-2" />Rectangle</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('circle')}><Circle className="w-4 h-4 mr-2" />Circle</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('triangle')}><Triangle className="w-4 h-4 mr-2" />Triangle</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('star')}><Star className="w-4 h-4 mr-2" />Star</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('pentagon')}><Pentagon className="w-4 h-4 mr-2" />Pentagon</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('hexagon')}><Hexagon className="w-4 h-4 mr-2" />Hexagon</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('heart')}><Heart className="w-4 h-4 mr-2" />Heart</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleAddShape('arrow-right')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Right</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddShape('arrow-left')}><MoveLeft className="w-4 h-4 mr-2" />Arrow Left</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleAddLine('plain')}><Minus className="w-4 h-4 mr-2" />Line</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddLine('arrow')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Line</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddLine('arrow-both')}><span className="w-4 h-4 mr-2 text-center text-xs">↔</span>Double Arrow</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleAddLine('dashed')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┄</span>Dashed</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => { setConnectorMode('pending'); toast.info('Click the first element, then click the second to connect them.'); }}><span className="w-4 h-4 mr-2 text-center text-xs">⟿</span>Connector</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><ToolBtn icon={<Image className="w-4 h-4" />} label="Image" /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2 w-48">
-                  <DropdownMenuItem onClick={() => imgInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload from PC</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }}><Image className="w-4 h-4 mr-2" />Insert from URL</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowAIImage(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {/* Video element */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><ToolBtn icon={<Video className="w-4 h-4" />} label="Video" /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2 w-52">
-                  <DropdownMenuItem onClick={() => vidInputRef.current?.click()}>
-                    <Upload className="w-4 h-4 mr-2" />Upload from PC
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => {
-                    const url = prompt('Video URL (MP4 or HLS):');
-                    if (url) addElement({ type: 'video', content: url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
-                  }}>
-                    <Video className="w-4 h-4 mr-2" />Insert from URL
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => {
-                    const prompt2 = window.prompt('Describe the video you want AI to generate:');
-                    if (prompt2) toast.info('AI video generation coming soon — use a URL for now');
-                  }}>
-                    <Sparkles className="w-4 h-4 mr-2" />Generate with AI
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {/* Placeholder presets (template mode) */}
-              {isTemplateMode && (
+            {/* Bottom floating toolbar — 3 groups: INSERT | AI | SLIDE */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-0 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl">
+
+              {/* ── GROUP 1: INSERT (element creation) ── */}
+              <div className="flex items-center gap-1 px-3 py-2">
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild><ToolBtn icon={<FileText className="w-4 h-4" />} label="Placeholder" /></DropdownMenuTrigger>
-                  <DropdownMenuContent side="top" className="mb-2 w-56">
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{title}}', x: 96, y: 680, width: 1400, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 80, fontWeight: '700', color: '#FFFFFF', textAlign: 'left', lineHeight: 0.95, letterSpacing: -2 } })}>
-                      <Type className="w-4 h-4 mr-2" />Hero Title (80px bold)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{subtitle}}', x: 96, y: 550, width: 900, height: 100, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 17, fontWeight: '400', color: '#80838e', textAlign: 'left', lineHeight: 1.65 } })}>
-                      <Type className="w-4 h-4 mr-2" />Subtitle (17px muted)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{heading}}', x: 96, y: 200, width: 1400, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 48, fontWeight: '500', color: '#FFFFFF', textAlign: 'left', lineHeight: 1.06, letterSpacing: -0.5 } })}>
-                      <Type className="w-4 h-4 mr-2" />Heading (48px medium)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{body}}', x: 96, y: 600, width: 780, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 15, fontWeight: '400', color: '#80838e', textAlign: 'left', lineHeight: 1.7 } })}>
-                      <Type className="w-4 h-4 mr-2" />Body text (15px muted)
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{stat_value}}', x: 96, y: 400, width: 500, height: 150, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 88, fontWeight: '700', color: '#FFFFFF', textAlign: 'left', lineHeight: 0.96, letterSpacing: -2 } })}>
-                      <Type className="w-4 h-4 mr-2" />Stat number (88px bold)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{stat_label}}', x: 96, y: 560, width: 500, height: 40, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 15, fontWeight: '400', color: '#FFFFFF', textAlign: 'left', lineHeight: 1.4 } })}>
-                      <Type className="w-4 h-4 mr-2" />Stat label (15px)
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{label}}', x: 96, y: 160, width: 400, height: 25, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 12, fontWeight: '600', color: '#80838e', textAlign: 'left', letterSpacing: 2 } })}>
-                      <Type className="w-4 h-4 mr-2" />Section label (12px caps)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{logo}}', x: 96, y: 38, width: 200, height: 28, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 14, fontWeight: '700', color: '#FFFFFF', letterSpacing: 1 } })}>
-                      <Type className="w-4 h-4 mr-2" />Logo placeholder
-                    </DropdownMenuItem>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<Type className="w-4 h-4" />} label="Text" /></DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" className="mb-2 w-44">
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Title', x: 200, y: 200, width: 800, height: 120, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.title.font, fontSize: detectedStyles.title.size, fontWeight: detectedStyles.title.weight || 'bold', color: detectedStyles.title.color, textAlign: 'left' } })}><span className="text-lg font-bold mr-2">T</span>Title</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Subtitle', x: 200, y: 340, width: 700, height: 80, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.subtitle.font, fontSize: detectedStyles.subtitle.size, color: detectedStyles.subtitle.color, textAlign: 'left' } })}><span className="text-base font-medium mr-2">S</span>Subtitle</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Body text', x: 200, y: 450, width: 600, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.body.font, fontSize: detectedStyles.body.size, color: detectedStyles.body.color, textAlign: 'left' } })}><span className="text-sm mr-2">B</span>Body</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => addElement({ type: 'text', content: 'Caption', x: 200, y: 680, width: 400, height: 50, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontFamily: detectedStyles.caption.font, fontSize: detectedStyles.caption.size, color: detectedStyles.caption.color, textAlign: 'left', opacity: 0.7 } })}><span className="text-xs mr-2">c</span>Caption</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              )}
-              <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
-              <ToolBtn icon={<BarChart3 className="w-4 h-4" />} label="Chart" onClick={() => setShowChart(true)} />
-              <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" onClick={() => setShowInfographics(true)} />
-              <div className="w-px h-6 bg-slate-200/60 mx-1" />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
-                <DropdownMenuContent side="top" className="mb-2 w-56">
-                  <DropdownMenuItem onClick={() => setShowAIRewrite(true)}><Sparkles className="w-4 h-4 mr-2" />Rewrite this slide</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowRedesign(true)}><Wand2 className="w-4 h-4 mr-2" />Cambiar layout</DropdownMenuItem>
-                  {singleSelected?.type === 'image' && (
-                    <>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<Square className="w-4 h-4" />} label="Shape" /></DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" className="mb-2">
+                    <DropdownMenuItem onClick={() => handleAddShape('rectangle')}><Square className="w-4 h-4 mr-2" />Rectangle</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('circle')}><Circle className="w-4 h-4 mr-2" />Circle</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('triangle')}><Triangle className="w-4 h-4 mr-2" />Triangle</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('star')}><Star className="w-4 h-4 mr-2" />Star</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('pentagon')}><Pentagon className="w-4 h-4 mr-2" />Pentagon</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('hexagon')}><Hexagon className="w-4 h-4 mr-2" />Hexagon</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('heart')}><Heart className="w-4 h-4 mr-2" />Heart</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleAddShape('arrow-right')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Right</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddShape('arrow-left')}><MoveLeft className="w-4 h-4 mr-2" />Arrow Left</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleAddLine('plain')}><Minus className="w-4 h-4 mr-2" />Line</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddLine('arrow')}><ArrowRightIcon className="w-4 h-4 mr-2" />Arrow Line</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddLine('arrow-both')}><span className="w-4 h-4 mr-2 text-center text-xs">↔</span>Double Arrow</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleAddLine('dashed')}><span className="w-4 h-4 mr-2 text-center text-[10px]">┄</span>Dashed</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { setConnectorMode('pending'); toast.info('Click the first element, then click the second to connect them.'); }}><span className="w-4 h-4 mr-2 text-center text-xs">⟿</span>Connector</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<Image className="w-4 h-4" />} label="Image" /></DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" className="mb-2 w-48">
+                    <DropdownMenuItem onClick={() => imgInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload from PC</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { const url = prompt('Image URL:'); if (url) addElement({ type: 'image', content: url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } }); }}><Image className="w-4 h-4 mr-2" />Insert from URL</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowAIImage(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<Video className="w-4 h-4" />} label="Video" /></DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" className="mb-2 w-52">
+                    <DropdownMenuItem onClick={() => vidInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload from PC</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => { const url = prompt('Video URL (MP4 or HLS):'); if (url) addElement({ type: 'video', content: url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } }); }}><Video className="w-4 h-4 mr-2" />Insert from URL</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => { toast.info('AI video generation coming soon'); }}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
+                <ToolBtn icon={<BarChart3 className="w-4 h-4" />} label="Chart" onClick={() => setShowChart(true)} />
+                {isTemplateMode && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><ToolBtn icon={<FileText className="w-4 h-4" />} label="Placeholder" /></DropdownMenuTrigger>
+                    <DropdownMenuContent side="top" className="mb-2 w-56">
+                      <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{title}}', x: 96, y: 680, width: 1400, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 80, fontWeight: '700', color: '#FFFFFF', textAlign: 'left', lineHeight: 0.95, letterSpacing: -2 } })}><Type className="w-4 h-4 mr-2" />Hero Title</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{subtitle}}', x: 96, y: 550, width: 900, height: 100, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 17, fontWeight: '400', color: '#80838e', textAlign: 'left', lineHeight: 1.65 } })}><Type className="w-4 h-4 mr-2" />Subtitle</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{heading}}', x: 96, y: 200, width: 1400, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 48, fontWeight: '500', color: '#FFFFFF', textAlign: 'left', lineHeight: 1.06, letterSpacing: -0.5 } })}><Type className="w-4 h-4 mr-2" />Heading</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{body}}', x: 96, y: 600, width: 780, height: 200, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 15, fontWeight: '400', color: '#80838e', textAlign: 'left', lineHeight: 1.7 } })}><Type className="w-4 h-4 mr-2" />Body</DropdownMenuItem>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => setShowImageEdit(true)}><ImagePlus className="w-4 h-4 mr-2" />Edit image with AI</DropdownMenuItem>
-                    </>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate presentation</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Extract Brand Kit</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowVoiceToSlides(true)}><Mic className="w-4 h-4 mr-2" />Voice to Slides</DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setShowAIInfographic(true)}><Sparkles className="w-4 h-4 mr-2" />AI Infographic</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Analyze Presentation</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {connectorMode && (
-                <button onClick={() => setConnectorMode(null)} className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-[9px] font-medium animate-pulse">Connecting... (ESC)</button>
-              )}
-              <div className="w-px h-6 bg-slate-200/60 mx-1" />
-              <span className="text-[10px] text-slate-500 font-mono">{activeSlideIndex + 1}/{presentation.slides.length}</span>
-              <div className="w-px h-6 bg-slate-200/60 mx-1" />
-              <button onClick={() => setScale(Math.max(0.15, scale - 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">−</button>
-              <button onClick={updateScale} className="text-[10px] text-slate-500 font-mono px-1 hover:text-slate-900 hover:bg-slate-100 rounded min-w-[36px] text-center">{Math.round(scale * 100)}%</button>
-              <button onClick={() => setScale(Math.min(2, scale + 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">+</button>
+                      <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{stat_value}}', x: 96, y: 400, width: 500, height: 150, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 88, fontWeight: '700', color: '#FFFFFF', textAlign: 'left', lineHeight: 0.96, letterSpacing: -2 } })}><Type className="w-4 h-4 mr-2" />Stat number</DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => addElement({ type: 'text', content: '{{label}}', x: 96, y: 160, width: 400, height: 25, rotation: 0, opacity: 1, locked: false, visible: true, style: { fontSize: 12, fontWeight: '600', color: '#80838e', textAlign: 'left', letterSpacing: 2 } })}><Type className="w-4 h-4 mr-2" />Label</DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                )}
+                {connectorMode && (
+                  <button onClick={() => setConnectorMode(null)} className="px-2 py-1 rounded-lg bg-indigo-100 text-indigo-700 text-[9px] font-medium animate-pulse">Connecting... (ESC)</button>
+                )}
+              </div>
+
+              {/* ── SEPARATOR ── */}
+              <div className="w-px h-8 bg-slate-200/80" />
+
+              {/* ── GROUP 2: AI (visible, not hidden in dropdown) ── */}
+              <div className="flex items-center gap-1 px-2 py-2">
+                <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="Rewrite" highlight onClick={() => setShowAIRewrite(true)} />
+                <ToolBtn icon={<Wand2 className="w-4 h-4" />} label="Layout" highlight onClick={() => setShowRedesign(true)} />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<Lightbulb className="w-4 h-4" />} label="More AI" highlight /></DropdownMenuTrigger>
+                  <DropdownMenuContent side="top" className="mb-2 w-52">
+                    {singleSelected?.type === 'image' && (
+                      <>
+                        <DropdownMenuItem onClick={() => setShowImageEdit(true)}><ImagePlus className="w-4 h-4 mr-2" />Edit image with AI</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                      </>
+                    )}
+                    <DropdownMenuItem onClick={() => setShowAIInfographic(true)}><LayoutGrid className="w-4 h-4 mr-2" />AI Infographic</DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Brand Kit</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Analyze</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              {/* ── SEPARATOR ── */}
+              <div className="w-px h-8 bg-slate-200/80" />
+
+              {/* ── GROUP 3: SLIDE (navigation + zoom) ── */}
+              <div className="flex items-center gap-1 px-3 py-2">
+                <span className="text-[10px] text-slate-500 font-mono">{activeSlideIndex + 1}/{presentation.slides.length}</span>
+                <div className="w-px h-5 bg-slate-200/60 mx-0.5" />
+                <button onClick={() => setScale(Math.max(0.15, scale - 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">−</button>
+                <button onClick={updateScale} className="text-[10px] text-slate-500 font-mono px-1 hover:text-slate-900 hover:bg-slate-100 rounded min-w-[36px] text-center">{Math.round(scale * 100)}%</button>
+                <button onClick={() => setScale(Math.min(2, scale + 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">+</button>
             </div>
 
             {/* Contextual toolbar is now inside CanvasElement (ElementContextBar) */}
