@@ -147,17 +147,26 @@ export default function BrandKitDialog({ onClose }: Props) {
                 <p className="text-lg font-semibold text-slate-800">{brandKit.brandName}</p>
               </div>
 
-              {/* Color Palette */}
+              {/* Color Palette — editable */}
               <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-3">Colors</p>
+                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Colors</p>
+                <p className="text-[10px] text-slate-400 mb-3">Click a color to change it</p>
                 <div className="flex items-center gap-3">
                   {paletteLabels.map(({ key, label }) => (
                     <div key={key} className="flex flex-col items-center gap-1.5">
-                      <div
-                        className="w-10 h-10 rounded-full border-2 border-white shadow-md"
-                        style={{ backgroundColor: brandKit.palette[key] }}
-                        title={label}
-                      />
+                      <label className="relative cursor-pointer group">
+                        <div
+                          className="w-10 h-10 rounded-full border-2 border-white shadow-md group-hover:ring-2 group-hover:ring-[#4F46E5] group-hover:ring-offset-1 transition-all"
+                          style={{ backgroundColor: brandKit.palette[key] }}
+                          title={`Click to change ${label}`}
+                        />
+                        <input
+                          type="color"
+                          value={brandKit.palette[key]}
+                          onChange={e => setBrandKit(prev => prev ? { ...prev, palette: { ...prev.palette, [key]: e.target.value } } : prev)}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        />
+                      </label>
                       <span className="text-[10px] text-slate-500 font-mono">
                         {brandKit.palette[key]}
                       </span>
