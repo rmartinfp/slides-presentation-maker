@@ -33,7 +33,7 @@ export default function Entry() {
   const { data: classicTemplates } = useQuery({
     queryKey: ['templates-home'],
     queryFn: async () => {
-      const { data } = await supabase.from('templates').select('*').eq('is_active', true).order('sort_order').limit(20);
+      const { data } = await supabase.from('templates').select('*').eq('is_active', true).order('sort_order').limit(100);
       return data || [];
     },
     staleTime: 5 * 60 * 1000,
