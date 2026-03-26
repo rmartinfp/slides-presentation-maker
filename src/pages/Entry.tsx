@@ -120,7 +120,7 @@ export default function Entry() {
         {/* Prompt Section */}
         <div className="max-w-3xl mx-auto mb-10">
           <h1 className="font-headline font-extrabold text-3xl sm:text-4xl headline-tight text-slate-900 text-center mb-6">
-            Create a presentation
+            Describe it. We design it.
           </h1>
           <div className="rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-sm shadow-sm focus-within:ring-2 focus-within:ring-[#4F46E5]/20 focus-within:border-[#4F46E5]/30">
             <textarea
