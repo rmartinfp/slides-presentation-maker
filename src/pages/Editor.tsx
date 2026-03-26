@@ -34,6 +34,7 @@ import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
 import EditorSkeleton from '@/components/editor/EditorSkeleton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { runSlideGeneration } from '@/hooks/useSlideGeneration';
 import { loadFontsFromSlides, loadFontsFromTheme } from '@/lib/font-loader';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
@@ -66,6 +67,12 @@ export default function EditorPage() {
   const canvasContainerRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const initializedRef = useRef(false);
+
+  // AI generation state — when user comes from Entry with a prompt
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [skeletonCount, setSkeletonCount] = useState(0);
+  const [revealedSlideIds, setRevealedSlideIds] = useState<Set<string>>(new Set());
+  const [isRevealing, setIsRevealing] = useState(false);
 
   const {
     presentation, activeSlideIndex, selectedElementIds,
@@ -157,10 +164,57 @@ export default function EditorPage() {
   useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
+
+    // Direct generation flow — user came from Entry with a prompt
+    const shouldGenerate = sessionStorage.getItem('generateOnLoad');
+    if (shouldGenerate) {
+      sessionStorage.removeItem('generateOnLoad');
+      const prompt = sessionStorage.getItem('entryPrompt') || '';
+      const slideCount = parseInt(sessionStorage.getItem('entrySlideCount') || '8', 10);
+      const templateJson = sessionStorage.getItem('entryTemplate');
+      sessionStorage.removeItem('entryPrompt');
+      sessionStorage.removeItem('entrySlideCount');
+      sessionStorage.removeItem('entryTemplate');
+
+      if (prompt) {
+        setIsGenerating(true);
+        setSkeletonCount(slideCount);
+        setPresentation({
+          id: 'generating', title: 'Generating...',
+          slides: [], theme: THEME_CATALOG[0],
+          createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        });
+
+        runSlideGeneration({ prompt, slideCount, templateJson }).then(result => {
+          setPresentation(result);
+          setIsGenerating(false);
+          // Reveal slides one by one in the sidebar
+          setIsRevealing(true);
+          result.slides.forEach((slide, idx) => {
+            setTimeout(() => {
+              setRevealedSlideIds(prev => {
+                const next = new Set(prev);
+                next.add(slide.id);
+                return next;
+              });
+              // When it's the last slide, end reveal mode
+              if (idx === result.slides.length - 1) {
+                setTimeout(() => setIsRevealing(false), 400);
+              }
+            }, idx * 250);
+          });
+        }).catch(() => {
+          toast.error('Failed to generate presentation. Please try again.');
+          setIsGenerating(false);
+          navigate('/');
+        });
+        return;
+      }
+    }
+
     if (idFromUrl) {
       loadFromSupabase(idFromUrl);
     } else if (presentation.slides.length === 0) {
-      // Fallback: if sessionStorage wasn't loaded synchronously below
       const t = THEME_CATALOG[0];
       setPresentation({
         id: 'default', title: 'Untitled Presentation',
@@ -172,9 +226,9 @@ export default function EditorPage() {
 
   // Load from sessionStorage synchronously on mount (before first paint)
   useEffect(() => {
+    if (sessionStorage.getItem('generateOnLoad')) return;
     const stored = sessionStorage.getItem('presentation');
     if (stored) {
-      // Don't remove in template mode — need it for refresh persistence
       if (!isTemplateMode) sessionStorage.removeItem('presentation');
       setPresentation(JSON.parse(stored));
     }
@@ -184,13 +238,13 @@ export default function EditorPage() {
   // Auto-save — immediate on first load (so reload doesn't lose data), then debounced
   const hasSavedOnce = useRef(false);
   useEffect(() => {
-    // In template mode, save to sessionStorage instead of Supabase
+    if (isGenerating || presentation.id === 'generating') return;
     if (isTemplateMode) {
       sessionStorage.setItem('presentation', JSON.stringify(presentation));
       return;
     }
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    const delay = hasSavedOnce.current ? 3000 : 500; // Fast first save
+    const delay = hasSavedOnce.current ? 3000 : 500;
     saveTimerRef.current = setTimeout(() => {
       saveToSupabase();
       hasSavedOnce.current = true;
@@ -367,7 +421,7 @@ export default function EditorPage() {
     }
   }, [selectedElementIds, connectorMode]);
 
-  if (idFromUrl && presentation.slides.length === 0) return <EditorSkeleton />;
+  if (idFromUrl && presentation.slides.length === 0 && !isGenerating) return <EditorSkeleton />;
 
   const handleAddShape = (shapeType: ShapeType) => {
     const sizes: Record<string, { w: number; h: number }> = {
@@ -510,73 +564,141 @@ export default function EditorPage() {
 
         {/* Main area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Slide list — dark */}
+          {/* Slide list */}
           <div className="w-36 bg-white/60 backdrop-blur-xl border-r border-slate-200/60 flex flex-col overflow-hidden">
             <div className="p-3 flex items-center justify-between">
-              <span className="text-xs text-slate-500">{presentation.slides.length} slides</span>
-              <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={() => setShowAddSlide(true)}>
-                <Plus className="w-3 h-3" />Add
-              </Button>
+              <span className="text-xs text-slate-500">
+                {isGenerating ? (
+                  <span className="flex items-center gap-1">
+                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}>
+                      <Sparkles className="w-3 h-3 text-[#4F46E5]" />
+                    </motion.div>
+                    Generating...
+                  </span>
+                ) : `${presentation.slides.length} slides`}
+              </span>
+              {!isGenerating && (
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-[#4F46E5] hover:text-[#4338CA] gap-1 px-2" onClick={() => setShowAddSlide(true)}>
+                  <Plus className="w-3 h-3" />Add
+                </Button>
+              )}
             </div>
-            <DragDropContext onDragEnd={handleDragEnd}>
-              <Droppable droppableId="slide-list">
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className="flex-1 overflow-y-auto px-2 pb-2 space-y-2"
+
+            {isGenerating ? (
+              <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-2">
+                {Array.from({ length: skeletonCount }).map((_, idx) => (
+                  <motion.div
+                    key={`skeleton-${idx}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.1, duration: 0.3 }}
+                    className="relative rounded-lg"
                   >
-                    {presentation.slides.map((slide, idx) => (
-                      <Draggable key={slide.id} draggableId={slide.id} index={idx}>
-                        {(provided, snapshot) => (
-                          <div
-                            ref={provided.innerRef}
-                            {...provided.draggableProps}
-                            {...provided.dragHandleProps}
-                            className={cn(
-                              'relative rounded-lg cursor-pointer transition-all group',
-                              activeSlideIndex === idx ? 'ring-2 ring-[#4F46E5]' : 'hover:ring-1 hover:ring-slate-300',
-                              snapshot.isDragging && 'ring-2 ring-[#4F46E5] opacity-90 shadow-lg shadow-indigo-500/20'
-                            )}
-                            onClick={() => setActiveSlideIndex(idx)}
-                          >
-                            <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-600 bg-white/80 rounded px-1">{idx + 1}</div>
-                            {/* Slide actions on hover */}
-                            <div className="absolute top-1 right-1 z-10 hidden group-hover:flex gap-0.5">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); duplicateSlide(idx); }}
-                                className="w-5 h-5 rounded bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-[#4F46E5]"
-                                title="Duplicate"
+                    <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-400 bg-white/80 rounded px-1">{idx + 1}</div>
+                    <div className="w-full aspect-[16/9] rounded-md overflow-hidden bg-gradient-to-br from-slate-200 to-slate-100">
+                      <div className="h-full flex flex-col p-2 justify-end gap-1">
+                        <motion.div
+                          className="w-3/4 h-1.5 bg-slate-300/80 rounded-full"
+                          animate={{ opacity: [0.4, 0.8, 0.4] }}
+                          transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.15 }}
+                        />
+                        <motion.div
+                          className="w-1/2 h-1 bg-slate-300/50 rounded-full"
+                          animate={{ opacity: [0.3, 0.6, 0.3] }}
+                          transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.15 + 0.2 }}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <DragDropContext onDragEnd={handleDragEnd}>
+                <Droppable droppableId="slide-list">
+                  {(provided) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.droppableProps}
+                      className="flex-1 overflow-y-auto px-2 pb-2 space-y-2"
+                    >
+                      {presentation.slides.map((slide, idx) => {
+                        const isSlideRevealed = !isRevealing || revealedSlideIds.has(slide.id);
+                        return (
+                          <Draggable key={slide.id} draggableId={slide.id} index={idx}>
+                            {(provided, snapshot) => (
+                              <div
+                                ref={provided.innerRef}
+                                {...provided.draggableProps}
+                                {...provided.dragHandleProps}
+                                className={cn(
+                                  'relative rounded-lg cursor-pointer transition-all group',
+                                  activeSlideIndex === idx ? 'ring-2 ring-[#4F46E5]' : 'hover:ring-1 hover:ring-slate-300',
+                                  snapshot.isDragging && 'ring-2 ring-[#4F46E5] opacity-90 shadow-lg shadow-indigo-500/20'
+                                )}
+                                onClick={() => setActiveSlideIndex(idx)}
                               >
-                                <Copy className="w-3 h-3" />
-                              </button>
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteSlide(idx); }}
-                                className="w-5 h-5 rounded bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-red-500"
-                                title="Delete"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </button>
-                            </div>
-                            <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
-                              <div style={{ width: 1920 * 0.068, height: 1080 * 0.068, transformOrigin: 'top left' }}>
-                                <SlideCanvas
-                                  slide={slide}
-                                  theme={presentation.theme}
-                                  scale={0.068}
-                                  isEditing={false}
-                                />
+                                <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-600 bg-white/80 rounded px-1">{idx + 1}</div>
+                                {!isRevealing && (
+                                  <div className="absolute top-1 right-1 z-10 hidden group-hover:flex gap-0.5">
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); duplicateSlide(idx); }}
+                                      className="w-5 h-5 rounded bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-[#4F46E5]"
+                                      title="Duplicate"
+                                    >
+                                      <Copy className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); deleteSlide(idx); }}
+                                      className="w-5 h-5 rounded bg-white/90 shadow-sm flex items-center justify-center text-slate-500 hover:text-red-500"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
+                                  {isSlideRevealed ? (
+                                    <motion.div
+                                      initial={isRevealing || revealedSlideIds.size > 0 ? { opacity: 0, scale: 0.92 } : false}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      transition={{ duration: 0.4, ease: 'easeOut' }}
+                                      style={{ width: 1920 * 0.068, height: 1080 * 0.068, transformOrigin: 'top left' }}
+                                    >
+                                      <SlideCanvas
+                                        slide={slide}
+                                        theme={presentation.theme}
+                                        scale={0.068}
+                                        isEditing={false}
+                                      />
+                                    </motion.div>
+                                  ) : (
+                                    <div className="w-full h-full bg-gradient-to-br from-slate-200 to-slate-100">
+                                      <div className="h-full flex flex-col p-2 justify-end gap-1">
+                                        <motion.div
+                                          className="w-3/4 h-1.5 bg-slate-300/80 rounded-full"
+                                          animate={{ opacity: [0.4, 0.8, 0.4] }}
+                                          transition={{ duration: 1.5, repeat: Infinity }}
+                                        />
+                                        <motion.div
+                                          className="w-1/2 h-1 bg-slate-300/50 rounded-full"
+                                          animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                          transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        )}
-                      </Draggable>
-                    ))}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </DragDropContext>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </DragDropContext>
+            )}
           </div>
 
           {/* Canvas area */}
@@ -584,11 +706,35 @@ export default function EditorPage() {
             <CanvasContextMenu>
               <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative"
                 onClick={(e) => {
-                  // Click on gray area outside slide → deselect
                   if (e.target === e.currentTarget) clearSelection();
                 }}
               >
-                {activeSlide && (
+                {isGenerating ? (
+                  <div className="flex items-center justify-center h-full">
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-white rounded-lg shadow-lg overflow-hidden"
+                      style={{ width: Math.min(1920 * scale, 800), height: Math.min(1080 * scale, 450) }}
+                    >
+                      <div className="h-full flex flex-col p-8 sm:p-12 justify-center">
+                        <div className="flex items-center gap-2.5 mb-6">
+                          <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>
+                            <Sparkles className="w-5 h-5 text-[#4F46E5]" />
+                          </motion.div>
+                          <span className="text-sm font-medium text-slate-500">Creating your presentation...</span>
+                        </div>
+                        <motion.div className="w-3/4 h-6 bg-slate-200 rounded-lg mb-3" animate={{ opacity: [0.4, 0.7, 0.4] }} transition={{ duration: 2, repeat: Infinity }} />
+                        <motion.div className="w-1/2 h-4 bg-slate-100 rounded mb-6" animate={{ opacity: [0.3, 0.6, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.3 }} />
+                        <div className="space-y-2.5">
+                          <motion.div className="w-full h-3 bg-slate-100 rounded" animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.5 }} />
+                          <motion.div className="w-5/6 h-3 bg-slate-100 rounded" animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.7 }} />
+                          <motion.div className="w-4/6 h-3 bg-slate-100 rounded" animate={{ opacity: [0.3, 0.5, 0.3] }} transition={{ duration: 2, repeat: Infinity, delay: 0.9 }} />
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                ) : activeSlide ? (
                   <ErrorBoundary>
                     <div className="relative overflow-hidden" style={{
                       width: 1920 * scale,
@@ -598,7 +744,6 @@ export default function EditorPage() {
                       boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
                       borderRadius: 4,
                     }}>
-                      {/* Nav arrows — pinned to slide edges */}
                       {activeSlideIndex > 0 && (
                         <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute -left-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                           <ChevronLeft className="w-4 h-4" />
@@ -612,7 +757,7 @@ export default function EditorPage() {
                       <SlideCanvas slide={activeSlide} theme={presentation.theme} scale={scale} isEditing={true} />
                     </div>
                   </ErrorBoundary>
-                )}
+                ) : null}
               </div>
             </CanvasContextMenu>
 
