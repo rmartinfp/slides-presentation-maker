@@ -171,10 +171,10 @@ const CANVAS_W = 1920;
 const CANVAS_H = 1080;
 
 function ElementBlock({ el }: { el: SlideElement }) {
-  const x = (el.x / CANVAS_W) * PREVIEW_W;
-  const y = (el.y / CANVAS_H) * PREVIEW_H;
-  const w = (el.width / CANVAS_W) * PREVIEW_W;
-  const h = (el.height / CANVAS_H) * PREVIEW_H;
+  const xPct = (el.x / CANVAS_W) * 100;
+  const yPct = (el.y / CANVAS_H) * 100;
+  const wPct = (el.width / CANVAS_W) * 100;
+  const hPct = (el.height / CANVAS_H) * 100;
 
   const colorMap: Record<string, { bg: string; border: string }> = {
     text: { bg: 'rgba(59, 130, 246, 0.15)', border: 'rgba(59, 130, 246, 0.4)' },
@@ -188,19 +188,19 @@ function ElementBlock({ el }: { el: SlideElement }) {
     <div
       className="absolute flex items-center justify-center rounded-sm overflow-hidden"
       style={{
-        left: x,
-        top: y,
-        width: Math.max(w, 4),
-        height: Math.max(h, 4),
+        left: `${xPct}%`,
+        top: `${yPct}%`,
+        width: `${Math.max(wPct, 1)}%`,
+        height: `${Math.max(hPct, 1)}%`,
         backgroundColor: colors.bg,
         border: `1px solid ${colors.border}`,
       }}
     >
       {el.type === 'text' && (
-        <span className="text-[8px] font-semibold text-blue-500 select-none">Aa</span>
+        <span className="text-[6px] font-semibold text-blue-500 select-none">Aa</span>
       )}
       {el.type === 'image' && (
-        <ImageIcon className="w-3 h-3 text-purple-500" />
+        <ImageIcon className="w-2.5 h-2.5 text-purple-500" />
       )}
     </div>
   );
@@ -222,8 +222,7 @@ function VariantCard({
         <p className="text-[10px] text-slate-400">{variant.elements.length} elements</p>
       </div>
       <div
-        className="relative bg-slate-50 mx-3 my-2 rounded-md overflow-hidden"
-        style={{ width: PREVIEW_W, height: PREVIEW_H }}
+        className="relative bg-slate-50 mx-3 my-2 rounded-md overflow-hidden aspect-video"
       >
         {variant.elements.map((el) => (
           <ElementBlock key={el.id} el={el} />
@@ -255,13 +254,91 @@ function VariantCard({
 export default function RedesignDialog({ onClose }: Props) {
   const [mode, setMode] = useState<Mode>('redesign');
   const [instruction, setInstruction] = useState('');
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [appliedIndex, setAppliedIndex] = useState<number | null>(null);
 
-  const { presentation, activeSlideIndex } = useEditorStore();
+  const { presentation, activeSlideIndex, pushSnapshot } = useEditorStore();
   const slide = presentation.slides[activeSlideIndex];
+
+  // ─── Direct layout application (no AI) ───
+  const applyPresetDirectly = (preset: LayoutPreset) => {
+    if (!slide?.elements) return;
+    pushSnapshot();
+
+    const elements = [...slide.elements];
+    // Classify current elements
+    const texts = elements.filter(e => e.type === 'text' && !e.locked);
+    const images = elements.filter(e => e.type === 'image' && !e.locked);
+    const locked = elements.filter(e => e.locked);
+    const otherUnlocked = elements.filter(e => !e.locked && e.type !== 'text' && e.type !== 'image');
+
+    // Sort texts: largest fontSize first (title → subtitle → body)
+    texts.sort((a, b) => ((b.style?.fontSize || 0) - (a.style?.fontSize || 0)));
+
+    // Get layout blocks by type
+    const titleBlocks = preset.blocks.filter(b => b.type === 'title');
+    const bodyBlocks = preset.blocks.filter(b => b.type === 'body');
+    const imageBlocks = preset.blocks.filter(b => b.type === 'image');
+    const numberBlocks = preset.blocks.filter(b => b.type === 'number');
+    const allTextBlocks = [...titleBlocks, ...numberBlocks, ...bodyBlocks];
+
+    // Map texts to blocks (title blocks first, then number, then body)
+    const mapped: SlideElement[] = [];
+    let textIdx = 0;
+    for (const block of allTextBlocks) {
+      if (textIdx >= texts.length) break;
+      const el = { ...texts[textIdx] };
+      el.x = (block.x / 100) * CANVAS_W;
+      el.y = (block.y / 100) * CANVAS_H;
+      el.width = (block.w / 100) * CANVAS_W;
+      el.height = (block.h / 100) * CANVAS_H;
+      // Make titles bigger, body smaller
+      if (block.type === 'title' && el.style) {
+        el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 28, 36), fontWeight: 'bold' };
+      } else if (block.type === 'number' && el.style) {
+        el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 40, 48), fontWeight: 'bold', textAlign: 'center' as const };
+      } else if (block.type === 'body' && el.style) {
+        el.style = { ...el.style, fontSize: Math.min(el.style.fontSize || 18, 20) };
+      }
+      mapped.push(el);
+      textIdx++;
+    }
+    // Remaining texts go below the last block
+    for (let i = textIdx; i < texts.length; i++) {
+      mapped.push(texts[i]); // keep original position
+    }
+
+    // Map images to image blocks
+    let imgIdx = 0;
+    for (const block of imageBlocks) {
+      if (imgIdx >= images.length) break;
+      const el = { ...images[imgIdx] };
+      el.x = (block.x / 100) * CANVAS_W;
+      el.y = (block.y / 100) * CANVAS_H;
+      el.width = (block.w / 100) * CANVAS_W;
+      el.height = (block.h / 100) * CANVAS_H;
+      mapped.push(el);
+      imgIdx++;
+    }
+    for (let i = imgIdx; i < images.length; i++) {
+      mapped.push(images[i]);
+    }
+
+    // Reassemble: locked (decorations) + mapped + remaining unlocked
+    const final = [...locked, ...mapped, ...otherUnlocked];
+    // Reassign z-index
+    final.forEach((el, i) => { el.zIndex = i + 1; });
+
+    useEditorStore.setState(
+      produce((state: any) => {
+        state.presentation.slides[state.activeSlideIndex].elements = final;
+      }),
+    );
+
+    toast.success(`Applied "${preset.label}" layout`);
+    setTimeout(onClose, 400);
+  };
 
   const handleGenerate = async () => {
     if (!slide) return;
@@ -358,63 +435,46 @@ export default function RedesignDialog({ onClose }: Props) {
         {/* Description + optional instruction */}
         <div className="px-6 pt-4 overflow-y-auto flex-1">
           <p className="text-xs text-slate-400 mb-3">
-            Generates 3 different layout variants. Your content stays the same — only positions change.
+            Click a layout to apply it instantly. Or describe a custom layout below.
           </p>
 
-          <input
-            type="text"
-            value={instruction}
-            onChange={(e) => { setInstruction(e.target.value); setSelectedPreset(null); }}
-            onKeyDown={(e) => e.key === 'Enter' && !loading && handleGenerate()}
-            placeholder="Describe the layout you want, or pick one below..."
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20 mb-3"
-            disabled={loading}
-          />
-
-          {/* Layout presets grid */}
+          {/* Layout presets grid — click = instant apply */}
           <div className="grid grid-cols-4 gap-2 mb-4">
             {LAYOUT_PRESETS.map((preset) => (
               <button
                 key={preset.id}
-                onClick={() => {
-                  setSelectedPreset(preset.id === selectedPreset ? null : preset.id);
-                  setInstruction(preset.id === selectedPreset ? '' : preset.instruction);
-                }}
+                onClick={() => applyPresetDirectly(preset)}
                 disabled={loading}
-                className={cn(
-                  'group flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all text-center',
-                  selectedPreset === preset.id
-                    ? 'border-[#4F46E5] bg-indigo-50/80 ring-1 ring-[#4F46E5]/20'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                )}
+                className="group flex flex-col items-center gap-1.5 p-2 rounded-xl border border-slate-200 bg-white hover:border-[#4F46E5] hover:bg-indigo-50/50 transition-all text-center"
               >
-                <LayoutMiniPreview blocks={preset.blocks} selected={selectedPreset === preset.id} />
-                <div className="flex items-center gap-1">
-                  <span className={cn('text-[10px] font-medium', selectedPreset === preset.id ? 'text-[#4F46E5]' : 'text-slate-500')}>
-                    {preset.label}
-                  </span>
-                </div>
+                <LayoutMiniPreview blocks={preset.blocks} selected={false} />
+                <span className="text-[10px] font-medium text-slate-500 group-hover:text-[#4F46E5]">
+                  {preset.label}
+                </span>
               </button>
             ))}
           </div>
 
-          <Button
-            onClick={handleGenerate}
-            disabled={loading || (!instruction.trim() && !selectedPreset)}
-            className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-6 rounded-xl"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Generating...
-              </>
-            ) : (
-              <>
-                <Wand2 className="w-4 h-4 mr-2" />
-                {selectedPreset ? 'Apply Layout' : 'Generate Variants'}
-              </>
-            )}
-          </Button>
+          {/* Custom AI layout */}
+          <div className="flex gap-2 mb-2">
+            <input
+              type="text"
+              value={instruction}
+              onChange={(e) => setInstruction(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !loading && instruction.trim() && handleGenerate()}
+              placeholder="Or describe a custom layout..."
+              className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20"
+              disabled={loading}
+            />
+            <Button
+              onClick={handleGenerate}
+              disabled={loading || !instruction.trim()}
+              size="sm"
+              className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-xl shrink-0"
+            >
+              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+            </Button>
+          </div>
         </div>
 
         {/* Variants grid */}
