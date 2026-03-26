@@ -5,6 +5,7 @@ import ContentStep from '@/components/slideai/ContentStep';
 import GeneratingView from '@/components/slideai/GeneratingView';
 import { PresentationTheme, Slide, SlideElement, WizardStep } from '@/types/presentation';
 import { CinematicPreset } from '@/types/cinematic';
+import { getPresetById } from '@/lib/cinematic-presets';
 import { THEME_CATALOG } from '@/lib/themes';
 import { generatePresentation, TemplateBriefSlide, TemplateBriefSlot } from '@/lib/ai-generate';
 import { migrateAllSlides } from '@/lib/slide-migration';
@@ -23,6 +24,55 @@ export default function SlideAIPage() {
   const [templateSlides, setTemplateSlides] = useState<Slide[] | null>(null);
   const [contentText, setContentText] = useState('');
   const [generatedPresentation, setGeneratedPresentation] = useState<{ title: string; slides: Slide[]; theme: PresentationTheme } | null>(null);
+
+  // Auto-pickup from home page (Entry.tsx)
+  React.useEffect(() => {
+    const entryPrompt = sessionStorage.getItem('entryPrompt');
+    const entryTemplate = sessionStorage.getItem('entryTemplate');
+    if (entryPrompt) {
+      setContentText(entryPrompt);
+      sessionStorage.removeItem('entryPrompt');
+
+      if (entryTemplate) {
+        try {
+          const { type, data } = JSON.parse(entryTemplate);
+          sessionStorage.removeItem('entryTemplate');
+
+          if (type === 'cinematic') {
+            // Load cinematic template
+            const preset = getPresetById(data.preset_id || 'midnight');
+            if (preset) {
+              setCinematicPreset(preset);
+              const dbTheme = data.theme;
+              setSelectedTheme(dbTheme || {
+                id: preset.id, name: preset.name, category: 'Cinematic',
+                tokens: { palette: { primary: preset.accentColor, secondary: preset.secondaryTextColor, accent: preset.accentColor, bg: preset.backgroundColor, text: preset.primaryTextColor },
+                  typography: { titleFont: preset.fontHeading, bodyFont: preset.fontBody, titleSize: 42, bodySize: 24 }, radii: '16px', shadows: 'lg' },
+                previewColors: [preset.accentColor, preset.secondaryTextColor, preset.backgroundColor],
+              });
+              const realSlides = data.slides;
+              if (Array.isArray(realSlides) && realSlides.length > 0 && realSlides[0]?.elements) {
+                setTemplateSlides(realSlides as Slide[]);
+              }
+            }
+          } else {
+            // Load classic template
+            const theme = data.theme as PresentationTheme;
+            if (theme) {
+              setSelectedTheme(theme);
+              const slides = data.preview_slides as Slide[];
+              if (slides && slides.length > 0) setTemplateSlides(slides);
+              loadFontsFromTheme(theme.tokens);
+              if (slides) loadFontsFromSlides(slides);
+            }
+          }
+        } catch {}
+      }
+
+      // Go directly to content step (prompt is pre-filled)
+      setStep('content');
+    }
+  }, []);
 
   const handleSelectTheme = (theme: PresentationTheme, slides?: Slide[]) => {
     setSelectedTheme(theme);
