@@ -1035,7 +1035,7 @@ function buildNexora(): Slide[] {
       txt(badge, '{{badge}}', 710, 240, 500, 30, { fontSize: 13, fontWeight: '500', color: sub, fontFamily: fB, textAlign: 'center', zIndex: 15, textShadow: 'none' }),
       txt(h, '{{headline}}', 260, 300, 1400, 260, { fontSize: 72, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 0.95, letterSpacing: -1, zIndex: 15, textShadow: 'none' }),
       txt(sub2, '{{subtitle}}', 410, 590, 1100, 100, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
-    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 0.25, filter: 'brightness(1.1) saturate(0.8)' },
+    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 1.0 },
     animationConfig: lightA({ [badge]: { type: 'fade-in', delay: 0.1, duration: 0.5, easing: E.expoOut }, [h]: { type: 'scale-up', delay: 0.15, duration: 0.6, easing: E.expoOut }, [sub2]: { type: 'fade-in', delay: 0.4, duration: 0.6, easing: E.quintOut } }) }); }
 
   // S2: Problem + 2 stats right
@@ -1054,7 +1054,7 @@ function buildNexora(): Slide[] {
   { const h = gid();
     slides.push({ id: gid(), elements: [...lightSkel2('03'),
       txt(h, '{{statement}}', 210, 340, 1500, 360, { fontSize: 52, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.1, zIndex: 15, textShadow: 'none' }),
-    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 0.2, filter: 'brightness(1.1)' },
+    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 1.0 },
     animationConfig: lightA({ [h]: { type: 'word-by-word', delay: 0.2, duration: 0.55, easing: E.expoOut, stagger: 0.04 } }) }); }
 
   // S4: Content left
@@ -1071,7 +1071,7 @@ function buildNexora(): Slide[] {
     slides.push({ id: gid(), elements: [...lightSkel2('05'),
       txt(h, '{{closing}}', 260, 370, 1400, 240, { fontSize: 60, fontWeight: '400', fontFamily: fSerif, color: fg, textAlign: 'center', lineHeight: 1.0, zIndex: 15, textShadow: 'none' }),
       txt(sub2, '{{closing_body}}', 460, 640, 1000, 80, { fontSize: 17, color: sub, fontFamily: fB, textAlign: 'center', lineHeight: 1.65, zIndex: 15, textShadow: 'none' }),
-    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 0.2, filter: 'brightness(1.1)' },
+    ], background: bg, videoBackground: { url: VN, type: 'mp4', opacity: 1.0 },
     animationConfig: lightA({ [h]: { type: 'scale-up', delay: 0.15, duration: 0.6, easing: E.expoOut }, [sub2]: { type: 'fade-in', delay: 0.5, duration: 0.6, easing: E.quintOut } }) }); }
 
   return slides;
