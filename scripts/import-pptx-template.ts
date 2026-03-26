@@ -1798,20 +1798,22 @@ async function main() {
     // Check if slide belongs to the secondary (non-primary) master = "Final Pages"
     const isSecondaryMaster = primaryMasterId && slideMasterId && slideMasterId !== primaryMasterId;
 
-    // Heuristic final page detection (branding, excessive elements, resource pages)
+    // Heuristic final page detection (branding text, resource pages)
+    // NOTE: Do NOT use elementCount — decorative Slidesgo templates have 200-500+ elements on normal slides.
+    // The secondary master check already handles real "final pages" (icon packs, alt color schemes).
     const hasFreepikBranding = (plainText.includes('freepik') && !plainText.includes('@freepik'))
       || plainText.includes('slidesgo') || plainText.includes('flaticon');
     const isFinalPageHeuristic = hasFreepikBranding
-      || elementCount > 50
-      || (/\bicons?\b/.test(plainText) && elementCount > 15)
       || plainText.includes('fonts & colors') || plainText.includes('fonts used')
       || plainText.includes('contents of this template')
-      || plainText.includes('contents of this presentation');
+      || plainText.includes('contents of this presentation')
+      || plainText.includes('icon pack');
 
     // Detect real "Thank You" / closing slides BEFORE final page check.
     // Thanks slides often have Slidesgo/Freepik credits which trigger branding filter.
     // Must detect Thanks FIRST to protect it from being filtered.
-    const isThanksSlide = elementCount <= 30
+    // Threshold 80: decorative templates (Welcome to Middle School) have 30-60+ elements per slide.
+    const isThanksSlide = elementCount <= 80
       && (/thank\s*you/i.test(plainText) || /\bthanks\b/i.test(plainText))
       && !plainText.includes('instructions for use')
       && !plainText.includes('instructions (')
@@ -1821,17 +1823,20 @@ async function main() {
     const isFinalPage = !isThanksSlide && (isSecondaryMaster || isFinalPageHeuristic);
 
     // Heuristic for instruction/resource pages that leak through master filter
+    // NOTE: Do NOT use elementCount alone — decorative templates have 30-60+ elements on normal slides.
     const isInstructionPage = plainText.includes('instructions for use')
       || plainText.includes('instructions (')
       || plainText.includes('you can delete this slide')
-      || plainText.includes('freepik premium')
-      || (elementCount > 25 && !isThanksSlide);
+      || plainText.includes('freepik premium');
 
     // Skip TITLE_ONLY slides (just a title, no content structure)
     // Layout names can be "TITLE_ONLY", "Title only 1", "Title only 2", etc.
     const isTitleOnly = layoutName === 'TITLE_ONLY'
       || layoutName.startsWith('TITLE_ONLY')
       || layoutName.toLowerCase().startsWith('title only');
+
+    // NEVER filter the cover slide (layout TITLE) — it's the presentation cover
+    const isCoverSlide = layoutName === 'TITLE';
 
     // Pre-detect TOC slides BEFORE filtering so they don't get discarded
     // Headings: "table of contents", "contents", "index", "agenda", "overview", "outline"
@@ -1846,12 +1851,13 @@ async function main() {
       || /\b[A-H]\.\s/.test(plainText);
     const isTocPreDetect = hasTocHeadingPre && preTextCount >= 3 && hasNumberedItemsPre;
 
-    if (((isFinalPage || isInstructionPage) && !isThanksSlide) || (isTitleOnly && !isThanksSlide && !isTocPreDetect)) {
+    if (isCoverSlide) {
+      console.log(`  Keeping COVER slide (${elementCount} elements, layout: ${layoutName})`);
+    } else if (isThanksSlide) {
+      console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
+    } else if (((isFinalPage || isInstructionPage)) || (isTitleOnly && !isTocPreDetect)) {
       console.log(`  Skipping: ${isTitleOnly ? 'title-only layout' : isSecondaryMaster ? 'secondary master' : isInstructionPage ? 'instruction page' : 'final page'} (${elementCount} elements, layout: ${layoutName})`);
       continue;
-    }
-    if (isThanksSlide) {
-      console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
     }
 
     // Parse background — first from slide, then inherit from layout, then master
@@ -2395,24 +2401,27 @@ async function main() {
 
     // Detect TOC (Table of Contents) slides
     // TOC can appear in ANY layout (TITLE_ONLY, BLANK_*, CUSTOM, etc.)
-    // Headings: "table of contents", "contents", "index", "agenda", "overview", "outline"
-    // Items: 01-09, "1.", roman numerals I/II/III, or single letters A/B/C
+    // Check BOTH raw XML plainText AND parsed text elements (placeholders may not be in XML text)
     const textCount = elements.filter(e => e.type === 'text').length;
-    const hasTocHeading = plainText.includes('table of contents')
-      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(plainText)
-      || /\b(index|agenda|overview|outline|contents)\b/i.test(plainText);
-    const hasNumberedItems = /\b0[1-9]\b/.test(plainText)
-      || /\b\d{1,2}\.\s/.test(plainText)
-      || /\b[IVX]{1,4}\b/.test(plainText)
-      || /\b[A-H]\.\s/.test(plainText);
+    const parsedPlainText = (elements.filter(e => e.type === 'text') as any[])
+      .map(e => (e.content || '').replace(/<[^>]+>/g, '').toLowerCase().trim()).join(' ');
+    const combinedText = plainText + ' ' + parsedPlainText;
+    const hasTocHeading = combinedText.includes('table of contents')
+      || /\btable\b.*\bof\b.*\bcontents?\b/i.test(combinedText)
+      || /\b(index|agenda|overview|outline|contents)\b/i.test(combinedText);
+    const hasNumberedItems = /\b0[1-9]\b/.test(combinedText)
+      || /\b\d{1,2}\.\s/.test(combinedText)
+      || /\b[IVX]{1,4}\b/.test(combinedText)
+      || /\b[A-H]\.\s/.test(combinedText);
     const isTocSlide = hasTocHeading && textCount >= 3 && hasNumberedItems;
 
     // Detect "Thank You" / closing slides — check actual text elements
+    // Normalize whitespace: "Thank             you" → "thank you"
     const allTexts = (elements.filter(e => e.type === 'text') as any[])
-      .map(e => e.content.replace(/<[^>]+>/g, '').toLowerCase().trim())
+      .map(e => e.content.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').toLowerCase().trim())
       .join(' ');
-    const isClosingSlide = allTexts.includes('thank you') || allTexts.includes('thanks')
-      || /\bthank\s+you\b/i.test(plainText);
+    const isClosingSlide = /\bthank\s*you\b/i.test(allTexts) || allTexts.includes('thanks')
+      || /\bthank\s*you\b/i.test(plainText);
 
     // Classify slide type from layout name
     const slideTypeMap: Record<string, string> = {
