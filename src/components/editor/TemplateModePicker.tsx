@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import HlsVideo from '@/components/ui/HlsVideo';
 import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import SlideCanvas from './SlideCanvas';
 
 interface Props {
   onSelect: (tmpl: any) => void;
@@ -74,9 +74,8 @@ export default function TemplateModePicker({ onSelect, onBlank, onClose }: Props
                 >
                   <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: bgColor }}>
                     {videoUrl && (
-                      <video
+                      <HlsVideo
                         src={videoUrl}
-                        autoPlay muted loop playsInline
                         className="absolute inset-0 w-full h-full object-cover"
                         style={{ opacity: firstSlide?.videoBackground?.opacity || 0.5 }}
                       />

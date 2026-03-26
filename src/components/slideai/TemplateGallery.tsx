@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getPresetById } from '@/lib/cinematic-presets';
 import { CinematicPreset } from '@/types/cinematic';
 import StepIndicator from './StepIndicator';
+import HlsVideo from '@/components/ui/HlsVideo';
 import { useNavigate } from 'react-router-dom';
 
 // Unified template type
@@ -508,12 +509,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                         style={{ backgroundColor: preset?.backgroundColor || '#0a0a0f' }}
                       >
                         {(firstSlide?.videoBackground?.url || firstSlide?.videoUrl) && (
-                          <video
+                          <HlsVideo
                             src={firstSlide.videoBackground?.url || firstSlide.videoUrl}
-                            autoPlay
-                            muted
-                            loop
-                            playsInline
                             className="absolute inset-0 w-full h-full object-cover"
                             style={{ opacity: firstSlide.videoBackground?.opacity || firstSlide.videoOpacity || 0.3, filter: firstSlide.videoBackground?.filter || undefined }}
                           />
