@@ -190,10 +190,11 @@ function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationThe
       const stroke = st.shapeStroke || 'transparent';
       const strokeWidth = st.shapeStrokeWidth || 0;
 
-      // Custom SVG path → rasterize to image
-      if (shapeType === 'custom' && st.svgPath) {
+      // Custom SVG path → rasterize to image (path stored in style.svgPath or element.content)
+      const svgPathExport = st.svgPath || (shapeType === 'custom' && el.content ? el.content : null);
+      if (shapeType === 'custom' && svgPathExport) {
         const svgData = svgToBase64(
-          st.svgPath as string,
+          svgPathExport as string,
           (st.svgViewBox as string) || '0 0 100 100',
           fill, stroke !== 'transparent' ? stroke : 'none', strokeWidth, w, h,
         );

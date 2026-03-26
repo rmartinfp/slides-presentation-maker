@@ -513,12 +513,13 @@ export default function CanvasElement({
             </svg>
           );
         }
-        // Custom SVG path — use xMidYMid meet to preserve icon proportions
-        if (shapeType === 'custom' && s.svgPath) {
+        // Custom SVG path — check both style.svgPath and element.content (import stores path in content)
+        const svgPathData = s.svgPath || (shapeType === 'custom' && element.content ? element.content : null);
+        if (shapeType === 'custom' && svgPathData) {
           return (
             <svg width="100%" height="100%" viewBox={s.svgViewBox || '0 0 100 100'} preserveAspectRatio="none" style={{ pointerEvents: 'none' }}>
               {gradDef}
-              <path d={s.svgPath} fill={fill} fillRule="evenodd" {...strokeProps} vectorEffect="non-scaling-stroke" />
+              <path d={svgPathData} fill={fill} fillRule="evenodd" {...strokeProps} vectorEffect="non-scaling-stroke" />
             </svg>
           );
         }
