@@ -4,6 +4,49 @@ import { Sparkles } from 'lucide-react';
 import { PresentationTheme, Slide } from '@/types/presentation';
 import StepIndicator from './StepIndicator';
 
+/** Extract the biggest text from a template slide for the typing preview */
+function getTemplateTitle(slide: Slide): string {
+  const texts = (slide.elements || [])
+    .filter(e => e.type === 'text' && e.content)
+    .sort((a, b) => (b.style.fontSize || 0) - (a.style.fontSize || 0));
+  const raw = texts[0]?.content || '';
+  // Clean placeholder markers
+  return raw.replace(/\{\{|\}\}/g, '').replace(/_/g, ' ').trim() || 'Writing content...';
+}
+
+/** Typewriter component for the generating view */
+function TypingText({ text, color, font, delay = 0 }: { text: string; color: string; font: string; delay?: number }) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setStarted(true), delay);
+    return () => clearTimeout(t);
+  }, [delay]);
+
+  useEffect(() => {
+    if (!started || count >= text.length) return;
+    const speed = 30 + Math.random() * 40; // Human-like jitter
+    const t = setTimeout(() => setCount(c => c + 1), speed);
+    return () => clearTimeout(t);
+  }, [count, started, text.length]);
+
+  return (
+    <p
+      className="font-bold leading-snug line-clamp-2"
+      style={{
+        color,
+        fontSize: 'clamp(9px, 1.6vw, 15px)',
+        fontFamily: `${font}, sans-serif`,
+        textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+      }}
+    >
+      {text.slice(0, count)}
+      {count < text.length && <span className="animate-pulse">|</span>}
+    </p>
+  );
+}
+
 interface Props {
   theme: PresentationTheme;
   generatedSlides: Slide[] | null;
@@ -161,16 +204,15 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
                   {String(i + 1).padStart(2, '0')}
                 </div>
 
-                {/* Shimmer effect while waiting for real content */}
+                {/* Typewriter text while waiting for real content */}
                 {isRevealed && !realSlide && (
-                  <div className="absolute inset-0 z-10">
-                    {/* Animated shimmer lines representing text */}
-                    <motion.div className="absolute" style={{ left: '7%', bottom: '30%', width: '50%', height: '6%', borderRadius: 4, background: `${palette.text}15` }}
-                      animate={{ opacity: [0.3, 0.7, 0.3] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0 }} />
-                    <motion.div className="absolute" style={{ left: '7%', bottom: '20%', width: '35%', height: '4%', borderRadius: 3, background: `${palette.text}10` }}
-                      animate={{ opacity: [0.2, 0.5, 0.2] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }} />
-                    <motion.div className="absolute" style={{ left: '7%', bottom: '12%', width: '40%', height: '3%', borderRadius: 2, background: `${palette.text}08` }}
-                      animate={{ opacity: [0.15, 0.4, 0.15] }} transition={{ duration: 1.5, repeat: Infinity, delay: 0.6 }} />
+                  <div className="absolute inset-0 z-10 p-[7%] flex flex-col justify-end">
+                    <TypingText
+                      text={tmplSlide ? getTemplateTitle(tmplSlide) : STAGES[stageIdx]}
+                      color={palette.text}
+                      font={theme.tokens.typography.titleFont}
+                      delay={i * 600}
+                    />
                   </div>
                 )}
 
