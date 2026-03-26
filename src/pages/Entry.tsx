@@ -552,6 +552,18 @@ function EntryPreviewModal({ tmpl, isSelected, onSelect, onClose }: {
 }) {
   const slideImages = tmpl.slideImages || [];
   const [current, setCurrent] = React.useState(0);
+  const thumbStripRef = React.useRef<HTMLDivElement>(null);
+
+  // Reset to first slide when template changes
+  React.useEffect(() => { setCurrent(0); }, [tmpl.id]);
+
+  // Auto-scroll thumbnail strip to keep active thumb visible
+  React.useEffect(() => {
+    const strip = thumbStripRef.current;
+    if (!strip) return;
+    const thumb = strip.children[current] as HTMLElement | undefined;
+    if (thumb) thumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [current]);
 
   React.useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -618,7 +630,7 @@ function EntryPreviewModal({ tmpl, isSelected, onSelect, onClose }: {
 
           {/* Thumbnail strip */}
           {hasSlides && slideImages.length > 1 && (
-            <div className="flex gap-2 px-4 py-3 bg-slate-900/90 overflow-x-auto justify-center">
+            <div ref={thumbStripRef} className="flex gap-2 px-4 py-3 bg-slate-900/90 overflow-x-auto">
               {slideImages.map((img: string, idx: number) => (
                 <button
                   key={idx}
