@@ -77,21 +77,25 @@ export default function RichTextEditor({ element, scale, onBlur }: Props) {
 
   if (!editor) return null;
 
+  // Match EXACT same styles as the static text view in CanvasElement
+  // to prevent text jumping when entering/exiting edit mode
+  const vAlign = element.style.verticalAlign;
+
   return (
     <div
       className="w-full h-full relative"
       onKeyDown={handleKeyDown}
+      style={{
+        padding: 8,
+        display: vAlign ? 'flex' : undefined,
+        flexDirection: vAlign ? 'column' as any : undefined,
+        justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : undefined,
+      }}
     >
       <FormattingToolbar editor={editor} scale={scale} />
       <EditorContent
         editor={editor}
-        className="w-full h-full overflow-hidden cursor-text"
-        style={{
-          padding: 8,
-          display: element.style.verticalAlign ? 'flex' : undefined,
-          flexDirection: element.style.verticalAlign ? 'column' as any : undefined,
-          justifyContent: element.style.verticalAlign === 'center' ? 'center' : element.style.verticalAlign === 'bottom' ? 'flex-end' : undefined,
-        }}
+        className="overflow-hidden cursor-text"
         onBlur={onBlur}
       />
     </div>
