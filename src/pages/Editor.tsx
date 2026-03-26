@@ -754,7 +754,6 @@ export default function EditorPage() {
                         <DropdownMenuSeparator />
                       </>
                     )}
-                    <DropdownMenuItem onClick={() => setShowAddLogo(true)}><Image className="w-4 h-4 mr-2" />Add Logo</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Analyze</DropdownMenuItem>
                   </DropdownMenuContent>
