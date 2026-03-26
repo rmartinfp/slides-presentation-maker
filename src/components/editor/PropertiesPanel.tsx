@@ -1047,23 +1047,49 @@ const POPULAR_FONTS = [
   'Mulish', 'Urbanist', 'Sora', 'Figtree', 'Geist',
 ];
 
-// Google Fonts — fetched once, stored globally
-let _allGoogleFonts: string[] = POPULAR_FONTS;
-let _googleFontsFetched = false;
-(function preloadGoogleFonts() {
-  const key = typeof import.meta !== 'undefined' ? import.meta.env?.VITE_GOOGLE_FONTS_API_KEY : null;
-  if (!key) return;
-  fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`)
-    .then(r => r.json())
+// Google Fonts — fetched once, cached in module scope
+let _cachedGoogleFonts: string[] | null = null;
+let _fetchPromise: Promise<string[]> | null = null;
+
+function fetchGoogleFonts(): Promise<string[]> {
+  if (_cachedGoogleFonts) return Promise.resolve(_cachedGoogleFonts);
+  if (_fetchPromise) return _fetchPromise;
+  const key = import.meta.env?.VITE_GOOGLE_FONTS_API_KEY;
+  if (!key) return Promise.resolve(POPULAR_FONTS);
+  _fetchPromise = fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`)
+    .then(r => {
+      if (!r.ok) throw new Error(`Google Fonts API returned ${r.status}`);
+      return r.json();
+    })
     .then(data => {
       const items = (data.items || []).map((f: any) => f.family as string);
       if (items.length > 100) {
-        _allGoogleFonts = items;
-        _googleFontsFetched = true;
+        _cachedGoogleFonts = items;
+        return items;
       }
+      return POPULAR_FONTS;
     })
-    .catch(() => {});
-})();
+    .catch((err) => {
+      console.warn('Google Fonts fetch failed:', err);
+      _fetchPromise = null; // allow retry on next open
+      return POPULAR_FONTS;
+    });
+  return _fetchPromise;
+}
+
+/** Hook that returns the full Google Fonts list, fetching on first call */
+function useGoogleFonts(): string[] {
+  const [fonts, setFonts] = React.useState<string[]>(_cachedGoogleFonts || POPULAR_FONTS);
+  React.useEffect(() => {
+    let cancelled = false;
+    fetchGoogleFonts().then(result => {
+      if (!cancelled) setFonts(result);
+    });
+    return () => { cancelled = true; };
+  }, []);
+  return fonts;
+}
+
 const FONT_SIZES_PT = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
 
 function TextPropsSection({ el, updateElement, updateStyle }: {
@@ -1073,7 +1099,6 @@ function TextPropsSection({ el, updateElement, updateStyle }: {
 }) {
   const [fontSearch, setFontSearch] = React.useState('');
   const [showFontPicker, setShowFontPicker] = React.useState(false);
-  const [, forceUpdate] = React.useState(0);
 
   const currentFont = (el.style?.fontFamily || 'Inter').split(',')[0].replace(/['"]/g, '').trim();
   const currentSize = el.style?.fontSize || 18;
@@ -1081,17 +1106,7 @@ function TextPropsSection({ el, updateElement, updateStyle }: {
   const currentWeight = el.style?.fontWeight || '400';
   const currentAlign = el.style?.textAlign || 'left';
 
-  // Force re-render when Google Fonts finish loading (global fetch runs on module load)
-  React.useEffect(() => {
-    if (showFontPicker && !_googleFontsFetched) {
-      const interval = setInterval(() => {
-        if (_googleFontsFetched) { forceUpdate(n => n + 1); clearInterval(interval); }
-      }, 200);
-      return () => clearInterval(interval);
-    }
-  }, [showFontPicker]);
-
-  const allFonts = _allGoogleFonts;
+  const allFonts = useGoogleFonts();
   const filteredFonts = fontSearch
     ? allFonts.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase())).slice(0, 100)
     : allFonts.slice(0, 100);

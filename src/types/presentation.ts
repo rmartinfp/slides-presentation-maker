@@ -193,6 +193,10 @@ export interface Presentation {
   theme: PresentationTheme;
   templateType?: 'classic' | 'cinematic';
   cinematicPresetId?: string;
+  /** When editing a template, the source table ('templates' | 'cinematic_templates') */
+  sourceTable?: string;
+  /** When editing a template, the source record UUID for save-back */
+  sourceTemplateId?: string;
   createdAt: string;
   updatedAt: string;
 }

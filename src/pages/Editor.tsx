@@ -1171,11 +1171,10 @@ export default function EditorPage() {
                 slides, theme: theme as any,
                 templateType: isClassic ? 'classic' : 'cinematic',
                 cinematicPresetId: tmpl.preset_id || 'midnight',
-                // Store source info for save-back
                 sourceTemplateId: tmpl.id,
                 sourceTable: tmpl._sourceTable || 'cinematic_templates',
                 createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-              } as any);
+              });
               setShowTemplatePicker(false);
             }}
             onBlank={() => {

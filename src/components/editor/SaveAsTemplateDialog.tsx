@@ -26,8 +26,8 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
 
   const { presentation } = useEditorStore();
 
-  const sourceTable = (presentation as any).sourceTable;
-  const sourceTemplateId = (presentation as any).sourceTemplateId;
+  const sourceTable = presentation.sourceTable;
+  const sourceTemplateId = presentation.sourceTemplateId;
   const isClassicUpdate = sourceTable === 'templates' && sourceTemplateId;
   const isCinematicUpdate = sourceTable === 'cinematic_templates' && sourceTemplateId;
 
