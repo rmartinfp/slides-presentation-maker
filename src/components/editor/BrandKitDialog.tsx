@@ -111,7 +111,7 @@ export default function BrandKitDialog({ onClose }: Props) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -132,136 +132,94 @@ export default function BrandKitDialog({ onClose }: Props) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-6 py-5 max-h-[70vh] overflow-y-auto">
+        {/* Body — two columns: Brand Kit left, Logo right */}
+        <div className="max-h-[75vh] overflow-y-auto">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
               <p className="text-sm text-slate-500">Analyzing your presentation...</p>
             </div>
-          ) : brandKit ? (
-            <div className="space-y-5">
-              {/* Brand Name */}
-              <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Brand</p>
-                <p className="text-lg font-semibold text-slate-800">{brandKit.brandName}</p>
-              </div>
-
-              {/* Color Palette — editable */}
-              <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1">Colors</p>
-                <p className="text-[10px] text-slate-400 mb-3">Click a color to change it</p>
-                <div className="flex items-center gap-3">
-                  {paletteLabels.map(({ key, label }) => (
-                    <div key={key} className="flex flex-col items-center gap-1.5">
-                      <label className="relative cursor-pointer group">
-                        <div
-                          className="w-10 h-10 rounded-full border-2 border-white shadow-md group-hover:ring-2 group-hover:ring-[#4F46E5] group-hover:ring-offset-1 transition-all"
-                          style={{ backgroundColor: brandKit.palette[key] }}
-                          title={`Click to change ${label}`}
-                        />
-                        <input
-                          type="color"
-                          value={brandKit.palette[key]}
-                          onChange={e => setBrandKit(prev => prev ? { ...prev, palette: { ...prev.palette, [key]: e.target.value } } : prev)}
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                        />
-                      </label>
-                      <span className="text-[10px] text-slate-500 font-mono">
-                        {brandKit.palette[key]}
-                      </span>
-                      <span className="text-[10px] text-slate-400">{label}</span>
+          ) : (
+            <div className="flex">
+              {/* ── LEFT COLUMN: Brand Kit ── */}
+              <div className="flex-1 px-6 py-5 border-r border-slate-200 space-y-4">
+                {brandKit ? (
+                  <>
+                    {/* Brand Name */}
+                    <div>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">Brand</p>
+                      <p className="text-base font-semibold text-slate-800">{brandKit.brandName}</p>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Colors — editable */}
+                    <div>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">Colors</p>
+                      <p className="text-[9px] text-slate-400 mb-2">Click to change</p>
+                      <div className="flex items-center gap-2.5">
+                        {paletteLabels.map(({ key, label }) => (
+                          <div key={key} className="flex flex-col items-center gap-1">
+                            <label className="relative cursor-pointer group">
+                              <div className="w-9 h-9 rounded-full border-2 border-white shadow-md group-hover:ring-2 group-hover:ring-[#4F46E5] transition-all"
+                                style={{ backgroundColor: brandKit.palette[key] }} />
+                              <input type="color" value={brandKit.palette[key]}
+                                onChange={e => setBrandKit(prev => prev ? { ...prev, palette: { ...prev.palette, [key]: e.target.value } } : prev)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                            </label>
+                            <span className="text-[8px] text-slate-400">{label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Typography */}
+                    <div>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Typography</p>
+                      <div className="space-y-1.5">
+                        <div className="flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg">
+                          <span className="text-sm font-semibold text-slate-700" style={{ fontFamily: `"${brandKit.typography.titleFont}", sans-serif` }}>
+                            {brandKit.typography.titleFont}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{brandKit.typography.titleSize}pt</span>
+                        </div>
+                        <div className="flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg">
+                          <span className="text-xs text-slate-700" style={{ fontFamily: `"${brandKit.typography.bodyFont}", sans-serif` }}>
+                            {brandKit.typography.bodyFont}
+                          </span>
+                          <span className="text-[10px] text-slate-400">{brandKit.typography.bodySize}pt</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Style */}
+                    <div>
+                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Style</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-[10px] text-indigo-700 font-medium">{brandKit.style?.mood}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600">Radii: {brandKit.style?.radii}</span>
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600">Shadows: {brandKit.style?.shadows}</span>
+                      </div>
+                    </div>
+
+                    {/* Apply Theme button */}
+                    <Button onClick={handleApply} disabled={applied}
+                      className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl h-9 text-xs">
+                      {applied
+                        ? <><Check className="w-3.5 h-3.5 mr-1.5" />Applied</>
+                        : <><Palette className="w-3.5 h-3.5 mr-1.5" />Apply as Theme</>}
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 py-8 text-center">No brand kit extracted yet</p>
+                )}
               </div>
 
-              {/* Typography */}
-              <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Typography</p>
-                <div className="space-y-2">
-                  <div className="flex items-baseline justify-between px-3 py-2 bg-slate-50 rounded-lg">
-                    <span
-                      className="text-base font-semibold text-slate-700"
-                      style={{ fontFamily: `"${brandKit.typography.titleFont}", sans-serif` }}
-                    >
-                      {brandKit.typography.titleFont}
-                    </span>
-                    <span className="text-xs text-slate-400">{brandKit.typography.titleSize}pt title</span>
-                  </div>
-                  <div className="flex items-baseline justify-between px-3 py-2 bg-slate-50 rounded-lg">
-                    <span
-                      className="text-sm text-slate-700"
-                      style={{ fontFamily: `"${brandKit.typography.bodyFont}", sans-serif` }}
-                    >
-                      {brandKit.typography.bodyFont}
-                    </span>
-                    <span className="text-xs text-slate-400">{brandKit.typography.bodySize}pt body</span>
-                  </div>
-                </div>
+              {/* ── RIGHT COLUMN: Logo ── */}
+              <div className="w-[320px] shrink-0">
+                <LogoSection onClose={onClose} />
               </div>
-
-              {/* Style */}
-              <div>
-                <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Style</p>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-full bg-indigo-50 text-xs text-indigo-700 font-medium">
-                    {brandKit.style?.mood}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs text-slate-600">
-                    Radii: {brandKit.style?.radii}
-                  </span>
-                  <span className="px-2.5 py-1 rounded-full bg-slate-100 text-xs text-slate-600">
-                    Shadows: {brandKit.style?.shadows}
-                  </span>
-                </div>
-              </div>
-
-              {/* Recommendations */}
-              {brandKit.recommendations && brandKit.recommendations.length > 0 && (
-                <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
-                    Recommendations
-                  </p>
-                  <ul className="space-y-1.5">
-                    {brandKit.recommendations.map((rec, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                        <Paintbrush className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
-                        {rec}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
             </div>
-          ) : null}
+          )}
         </div>
-
-        {/* Footer */}
-        {!loading && brandKit && (
-          <div className="px-6 py-4 border-t border-slate-200">
-            <Button
-              onClick={handleApply}
-              disabled={applied}
-              className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl h-10"
-            >
-              {applied ? (
-                <span className="flex items-center gap-2">
-                  <Check className="w-4 h-4" />
-                  Applied
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Palette className="w-4 h-4" />
-                  Apply as Theme
-                </span>
-              )}
-            </Button>
-          </div>
-        )}
-
-        {/* ── ADD LOGO SECTION ── */}
-        <LogoSection onClose={onClose} />
       </motion.div>
     </motion.div>
   );
