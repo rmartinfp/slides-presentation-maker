@@ -346,9 +346,8 @@ export default function CanvasElement({
         const dashArray = s.shapeStrokeDash as string | undefined;
 
         const svgStyle: React.CSSProperties = { pointerEvents: 'none' };
-        // Skip stroke rendering when fill === stroke (same color = invisible stroke)
-        // or when shapes are tiny (< 15px) — stroke distorts small decorative elements
-        const effectiveStroke = (stroke === fill || stroke === 'transparent' || Math.min(element.width, element.height) < 15) ? 'none' : stroke;
+        // Only skip stroke when explicitly transparent or width is 0
+        const effectiveStroke = (stroke === 'transparent' || stroke === 'none' || !strokeWidth) ? 'none' : stroke;
         const strokeProps = { stroke: effectiveStroke, strokeWidth: effectiveStroke !== 'none' ? strokeWidth : 0, strokeDasharray: dashArray || undefined };
 
         // Gradient definition (reusable across shape types)
