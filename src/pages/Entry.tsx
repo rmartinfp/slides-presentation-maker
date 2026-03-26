@@ -41,29 +41,35 @@ export default function Entry() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const allTemplatesRaw = [
-    ...(cinematicTemplates || []).map((t: any) => ({
-      id: t.id, name: t.name, category: t.category, type: 'cinematic' as const,
-      thumbnailUrl: null,
-      videoUrl: t.slides?.[0]?.videoBackground?.url,
-      videoOpacity: t.slides?.[0]?.videoBackground?.opacity || 0.5,
-      bgColor: t.slides?.[0]?.background?.value || t.theme?.tokens?.palette?.bg || '#000',
-      tags: (t.tags || []).join(' '),
-      raw: t,
-    })),
-    ...(classicTemplates || []).map((t: any) => ({
-      id: t.id, name: t.name.replace(/ by Slidesgo$/i, ''), category: t.category === 'Imported' ? 'All' : t.category, type: 'classic' as const,
-      thumbnailUrl: t.thumbnail_url,
-      videoUrl: null, videoOpacity: 0,
+  // Build both lists then interleave them
+  const cinematicList = (cinematicTemplates || []).map((t: any) => ({
+    id: t.id, name: t.name, category: t.category, type: 'cinematic' as const,
+    thumbnailUrl: null,
+    videoUrl: t.slides?.[0]?.videoBackground?.url,
+    videoOpacity: t.slides?.[0]?.videoBackground?.opacity || 0.5,
+    bgColor: t.slides?.[0]?.background?.value || t.theme?.tokens?.palette?.bg || '#000',
+    tags: (t.tags || []).join(' '),
+    raw: t,
+  }));
+  const classicList = (classicTemplates || []).map((t: any) => ({
+    id: t.id, name: t.name.replace(/ by Slidesgo$/i, ''), category: t.category === 'Imported' ? 'All' : t.category, type: 'classic' as const,
+    thumbnailUrl: t.thumbnail_url,
+    videoUrl: null, videoOpacity: 0,
       bgColor: t.theme?.tokens?.palette?.bg || '#fff',
       tags: (t.tags || []).join(' '),
       raw: t,
-    })),
-  ];
+    }));
+
+  // Interleave cinematic and classic so they appear mixed
+  const allTemplatesRaw: typeof cinematicList = [];
+  const maxLen = Math.max(cinematicList.length, classicList.length);
+  for (let i = 0; i < maxLen; i++) {
+    if (i < cinematicList.length) allTemplatesRaw.push(cinematicList[i]);
+    if (i < classicList.length) allTemplatesRaw.push(classicList[i]);
+  }
 
   // Smart filter: uses search box + prompt keywords to match templates
   const allTemplates = React.useMemo(() => {
-    // Build search terms from prompt + search box
     const promptWords = prompt.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     const searchWords = search.toLowerCase().split(/\s+/).filter(w => w.length > 1);
     const allWords = [...searchWords, ...promptWords];
