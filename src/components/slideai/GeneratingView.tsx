@@ -21,7 +21,7 @@ function getTemplateTitle(slide: Slide): string {
 }
 
 /** Typewriter component for the generating view */
-function TypingText({ text, color, font, delay = 0 }: { text: string; color: string; font: string; delay?: number }) {
+function TypingText({ text, color, font, delay = 0, small }: { text: string; color: string; font: string; delay?: number; small?: boolean }) {
   const [count, setCount] = useState(0);
   const [started, setStarted] = useState(false);
 
@@ -32,19 +32,20 @@ function TypingText({ text, color, font, delay = 0 }: { text: string; color: str
 
   useEffect(() => {
     if (!started || count >= text.length) return;
-    const speed = 30 + Math.random() * 40; // Human-like jitter
+    const speed = small ? 15 + Math.random() * 20 : 30 + Math.random() * 40;
     const t = setTimeout(() => setCount(c => c + 1), speed);
     return () => clearTimeout(t);
-  }, [count, started, text.length]);
+  }, [count, started, text.length, small]);
 
   return (
     <p
-      className="font-bold leading-snug line-clamp-2"
+      className={small ? 'leading-snug line-clamp-1 opacity-60' : 'font-bold leading-snug line-clamp-2'}
       style={{
         color,
-        fontSize: 'clamp(9px, 1.6vw, 15px)',
+        fontSize: small ? 'clamp(6px, 0.9vw, 10px)' : 'clamp(9px, 1.6vw, 15px)',
         fontFamily: `${font}, sans-serif`,
         textShadow: '0 1px 4px rgba(0,0,0,0.3)',
+        marginBottom: small ? 0 : 2,
       }}
     >
       {text.slice(0, count)}
@@ -223,18 +224,23 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
                   </div>
                 )}
 
-                {/* Real content fading in */}
+                {/* Real content — typing animation when AI finishes */}
                 {realSlide && realOpacity > 0 && (
                   <div className="absolute inset-0 p-[7%] flex flex-col justify-end z-20" style={{ opacity: realOpacity }}>
-                    <p className="font-bold leading-snug line-clamp-2 mb-1"
-                      style={{ color: palette.text, fontSize: 'clamp(9px, 1.6vw, 15px)', fontFamily: `${theme.tokens.typography.titleFont}, sans-serif` }}>
-                      {realTitle}
-                    </p>
+                    <TypingText
+                      text={realTitle || 'Untitled'}
+                      color={palette.text}
+                      font={theme.tokens.typography.titleFont}
+                      delay={i * 400}
+                    />
                     {realBody && (
-                      <p className="leading-snug line-clamp-1 opacity-50"
-                        style={{ color: palette.text, fontSize: 'clamp(6px, 0.9vw, 10px)', fontFamily: `${theme.tokens.typography.bodyFont}, sans-serif` }}>
-                        {realBody}
-                      </p>
+                      <TypingText
+                        text={realBody}
+                        color={palette.text}
+                        font={theme.tokens.typography.bodyFont}
+                        delay={i * 400 + 800}
+                        small
+                      />
                     )}
                   </div>
                 )}
