@@ -768,6 +768,7 @@ export default function EditorPage() {
           </div>
         </div>
       </div>
+      </div>
 
       <AnimatePresence>
         {showAIRewrite && activeSlide && (
