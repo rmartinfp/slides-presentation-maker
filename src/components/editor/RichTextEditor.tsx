@@ -16,9 +16,10 @@ interface Props {
   scale: number;
   shrinkScale?: number;
   onBlur: () => void;
+  readOnly?: boolean;
 }
 
-export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur }: Props) {
+export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur, readOnly = false }: Props) {
   const updateElement = useEditorStore(s => s.updateElement);
 
   const editor = useEditor({
@@ -56,11 +57,13 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
         ].filter(Boolean).join('; '),
       },
     },
+    editable: !readOnly,
     onUpdate: ({ editor }) => {
+      if (readOnly) return;
       const html = editor.getHTML();
       updateElement(element.id, { content: html });
     },
-    autofocus: 'end',
+    autofocus: readOnly ? false : 'end',
   });
 
   // Stop propagation of keyboard events so they don't trigger canvas shortcuts
@@ -85,7 +88,7 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
   return (
     <div
       className="w-full h-full relative"
-      onKeyDown={handleKeyDown}
+      onKeyDown={readOnly ? undefined : handleKeyDown}
       style={{
         padding: 8,
         boxSizing: 'border-box',
@@ -94,14 +97,16 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
         justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : undefined,
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
+        pointerEvents: readOnly ? 'none' : undefined,
+        opacity: typeof element.style.opacity === 'number' ? element.style.opacity : 1,
       }}
     >
-      <FormattingToolbar editor={editor} scale={scale} />
+      {!readOnly && <FormattingToolbar editor={editor} scale={scale} />}
       <EditorContent
         editor={editor}
-        className="w-full cursor-text"
+        className={readOnly ? 'w-full' : 'w-full cursor-text'}
         style={{ boxSizing: 'border-box' }}
-        onBlur={onBlur}
+        onBlur={readOnly ? undefined : onBlur}
       />
     </div>
   );

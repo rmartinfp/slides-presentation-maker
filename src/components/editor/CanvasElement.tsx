@@ -264,66 +264,18 @@ export default function CanvasElement({
 
     switch (element.type) {
       case 'text': {
-        if (isEditing) {
-          // Pass shrinkScale to RichTextEditor so it reduces fontSize
-          // instead of using CSS transform — prevents position jumping.
-          return (
-            <RichTextEditor
-              element={element}
-              scale={scale}
-              shrinkScale={shrinkScale}
-              onBlur={handleBlur}
-            />
-          );
-        }
-
-        const isHtml = element.content.startsWith('<');
-        const vAlign = s.verticalAlign;
-        // Ensure sans-serif fallback so missing Google Fonts don't render as serif
-        const fontFamily = s.fontFamily
-          ? (s.fontFamily.includes('sans-serif') ? s.fontFamily : `${s.fontFamily}, sans-serif`)
-          : 'sans-serif';
-        const textStyle: React.CSSProperties = {
-          fontFamily,
-          fontSize: baseFontPx,
-          fontWeight: s.fontWeight as React.CSSProperties['fontWeight'],
-          fontStyle: s.fontStyle,
-          textDecoration: s.textDecoration,
-          textAlign: s.textAlign as React.CSSProperties['textAlign'],
-          lineHeight: s.lineHeight || 1.4,
-          letterSpacing: s.letterSpacing,
-          color: s.color,
-          backgroundColor: s.backgroundColor,
-          borderRadius: s.borderRadius,
-          padding: 8,
-          width: shrinkScale < 1 ? `${100 / shrinkScale}%` : '100%',
-          height: shrinkScale < 1 ? `${100 / shrinkScale}%` : '100%',
-          display: vAlign ? 'flex' : undefined,
-          flexDirection: vAlign ? 'column' : undefined,
-          justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : vAlign === 'top' ? 'flex-start' : undefined,
-          outline: 'none',
-          // NO overflow:hidden here — wrapper handles clipping.
-          // The text div must allow scrollHeight > clientHeight for auto-shrink to detect overflow.
-          whiteSpace: isHtml ? undefined : 'pre-wrap', overflowWrap: 'break-word',
-          wordBreak: 'break-word',
-          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
-          pointerEvents: isEditing ? 'auto' : 'none',
-          // Use CSS transform to shrink — works with inline font-size styles
-          transform: shrinkScale < 1 ? `scale(${shrinkScale})` : undefined,
-          transformOrigin: shrinkScale < 1 ? 'top left' : undefined,
-        };
-
-        return isHtml ? (
-          <div
-            ref={shrinkRef}
-            style={textStyle}
-            className="focus:outline-none tiptap-preview"
-            dangerouslySetInnerHTML={{ __html: element.content }}
+        // ALWAYS use RichTextEditor for BOTH static and edit modes.
+        // This guarantees zero visual difference when toggling edit mode.
+        // In static mode: editable=false, no toolbar, no cursor.
+        // In edit mode: editable=true, toolbar shown, cursor active.
+        return (
+          <RichTextEditor
+            element={element}
+            scale={scale}
+            shrinkScale={shrinkScale}
+            onBlur={handleBlur}
+            readOnly={!isEditing}
           />
-        ) : (
-          <div ref={shrinkRef} style={textStyle} className="focus:outline-none">
-            {element.content}
-          </div>
         );
       }
 
