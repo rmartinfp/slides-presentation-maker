@@ -266,7 +266,8 @@ export default function RedesignDialog({ onClose }: Props) {
     if (!slide?.elements) return;
     pushSnapshot();
 
-    const elements = [...slide.elements];
+    // Deep clone all elements to avoid mutating Immer-frozen objects
+    const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
     // Classify current elements
     const texts = elements.filter(e => e.type === 'text' && !e.locked);
     const images = elements.filter(e => e.type === 'image' && !e.locked);
