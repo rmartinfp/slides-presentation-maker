@@ -27,6 +27,7 @@ export default function Entry() {
   const [filterColor, setFilterColor] = useState('all');
   const [sortBy, setSortBy] = useState('popular');
   const [isRecording, setIsRecording] = useState(false);
+  const [previewTmpl, setPreviewTmpl] = useState<any>(null);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -155,11 +156,22 @@ export default function Entry() {
             {/* Selected template thumbnail */}
             {selectedId && (() => {
               const tmpl = allTemplatesRaw.find(t => t.id === selectedId);
-              const thumb = tmpl?.thumbnailUrl || (tmpl?.slideImages?.[0]);
-              return thumb ? (
+              if (!tmpl) return null;
+              const thumb = tmpl.thumbnailUrl || tmpl.slideImages?.[0];
+              return (
                 <div className="px-5 pt-4 pb-1">
                   <div className="group relative inline-block rounded-lg overflow-hidden border border-slate-200/60 shadow-sm">
-                    <img src={thumb} alt={tmpl?.name || 'Template'} className="h-16 w-auto object-cover rounded-lg" />
+                    {thumb ? (
+                      <img src={thumb} alt={tmpl.name || 'Template'} className="h-16 w-auto object-cover rounded-lg" />
+                    ) : (
+                      <div className="h-16 w-28 rounded-lg relative overflow-hidden flex items-center justify-center" style={{ backgroundColor: tmpl.bgColor }}>
+                        {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
+                        <div className="relative z-10 flex items-center gap-1.5">
+                          <Play className="w-3.5 h-3.5 text-white/80" />
+                          <span className="text-[10px] font-medium text-white/80 truncate max-w-[70px]">{tmpl.name}</span>
+                        </div>
+                      </div>
+                    )}
                     <button
                       onClick={() => { setSelectedId(null); setSelectedType(null); }}
                       className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
@@ -168,7 +180,7 @@ export default function Entry() {
                     </button>
                   </div>
                 </div>
-              ) : null;
+              );
             })()}
 
             <textarea
@@ -414,18 +426,35 @@ export default function Entry() {
                   setSelectedId(selectedId === tmpl.id ? null : tmpl.id);
                   setSelectedType(selectedId === tmpl.id ? null : tmpl.type);
                 }}
+                onPreview={() => setPreviewTmpl(tmpl)}
               />
             ))}
           </div>
         </div>
       </div>
+
+      {/* Preview modal — click on card opens this */}
+      <AnimatePresence>
+        {previewTmpl && (
+          <EntryPreviewModal
+            tmpl={previewTmpl}
+            isSelected={selectedId === previewTmpl.id}
+            onSelect={() => {
+              setSelectedId(selectedId === previewTmpl.id ? null : previewTmpl.id);
+              setSelectedType(selectedId === previewTmpl.id ? null : previewTmpl.type);
+              setPreviewTmpl(null);
+            }}
+            onClose={() => setPreviewTmpl(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
 
-// ─── Template Card with hover preview popover ───
-function TemplateCard({ tmpl, index, isSelected, onSelect }: {
-  tmpl: any; index: number; isSelected: boolean; onSelect: () => void;
+// ─── Template Card — hover autoscrolls, click opens preview ───
+function TemplateCard({ tmpl, index, isSelected, onSelect, onPreview }: {
+  tmpl: any; index: number; isSelected: boolean; onSelect: () => void; onPreview: () => void;
 }) {
   const [isHovering, setIsHovering] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -433,7 +462,6 @@ function TemplateCard({ tmpl, index, isSelected, onSelect }: {
   const slideImages = tmpl.slideImages || [];
   const hasSlideImages = slideImages.length > 1;
 
-  // Auto-cycle slides when hovering
   React.useEffect(() => {
     if (!isHovering || slideImages.length <= 1) { setCurrentSlide(0); return; }
     const interval = setInterval(() => setCurrentSlide(prev => (prev + 1) % slideImages.length), 1500);
@@ -441,93 +469,183 @@ function TemplateCard({ tmpl, index, isSelected, onSelect }: {
   }, [isHovering, slideImages.length]);
 
   return (
-    <div className="relative">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3) }}
-        onHoverStart={() => { hoverTimer.current = setTimeout(() => setIsHovering(true), 500); }}
-        onHoverEnd={() => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setIsHovering(false); setCurrentSlide(0); }}
-        onClick={onSelect}
-        className={cn(
-          'group cursor-pointer rounded-xl overflow-hidden transition-all duration-200',
-          isSelected
-            ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white shadow-xl shadow-[#4F46E5]/15 -translate-y-1'
-            : 'hover:shadow-lg hover:-translate-y-0.5'
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.25, delay: Math.min(index * 0.03, 0.3) }}
+      onHoverStart={() => { hoverTimer.current = setTimeout(() => setIsHovering(true), 500); }}
+      onHoverEnd={() => { if (hoverTimer.current) clearTimeout(hoverTimer.current); setIsHovering(false); setCurrentSlide(0); }}
+      onClick={onPreview}
+      className={cn(
+        'group cursor-pointer rounded-xl overflow-hidden transition-all duration-200',
+        isSelected
+          ? 'ring-2 ring-[#4F46E5] ring-offset-2 ring-offset-white shadow-xl shadow-[#4F46E5]/15 -translate-y-1'
+          : 'hover:shadow-lg hover:-translate-y-0.5'
+      )}
+    >
+      <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: tmpl.bgColor }}>
+        {/* On hover with slide images: cycle through them; otherwise show static cover */}
+        {isHovering && hasSlideImages ? (
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={currentSlide}
+              src={slideImages[currentSlide]}
+              alt={`Slide ${currentSlide + 1}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </AnimatePresence>
+        ) : (
+          <>
+            {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />}
+            {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
+          </>
         )}
-      >
-        <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: tmpl.bgColor }}>
-          {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />}
-          {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
-          <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
-            <p className="text-[11px] font-medium text-white truncate">{tmpl.name}</p>
-          </div>
-          {tmpl.type === 'cinematic' && !isSelected && (
-            <span className="absolute top-1.5 right-1.5 text-[8px] px-1.5 py-0.5 rounded-full bg-[#9333EA]/80 text-white font-medium flex items-center gap-0.5">
-              <Play className="w-2 h-2" />Cinematic
-            </span>
-          )}
-          {!isSelected && (
-            <span className="absolute top-1.5 right-1.5 px-3 py-1.5 rounded-full bg-white text-slate-900 text-[10px] font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-              Use template
-            </span>
-          )}
-          {isSelected && (
-            <div className="absolute inset-0 bg-[#4F46E5]/15 flex items-center justify-center">
-              <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-10 h-10 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-xl">
-                <Check className="w-5 h-5 text-white" />
-              </motion.div>
-            </div>
-          )}
+        <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
+          <p className="text-[11px] font-medium text-white truncate">{tmpl.name}</p>
         </div>
-      </motion.div>
-
-      {/* Hover popover — slide preview centered on screen */}
-      <AnimatePresence>
+        {tmpl.type === 'cinematic' && !isSelected && (
+          <span className="absolute top-1.5 right-1.5 text-[8px] px-1.5 py-0.5 rounded-full bg-[#9333EA]/80 text-white font-medium flex items-center gap-0.5">
+            <Play className="w-2 h-2" />Cinematic
+          </span>
+        )}
+        {!isSelected && (
+          <button
+            onClick={e => { e.stopPropagation(); onSelect(); }}
+            className="absolute top-1.5 right-1.5 px-3 py-1.5 rounded-full bg-white text-slate-900 text-[10px] font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 hover:bg-slate-100"
+          >
+            Use template
+          </button>
+        )}
         {isHovering && hasSlideImages && (
-          <div className="fixed z-50 pointer-events-none inset-0 flex items-center justify-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.92 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
-              style={{ width: 640 }}
-            >
-              <div className="rounded-2xl overflow-hidden shadow-[0_20px_60px_-12px_rgba(0,0,0,0.4)] border border-white/10 bg-slate-900">
-                <div className="aspect-video relative overflow-hidden">
-                  <AnimatePresence mode="wait">
-                    <motion.img
-                      key={currentSlide}
-                      src={slideImages[currentSlide]}
-                      alt={`Slide ${currentSlide + 1}`}
-                      initial={{ opacity: 0, x: 30 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -30 }}
-                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                      className="w-full h-full object-contain"
-                    />
-                  </AnimatePresence>
-                </div>
-                <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90">
-                  <span className="text-white/60 text-[11px]">{tmpl.name}</span>
-                  <div className="flex items-center gap-1.5">
-                    {slideImages.slice(0, Math.min(slideImages.length, 14)).map((_: any, idx: number) => (
-                      <div
-                        key={idx}
-                        className={cn(
-                          'rounded-full transition-all duration-300',
-                          currentSlide === idx ? 'w-4 h-1.5 bg-[#4F46E5]' : 'w-1.5 h-1.5 bg-white/25'
-                        )}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-white/40 text-[11px]">{currentSlide + 1}/{slideImages.length}</span>
-                </div>
-              </div>
+          <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-full bg-black/60 text-white text-[9px] font-medium z-10">
+            {currentSlide + 1}/{slideImages.length}
+          </span>
+        )}
+        {isSelected && (
+          <div className="absolute inset-0 bg-[#4F46E5]/15 flex items-center justify-center">
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-10 h-10 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-xl">
+              <Check className="w-5 h-5 text-white" />
             </motion.div>
           </div>
         )}
-      </AnimatePresence>
-    </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Preview modal — opened on card click ───
+function EntryPreviewModal({ tmpl, isSelected, onSelect, onClose }: {
+  tmpl: any; isSelected: boolean; onSelect: () => void; onClose: () => void;
+}) {
+  const slideImages = tmpl.slideImages || [];
+  const [current, setCurrent] = React.useState(0);
+
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'ArrowRight') setCurrent(c => Math.min(c + 1, slideImages.length - 1));
+      if (e.key === 'ArrowLeft') setCurrent(c => Math.max(c - 1, 0));
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [slideImages.length, onClose]);
+
+  const hasCover = tmpl.thumbnailUrl || tmpl.videoUrl;
+  const hasSlides = slideImages.length > 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div className="relative w-full max-w-3xl mx-4" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors">
+          <X className="w-6 h-6" />
+        </button>
+        <div className="absolute -top-12 left-0 text-white/90 text-sm font-medium">
+          {tmpl.name}{hasSlides ? ` — Slide ${current + 1} / ${slideImages.length}` : ''}
+        </div>
+
+        <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-slate-900">
+          <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: tmpl.bgColor }}>
+            {hasSlides ? (
+              <AnimatePresence mode="wait">
+                <motion.img
+                  key={current}
+                  src={slideImages[current]}
+                  alt={`Slide ${current + 1}`}
+                  initial={{ opacity: 0, x: 30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -30 }}
+                  transition={{ duration: 0.3, ease: 'easeInOut' }}
+                  className="w-full h-full object-contain"
+                />
+              </AnimatePresence>
+            ) : (
+              <>
+                {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="w-full h-full object-cover" />}
+                {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
+              </>
+            )}
+
+            {hasSlides && current > 0 && (
+              <button onClick={() => setCurrent(c => c - 1)} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors">
+                <ArrowRight className="w-5 h-5 rotate-180" />
+              </button>
+            )}
+            {hasSlides && current < slideImages.length - 1 && (
+              <button onClick={() => setCurrent(c => c + 1)} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center transition-colors">
+                <ArrowRight className="w-5 h-5" />
+              </button>
+            )}
+          </div>
+
+          {/* Thumbnail strip */}
+          {hasSlides && slideImages.length > 1 && (
+            <div className="flex gap-2 px-4 py-3 bg-slate-900/90 overflow-x-auto justify-center">
+              {slideImages.map((img: string, idx: number) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrent(idx)}
+                  className={cn(
+                    'flex-shrink-0 w-16 h-10 rounded-md overflow-hidden border-2 transition-all',
+                    current === idx ? 'border-[#4F46E5] shadow-lg scale-105' : 'border-transparent opacity-50 hover:opacity-80'
+                  )}
+                >
+                  <img src={img} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Use template button */}
+          <div className="flex items-center justify-between px-5 py-4 bg-slate-900 border-t border-white/5">
+            <span className="text-white/60 text-sm">{tmpl.name}</span>
+            <button
+              onClick={onSelect}
+              className={cn(
+                'px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2',
+                isSelected
+                  ? 'bg-white/10 text-white hover:bg-white/20'
+                  : 'bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white shadow-lg shadow-[#4F46E5]/25 hover:shadow-xl'
+              )}
+            >
+              {isSelected ? (
+                <><Check className="w-4 h-4" /> Selected</>
+              ) : (
+                <><Sparkles className="w-4 h-4" /> Use template</>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
   );
 }

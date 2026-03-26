@@ -39,7 +39,7 @@ function useDbTemplates() {
   });
 }
 
-function SlidePreviewModal({ template, onClose }: { template: UnifiedTemplate; onClose: () => void }) {
+function SlidePreviewModal({ template, isSelected, onSelect, onClose }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void; onClose: () => void }) {
   const images = template.slideImages || [];
   const [current, setCurrent] = React.useState(0);
 
@@ -64,18 +64,15 @@ function SlidePreviewModal({ template, onClose }: { template: UnifiedTemplate; o
       onClick={onClose}
     >
       <div className="relative w-full max-w-5xl mx-4" onClick={e => e.stopPropagation()}>
-        {/* Close */}
         <button onClick={onClose} className="absolute -top-12 right-0 text-white/70 hover:text-white transition-colors">
           <X className="w-6 h-6" />
         </button>
 
-        {/* Title */}
         <div className="absolute -top-12 left-0 text-white/90 text-sm font-medium">
           {template.name} — Slide {current + 1} / {images.length}
         </div>
 
-        {/* Main image */}
-        <div className="relative aspect-video bg-black rounded-xl overflow-hidden shadow-2xl">
+        <div className="relative aspect-video bg-black rounded-t-xl overflow-hidden shadow-2xl">
           <AnimatePresence mode="wait">
             <motion.img
               key={current}
@@ -89,7 +86,6 @@ function SlidePreviewModal({ template, onClose }: { template: UnifiedTemplate; o
             />
           </AnimatePresence>
 
-          {/* Nav arrows */}
           {current > 0 && (
             <button
               onClick={() => setCurrent(c => c - 1)}
@@ -109,19 +105,39 @@ function SlidePreviewModal({ template, onClose }: { template: UnifiedTemplate; o
         </div>
 
         {/* Thumbnail strip */}
-        <div className="flex gap-2 mt-4 justify-center overflow-x-auto pb-2">
+        <div className="flex gap-2 px-4 py-3 justify-center overflow-x-auto bg-black/60 backdrop-blur">
           {images.map((img, idx) => (
             <button
               key={idx}
               onClick={() => setCurrent(idx)}
               className={cn(
                 'flex-shrink-0 w-20 h-12 rounded-md overflow-hidden border-2 transition-all',
-                current === idx ? 'border-white shadow-lg scale-105' : 'border-transparent opacity-50 hover:opacity-80'
+                current === idx ? 'border-[#4F46E5] shadow-lg scale-105' : 'border-transparent opacity-50 hover:opacity-80'
               )}
             >
               <img src={img} alt={`Slide ${idx + 1}`} className="w-full h-full object-cover" />
             </button>
           ))}
+        </div>
+
+        {/* Use template button */}
+        <div className="flex items-center justify-between px-5 py-4 bg-slate-900 rounded-b-xl border-t border-white/5">
+          <span className="text-white/60 text-sm">{template.name}</span>
+          <button
+            onClick={() => { onSelect(template); onClose(); }}
+            className={cn(
+              'px-5 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2',
+              isSelected
+                ? 'bg-white/10 text-white hover:bg-white/20'
+                : 'bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white shadow-lg shadow-[#4F46E5]/25 hover:shadow-xl'
+            )}
+          >
+            {isSelected ? (
+              <><Check className="w-4 h-4" /> Selected</>
+            ) : (
+              <><Sparkles className="w-4 h-4" /> Use template</>
+            )}
+          </button>
         </div>
       </div>
     </motion.div>
@@ -129,25 +145,12 @@ function SlidePreviewModal({ template, onClose }: { template: UnifiedTemplate; o
 }
 
 function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: UnifiedTemplate; isSelected: boolean; onSelect: (t: UnifiedTemplate) => void; onPreview: (t: UnifiedTemplate) => void }) {
-  const hasSlides = template.slides && template.slides.length > 0;
-  const hasSlideImages = template.slideImages && template.slideImages.length > 0;
+  const hasSlideImages = template.slideImages && template.slideImages.length > 1;
   const [isHovering, setIsHovering] = useState(false);
   const [currentSlide, setCurrentSlide] = useState(0);
   const imageCount = template.slideImages?.length || 0;
-  const cardRef = React.useRef<HTMLDivElement>(null);
   const hoverTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [popoverSide, setPopoverSide] = useState<'right' | 'left'>('right');
 
-  // Determine which side the popover should appear on
-  React.useEffect(() => {
-    if (isHovering && cardRef.current) {
-      const rect = cardRef.current.getBoundingClientRect();
-      const spaceRight = window.innerWidth - rect.right;
-      setPopoverSide(spaceRight > 520 ? 'right' : 'left');
-    }
-  }, [isHovering]);
-
-  // Auto-cycle slides on hover (use real images if available)
   React.useEffect(() => {
     if (!isHovering || imageCount <= 1) {
       setCurrentSlide(0);
@@ -160,9 +163,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
   }, [isHovering, imageCount]);
 
   return (
-    <div ref={cardRef} className="relative">
     <motion.div
-
       whileHover={{ y: -6 }}
       onHoverStart={() => {
         hoverTimer.current = setTimeout(() => setIsHovering(true), 500);
@@ -171,7 +172,7 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
         if (hoverTimer.current) { clearTimeout(hoverTimer.current); hoverTimer.current = null; }
         setIsHovering(false); setCurrentSlide(0);
       }}
-      onClick={() => onSelect(template)}
+      onClick={() => onPreview(template)}
       className={cn(
         'relative group rounded-xl overflow-hidden transition-all duration-300 text-left w-full cursor-pointer',
         isSelected
@@ -180,8 +181,20 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
       )}
     >
       <div className="aspect-video relative overflow-hidden bg-slate-900">
-        {/* Always show cover — slide cycling only in the hover popover */}
-        {template.thumbnailUrl ? (
+        {isHovering && hasSlideImages ? (
+          <AnimatePresence mode="wait">
+            <motion.img
+              key={currentSlide}
+              src={template.slideImages![currentSlide]}
+              alt={`Slide ${currentSlide + 1}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </AnimatePresence>
+        ) : template.thumbnailUrl ? (
           <img src={template.thumbnailUrl} alt={template.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: template.colors.bg }}>
@@ -189,14 +202,24 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
           </div>
         )}
 
-        {/* hover gradient removed — name overlay has its own gradient */}
-
-        {(template.slides?.length || imageCount) > 0 && (
+        {isHovering && hasSlideImages ? (
+          <span className="absolute top-2 left-2 px-2 py-0.5 bg-black/60 text-white text-[10px] font-medium rounded-full z-10">
+            {currentSlide + 1}/{imageCount}
+          </span>
+        ) : (template.slides?.length || imageCount) > 0 ? (
           <div className="absolute top-2 left-2 px-2 py-0.5 bg-black/50 backdrop-blur text-white text-[10px] font-medium rounded-full">
             {template.slides?.length || imageCount} slides
           </div>
-        )}
+        ) : null}
 
+        {!isSelected && (
+          <button
+            onClick={e => { e.stopPropagation(); onSelect(template); }}
+            className="absolute top-2 right-2 px-3 py-1.5 rounded-full bg-white text-slate-900 text-[10px] font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 hover:bg-slate-100"
+          >
+            Use template
+          </button>
+        )}
         {isSelected && (
           <motion.div
             initial={{ scale: 0 }}
@@ -208,59 +231,10 @@ function ThemeCard({ template, isSelected, onSelect, onPreview }: { template: Un
         )}
       </div>
 
-      {/* Template name overlay on the cover */}
       <div className="absolute bottom-0 left-0 right-0 p-3 bg-gradient-to-t from-black/70 to-transparent pointer-events-none">
         <h3 className="font-medium text-white text-sm truncate drop-shadow-sm">{template.name}</h3>
       </div>
     </motion.div>
-
-    {/* Hover popover — fixed center of viewport */}
-    <AnimatePresence>
-      {isHovering && hasSlideImages && (
-        <div className="fixed z-50 pointer-events-none inset-0 flex items-center justify-center">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.92 }}
-          transition={{ duration: 0.2, delay: 0.25, ease: 'easeOut' }}
-          style={{ width: 640 }}
-        >
-          <div className="rounded-2xl overflow-hidden shadow-[0_20px_60px_-12px_rgba(0,0,0,0.4)] border border-white/10 bg-slate-900">
-            <div className="aspect-video relative overflow-hidden">
-              <AnimatePresence mode="wait">
-                <motion.img
-                  key={currentSlide}
-                  src={template.slideImages![currentSlide]}
-                  alt={`Slide ${currentSlide + 1}`}
-                  initial={{ opacity: 0, x: 30 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -30 }}
-                  transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className="w-full h-full object-contain"
-                />
-              </AnimatePresence>
-            </div>
-            <div className="flex items-center justify-between px-4 py-2 bg-slate-900/90">
-              <span className="text-white/60 text-[11px]">{template.name}</span>
-              <div className="flex items-center gap-1.5">
-                {template.slideImages!.slice(0, Math.min(imageCount, 14)).map((_, idx) => (
-                  <div
-                    key={idx}
-                    className={cn(
-                      'rounded-full transition-all duration-300',
-                      currentSlide === idx ? 'w-4 h-1.5 bg-[#4F46E5]' : 'w-1.5 h-1.5 bg-white/25'
-                    )}
-                  />
-                ))}
-              </div>
-              <span className="text-white/40 text-[11px]">{currentSlide + 1}/{imageCount}</span>
-            </div>
-          </div>
-        </motion.div>
-        </div>
-      )}
-    </AnimatePresence>
-    </div>
   );
 }
 
@@ -602,7 +576,12 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
       {/* Slide preview lightbox */}
       <AnimatePresence>
         {previewTemplate && (
-          <SlidePreviewModal template={previewTemplate} onClose={() => setPreviewTemplate(null)} />
+          <SlidePreviewModal
+            template={previewTemplate}
+            isSelected={selectedTemplate?.id === previewTemplate.id}
+            onSelect={handleSelect}
+            onClose={() => setPreviewTemplate(null)}
+          />
         )}
       </AnimatePresence>
     </motion.div>
