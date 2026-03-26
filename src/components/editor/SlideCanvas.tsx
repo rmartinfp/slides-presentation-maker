@@ -107,7 +107,7 @@ export default function SlideCanvas({
     isDragging.current = true;
     setMarquee({ x1: x, y1: y, x2: x, y2: y });
     if (!e.shiftKey) clearSelection();
-  }, [isEditing, scale, clearSelection]);
+  }, [isEditing, scale, clearSelection, slide.elements]);
 
   // Use window-level listeners so dragging outside canvas still works
   React.useEffect(() => {
