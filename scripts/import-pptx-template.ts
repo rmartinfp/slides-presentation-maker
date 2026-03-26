@@ -1881,12 +1881,11 @@ async function main() {
               const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slideLayouts/');
               result.element.content = url;
 
-              if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9 && (result.element.opacity ?? 1) > 0.8) {
-                // Only promote to background if image is nearly full-opacity (>80%)
-                // Low-opacity images (textures, overlays) should stay as elements
-                background = { type: 'image', value: url };
-                console.log(`  Layout bg image uploaded`);
-              } else if (url) {
+              // NEVER promote layout images to background. Layout images are always
+              // decorative (notebook pages, textures, borders). The real background
+              // comes from <p:bg> in slide/layout/master. Promoting layout images
+              // hides the real background (e.g., green behind notebook page).
+              if (url) {
                 result.element.locked = true;
                 elements.push(result.element);
                 console.log(`  Layout decoration image uploaded`);
