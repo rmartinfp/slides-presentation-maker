@@ -32,9 +32,38 @@ export default function SlideAIPage() {
   React.useEffect(() => {
     const entryPrompt = sessionStorage.getItem('entryPrompt');
     const entryTemplate = sessionStorage.getItem('entryTemplate');
+    const entryTemplateId = sessionStorage.getItem('entryTemplateId');
     if (entryPrompt) {
       setContentText(entryPrompt);
       sessionStorage.removeItem('entryPrompt');
+
+      // Fallback: if template was too large for sessionStorage, fetch by ID
+      if (!entryTemplate && entryTemplateId) {
+        sessionStorage.removeItem('entryTemplateId');
+        try {
+          const { type, id } = JSON.parse(entryTemplateId);
+          const table = type === 'cinematic' ? 'cinematic_templates' : 'templates';
+          supabase.from(table).select('*').eq('id', id).single().then(({ data }) => {
+            if (!data) return;
+            const theme = data.theme as PresentationTheme;
+            if (theme) {
+              setSelectedTheme(theme);
+              pendingThemeRef.current = theme;
+              const slides = data.preview_slides as Slide[];
+              if (slides?.length) {
+                setTemplateSlides(slides);
+                pendingSlidesRef.current = slides;
+              }
+              loadFontsFromTheme(theme.tokens);
+              if (slides) loadFontsFromSlides(slides);
+            }
+            setStep('generating');
+            autoGenerateRef.current = true;
+          });
+        } catch (err) {
+          console.error('[SlideAI] Failed to fetch template by ID:', err);
+        }
+      }
 
       if (entryTemplate) {
         try {

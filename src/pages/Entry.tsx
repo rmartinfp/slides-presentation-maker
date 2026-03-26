@@ -117,7 +117,16 @@ export default function Entry() {
     if (selectedId && selectedType) {
       // Search in UNFILTERED list — the selected template may have been filtered out by prompt keywords
       const tmpl = allTemplatesRaw.find(t => t.id === selectedId);
-      if (tmpl) sessionStorage.setItem('entryTemplate', JSON.stringify({ type: selectedType, data: tmpl.raw }));
+      if (tmpl) {
+        try {
+          sessionStorage.setItem('entryTemplate', JSON.stringify({ type: selectedType, data: tmpl.raw }));
+        } catch (e) {
+          // Template too large for sessionStorage (~5MB limit) — store only the ID
+          // SlideAI will fetch it from Supabase instead
+          console.warn('Template too large for sessionStorage, storing ID only');
+          sessionStorage.setItem('entryTemplateId', JSON.stringify({ type: selectedType, id: tmpl.id }));
+        }
+      }
     }
     navigate('/create');
   };
