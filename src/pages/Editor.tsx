@@ -586,11 +586,32 @@ export default function EditorPage() {
               if (result) addElement({ type: 'image', content: result.url, x: 400, y: 250, width: 600, height: 400, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 8 } });
               e.target.value = '';
             }} />
-            {/* Hidden file input for video upload */}
+            {/* Hidden file input for video upload — auto-compresses large files */}
             <input ref={vidInputRef} type="file" accept="video/mp4,video/webm,video/quicktime" className="hidden" onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file) return;
-              const result = await uploadAsset(file);
-              if (result) addElement({ type: 'video', content: result.url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
+              let videoFile = file;
+              const sizeMB = file.size / 1048576;
+              // Auto-compress if > 10MB
+              if (sizeMB > 10) {
+                const toastId = toast.loading(`Compressing video (${sizeMB.toFixed(1)}MB)...`);
+                try {
+                  const { compressVideo } = await import('@/lib/video-compress');
+                  videoFile = await compressVideo(file, {
+                    onProgress: (msg) => toast.loading(msg, { id: toastId }),
+                  });
+                  toast.success(`Compressed: ${sizeMB.toFixed(1)}MB → ${(videoFile.size/1048576).toFixed(1)}MB`, { id: toastId });
+                } catch (err) {
+                  console.warn('Compression failed, uploading original:', err);
+                  toast.info('Compression unavailable, uploading original', { id: toastId });
+                  videoFile = file;
+                }
+              }
+              toast.info('Uploading video...');
+              const result = await uploadAsset(videoFile);
+              if (result) {
+                addElement({ type: 'video', content: result.url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } });
+                toast.success('Video added!');
+              }
               e.target.value = '';
             }} />
             {/* Hidden file input for replacing an existing image */}
