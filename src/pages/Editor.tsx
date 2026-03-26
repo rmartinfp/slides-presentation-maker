@@ -740,10 +740,8 @@ export default function EditorPage() {
                 <button onClick={() => setScale(Math.max(0.15, scale - 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">−</button>
                 <button onClick={updateScale} className="text-[10px] text-slate-500 font-mono px-1 hover:text-slate-900 hover:bg-slate-100 rounded min-w-[36px] text-center">{Math.round(scale * 100)}%</button>
                 <button onClick={() => setScale(Math.min(2, scale + 0.1))} className="w-6 h-6 flex items-center justify-center text-slate-500 hover:text-slate-900 rounded hover:bg-slate-100 text-sm font-bold">+</button>
+              </div>
             </div>
-
-            {/* Contextual toolbar is now inside CanvasElement (ElementContextBar) */}
-          </div>
 
           {/* Right panel toggle + properties */}
           <div className="flex shrink-0">
