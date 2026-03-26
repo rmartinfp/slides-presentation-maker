@@ -128,6 +128,11 @@ export default function PropertiesPanel() {
       </div>
 
       <div className="space-y-5">
+        {/* Chart editor — FIRST section when chart is selected */}
+        {el.type === 'chart' && (
+          <ChartPropsSection el={el} updateElement={updateElement} />
+        )}
+
         {/* Position */}
         <Section icon={<Move className="w-3 h-3" />} title="Position">
           <div className="grid grid-cols-2 gap-2">
@@ -391,13 +396,6 @@ export default function PropertiesPanel() {
         {el.type === 'table' && (
           <Section icon={<Palette className="w-3 h-3" />} title="Table">
             <TablePropsSection el={el} updateElement={updateElement} />
-          </Section>
-        )}
-
-        {/* Chart properties — editable inline */}
-        {el.type === 'chart' && (
-          <Section icon={<Palette className="w-3 h-3" />} title="Chart">
-            <ChartPropsSection el={el} updateElement={updateElement} />
           </Section>
         )}
 
@@ -1056,7 +1054,7 @@ function PropInput({ label, value, onChange }: { label: string; value: number; o
   );
 }
 
-// ─── Chart Properties Section ───
+// ─── Chart Properties Section (Full Editor) ───
 const CHART_TYPE_OPTIONS = [
   { value: 'bar', label: 'Bar' },
   { value: 'line', label: 'Line' },
@@ -1066,6 +1064,8 @@ const CHART_TYPE_OPTIONS = [
   { value: 'radar', label: 'Radar' },
   { value: 'scatter', label: 'Scatter' },
 ];
+
+const DEFAULT_CHART_COLORS = ['#4F46E5', '#9333EA', '#EC4899', '#F59E0B', '#10B981', '#3B82F6', '#EF4444', '#8B5CF6'];
 
 function ChartPropsSection({ el, updateElement }: { el: SlideElement; updateElement: (id: string, u: Partial<SlideElement>) => void }) {
   let chartData: any;
@@ -1097,57 +1097,162 @@ function ChartPropsSection({ el, updateElement }: { el: SlideElement; updateElem
     save({ data: newData });
   };
 
+  const addSeries = () => {
+    const newName = `Series ${series.length + 1}`;
+    const newData = (chartData.data || []).map((row: any) => ({ ...row, [newName]: 0 }));
+    save({ data: newData });
+  };
+
+  const removeSeries = (name: string) => {
+    const newData = (chartData.data || []).map((row: any) => {
+      const { [name]: _, ...rest } = row;
+      return rest;
+    });
+    save({ data: newData });
+  };
+
+  const renameSeries = (oldName: string, newName: string) => {
+    if (!newName || newName === oldName) return;
+    const newData = (chartData.data || []).map((row: any) => {
+      const { [oldName]: val, ...rest } = row;
+      return { ...rest, [newName]: val };
+    });
+    // Update colors if exists
+    const newColors = { ...(chartData.colors || {}) };
+    if (newColors[oldName]) { newColors[newName] = newColors[oldName]; delete newColors[oldName]; }
+    save({ data: newData, colors: newColors });
+  };
+
+  const setSeriesColor = (seriesName: string, color: string) => {
+    const newColors = { ...(chartData.colors || {}) };
+    newColors[seriesName] = color;
+    save({ colors: newColors });
+  };
+
   const series = chartData.data?.[0] ? Object.keys(chartData.data[0]).filter((k: string) => k !== 'name') : [];
+  const colors = chartData.colors || {};
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2 pb-2 border-b border-slate-200/60">
+        <div className="w-6 h-6 rounded-md bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
+          <Palette className="w-3 h-3 text-white" />
+        </div>
+        <span className="text-xs font-semibold text-slate-700">Chart Editor</span>
+      </div>
+
       {/* Chart type */}
       <div>
-        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Type</label>
+        <label className="text-[10px] text-slate-500 mb-1.5 block font-medium uppercase tracking-wider">Type</label>
         <div className="grid grid-cols-4 gap-1">
           {CHART_TYPE_OPTIONS.map(ct => (
             <button key={ct.value} onClick={() => save({ chartType: ct.value })}
-              className={`py-1 rounded text-[10px] font-medium transition-colors ${chartData.chartType === ct.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'}`}>
+              className={cn('py-1.5 rounded-lg text-[10px] font-medium transition-all',
+                chartData.chartType === ct.value ? 'bg-[#4F46E5] text-white shadow-sm' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}>
               {ct.label}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Title */}
-      <div>
-        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Title</label>
-        <input value={chartData.title || ''} onChange={e => save({ title: e.target.value })}
-          placeholder="Chart title..." className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-[#4F46E5]" />
-      </div>
-
-      {/* Unit */}
-      <div>
-        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Unit</label>
-        <input value={chartData.unit || ''} onChange={e => save({ unit: e.target.value })}
-          placeholder="$, %, etc." className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs focus:outline-none focus:border-[#4F46E5]" />
-      </div>
-
-      {/* Data rows */}
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] text-slate-500 font-medium">Data</label>
-          <button onClick={addRow} className="text-[10px] text-[#4F46E5] hover:underline">+ Add row</button>
+      {/* Title + Unit row */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="col-span-2">
+          <label className="text-[10px] text-slate-500 mb-1 block font-medium">Title</label>
+          <input value={chartData.title || ''} onChange={e => save({ title: e.target.value })}
+            placeholder="Chart title..." className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#4F46E5]" />
         </div>
-        <div className="space-y-1 max-h-40 overflow-y-auto">
+        <div>
+          <label className="text-[10px] text-slate-500 mb-1 block font-medium">Unit</label>
+          <input value={chartData.unit || ''} onChange={e => save({ unit: e.target.value })}
+            placeholder="$, %" className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#4F46E5]" />
+        </div>
+      </div>
+
+      {/* Series colors */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Series Colors</label>
+          <button onClick={addSeries} className="text-[10px] text-[#4F46E5] hover:underline font-medium">+ Add</button>
+        </div>
+        <div className="space-y-1.5">
+          {series.map((s, i) => (
+            <div key={s} className="flex items-center gap-2">
+              <label className="relative cursor-pointer group shrink-0">
+                <div className="w-6 h-6 rounded-md border-2 border-white shadow-sm group-hover:ring-2 group-hover:ring-[#4F46E5]/30 transition-all"
+                  style={{ backgroundColor: colors[s] || DEFAULT_CHART_COLORS[i % DEFAULT_CHART_COLORS.length] }} />
+                <input type="color" value={colors[s] || DEFAULT_CHART_COLORS[i % DEFAULT_CHART_COLORS.length]}
+                  onChange={e => setSeriesColor(s, e.target.value)}
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+              </label>
+              <input value={s} onBlur={e => renameSeries(s, e.target.value.trim())}
+                onChange={() => {}} onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                defaultValue={s}
+                className="flex-1 h-6 px-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-[#4F46E5]" />
+              {series.length > 1 && (
+                <button onClick={() => removeSeries(s)} className="text-slate-300 hover:text-red-500 shrink-0">
+                  <X className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Data table */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">Data</label>
+          <button onClick={addRow} className="text-[10px] text-[#4F46E5] hover:underline font-medium">+ Row</button>
+        </div>
+        {/* Column headers */}
+        {series.length > 0 && (
+          <div className="flex gap-1 items-center mb-1 px-0.5">
+            <span className="flex-1 text-[9px] text-slate-400 font-medium">Label</span>
+            {series.map((s, i) => (
+              <span key={s} className="w-14 text-[9px] text-right font-medium truncate" style={{ color: colors[s] || DEFAULT_CHART_COLORS[i % DEFAULT_CHART_COLORS.length] }}>{s}</span>
+            ))}
+            <span className="w-3" />
+          </div>
+        )}
+        <div className="space-y-1 max-h-48 overflow-y-auto">
           {(chartData.data || []).map((row: any, i: number) => (
             <div key={i} className="flex gap-1 items-center">
               <input value={row.name || ''} onChange={e => updateDataCell(i, 'name', e.target.value)}
                 className="flex-1 h-6 px-1.5 bg-slate-50 border border-slate-200 rounded text-[10px] focus:outline-none focus:border-[#4F46E5]" />
               {series.map((s: string) => (
                 <input key={s} type="number" value={row[s] ?? 0} onChange={e => updateDataCell(i, s, e.target.value)}
-                  className="w-14 h-6 px-1 bg-slate-50 border border-slate-200 rounded text-[10px] text-right focus:outline-none focus:border-[#4F46E5]" />
+                  className="w-14 h-6 px-1 bg-slate-50 border border-slate-200 rounded text-[10px] text-right tabular-nums focus:outline-none focus:border-[#4F46E5]" />
               ))}
               <button onClick={() => removeRow(i)} className="text-slate-300 hover:text-red-500 shrink-0">
                 <X className="w-3 h-3" />
               </button>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Display options */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1.5 block font-medium uppercase tracking-wider">Display</label>
+        <div className="grid grid-cols-2 gap-1.5">
+          <label className="flex items-center gap-1.5 py-1 px-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+            <input type="checkbox" checked={chartData.showGrid !== false} onChange={e => save({ showGrid: e.target.checked })} className="accent-[#4F46E5] w-3 h-3" />
+            <span className="text-[10px] text-slate-600">Grid</span>
+          </label>
+          <label className="flex items-center gap-1.5 py-1 px-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+            <input type="checkbox" checked={chartData.showLegend !== false} onChange={e => save({ showLegend: e.target.checked })} className="accent-[#4F46E5] w-3 h-3" />
+            <span className="text-[10px] text-slate-600">Legend</span>
+          </label>
+          <label className="flex items-center gap-1.5 py-1 px-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+            <input type="checkbox" checked={chartData.showValues === true} onChange={e => save({ showValues: e.target.checked })} className="accent-[#4F46E5] w-3 h-3" />
+            <span className="text-[10px] text-slate-600">Values</span>
+          </label>
+          <label className="flex items-center gap-1.5 py-1 px-2 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors">
+            <input type="checkbox" checked={chartData.stacked === true} onChange={e => save({ stacked: e.target.checked })} className="accent-[#4F46E5] w-3 h-3" />
+            <span className="text-[10px] text-slate-600">Stacked</span>
+          </label>
         </div>
       </div>
     </div>
