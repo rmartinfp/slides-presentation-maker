@@ -29,7 +29,6 @@ import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
 import SmartSuggest from '@/components/editor/SmartSuggest';
 import AddSlideDialog from '@/components/editor/AddSlideDialog';
 import InfographicsDialog from '@/components/editor/InfographicsDialog';
-import AIInfographicDialog from '@/components/editor/AIInfographicDialog';
 import CanvasContextMenu from '@/components/editor/ContextMenu';
 import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
@@ -289,7 +288,6 @@ export default function EditorPage() {
   const [showSuggest, setShowSuggest] = React.useState(false);
   const [showAddSlide, setShowAddSlide] = React.useState(false);
   const [showInfographics, setShowInfographics] = React.useState(false);
-  const [showAIInfographic, setShowAIInfographic] = React.useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = React.useState(false);
   const [showAddLogo, setShowAddLogo] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
@@ -744,7 +742,7 @@ export default function EditorPage() {
               <div className="flex items-center gap-1 px-2 py-2">
                 <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="Rewrite" highlight onClick={() => setShowAIRewrite(true)} />
                 <ToolBtn icon={<Wand2 className="w-4 h-4" />} label="Layout" highlight onClick={() => setShowRedesign(true)} />
-                <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" highlight onClick={() => setShowAIInfographic(true)} />
+                <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" highlight onClick={() => setShowInfographics(true)} />
                 <ToolBtn icon={<Palette className="w-4 h-4" />} label="Brand Kit" highlight onClick={() => setShowBrandKit(true)} />
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild><ToolBtn icon={<Lightbulb className="w-4 h-4" />} label="More" highlight /></DropdownMenuTrigger>
@@ -828,7 +826,6 @@ export default function EditorPage() {
         {showSuggest && <SmartSuggest onClose={() => setShowSuggest(false)} />}
         {showAddSlide && <AddSlideDialog onClose={() => setShowAddSlide(false)} />}
         {showInfographics && <InfographicsDialog onClose={() => setShowInfographics(false)} />}
-        {showAIInfographic && <AIInfographicDialog onClose={() => setShowAIInfographic(false)} />}
         {showSaveTemplate && <SaveAsTemplateDialog onClose={() => setShowSaveTemplate(false)} />}
         {showAddLogo && <AddLogoDialog onClose={() => setShowAddLogo(false)} />}
         {showTemplatePicker && (
