@@ -150,9 +150,7 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
         transition={{ duration: 6, repeat: Infinity }}
         className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] rounded-full bg-[#4F46E5]/10 blur-[150px] pointer-events-none" />
 
-      <div className="relative z-20 pt-6 shrink-0">
-        <div className="max-w-5xl mx-auto px-6"><StepIndicator currentStep={3} /></div>
-      </div>
+      {/* StepIndicator removed — no more stepper during generation */}
 
       {/* Status */}
       <div className="relative z-10 text-center pt-6 pb-4 shrink-0">
