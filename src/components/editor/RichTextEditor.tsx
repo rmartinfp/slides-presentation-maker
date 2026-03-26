@@ -86,7 +86,12 @@ export default function RichTextEditor({ element, scale, onBlur }: Props) {
       <EditorContent
         editor={editor}
         className="w-full h-full overflow-hidden cursor-text"
-        style={{ padding: 8 }}
+        style={{
+          padding: 8,
+          display: element.style.verticalAlign ? 'flex' : undefined,
+          flexDirection: element.style.verticalAlign ? 'column' as any : undefined,
+          justifyContent: element.style.verticalAlign === 'center' ? 'center' : element.style.verticalAlign === 'bottom' ? 'flex-end' : undefined,
+        }}
         onBlur={onBlur}
       />
     </div>
