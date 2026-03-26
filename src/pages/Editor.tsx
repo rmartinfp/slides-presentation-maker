@@ -22,6 +22,7 @@ import RedesignDialog from '@/components/editor/RedesignDialog';
 import BrandKitDialog from '@/components/editor/BrandKitDialog';
 import ChartDialog from '@/components/editor/ChartDialog';
 import SaveAsTemplateDialog from '@/components/editor/SaveAsTemplateDialog';
+import AddLogoDialog from '@/components/editor/AddLogoDialog';
 import TemplateModePicker from '@/components/editor/TemplateModePicker';
 import ImageEditDialog from '@/components/editor/ImageEditDialog';
 import VoiceToSlidesDialog from '@/components/editor/VoiceToSlidesDialog';
@@ -275,6 +276,7 @@ export default function EditorPage() {
   const [showInfographics, setShowInfographics] = React.useState(false);
   const [showAIInfographic, setShowAIInfographic] = React.useState(false);
   const [showSaveTemplate, setShowSaveTemplate] = React.useState(false);
+  const [showAddLogo, setShowAddLogo] = React.useState(false);
   const [connectorMode, setConnectorMode] = React.useState<string | null>(null); // null=off, string=startElementId
   const imgInputRef = useRef<HTMLInputElement>(null);
   const vidInputRef = useRef<HTMLInputElement>(null);
@@ -727,6 +729,7 @@ export default function EditorPage() {
                         <DropdownMenuSeparator />
                       </>
                     )}
+                    <DropdownMenuItem onClick={() => setShowAddLogo(true)}><Image className="w-4 h-4 mr-2" />Add Logo</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Analyze</DropdownMenuItem>
                   </DropdownMenuContent>
@@ -796,6 +799,7 @@ export default function EditorPage() {
         {showInfographics && <InfographicsDialog onClose={() => setShowInfographics(false)} />}
         {showAIInfographic && <AIInfographicDialog onClose={() => setShowAIInfographic(false)} />}
         {showSaveTemplate && <SaveAsTemplateDialog onClose={() => setShowSaveTemplate(false)} />}
+        {showAddLogo && <AddLogoDialog onClose={() => setShowAddLogo(false)} />}
         {showTemplatePicker && (
           <TemplateModePicker
             onSelect={(tmpl) => {
