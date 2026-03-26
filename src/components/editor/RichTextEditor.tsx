@@ -104,7 +104,7 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
       {!readOnly && <FormattingToolbar editor={editor} scale={scale} />}
       <EditorContent
         editor={editor}
-        className={readOnly ? 'w-full' : 'w-full cursor-text'}
+        className={readOnly ? 'w-full pointer-events-none' : 'w-full cursor-text'}
         style={{ boxSizing: 'border-box' }}
         onBlur={readOnly ? undefined : onBlur}
       />
