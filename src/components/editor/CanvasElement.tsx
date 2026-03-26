@@ -265,13 +265,20 @@ export default function CanvasElement({
     switch (element.type) {
       case 'text': {
         if (isEditing) {
+          const vAlign = s.verticalAlign;
           return (
-            <div style={shrinkScale < 1 ? {
-              transform: `scale(${shrinkScale})`,
-              transformOrigin: 'top left',
-              width: `${100 / shrinkScale}%`,
-              height: `${100 / shrinkScale}%`,
-            } : undefined}>
+            <div style={{
+              ...(shrinkScale < 1 ? {
+                transform: `scale(${shrinkScale})`,
+                transformOrigin: 'top left',
+                width: `${100 / shrinkScale}%`,
+                height: `${100 / shrinkScale}%`,
+              } : { width: '100%', height: '100%' }),
+              // Match the same vertical alignment as static view
+              display: vAlign ? 'flex' : undefined,
+              flexDirection: vAlign ? 'column' as const : undefined,
+              justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : undefined,
+            }}>
               <RichTextEditor
                 element={element}
                 scale={scale}

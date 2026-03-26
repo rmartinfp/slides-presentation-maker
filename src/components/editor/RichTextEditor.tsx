@@ -51,7 +51,8 @@ export default function RichTextEditor({ element, scale, onBlur }: Props) {
           `font-style: ${element.style.fontStyle || 'normal'}`,
           `text-align: ${element.style.textAlign || 'left'}`,
           `line-height: ${element.style.lineHeight || 1.4}`,
-        ].join('; '),
+          element.style.letterSpacing ? `letter-spacing: ${element.style.letterSpacing}px` : '',
+        ].filter(Boolean).join('; '),
       },
     },
     onUpdate: ({ editor }) => {
