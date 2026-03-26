@@ -115,9 +115,8 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Auto-shrink: measure text overflow and scale down to fit.
-  // Disabled during editing so user sees real size while typing.
+  // Applied in BOTH read-only and edit mode for consistent sizing.
   useEffect(() => {
-    if (!readOnly) { setShrinkScale(1); return; }
     const wrapper = wrapperRef.current;
     if (!wrapper || !editor) return;
     setShrinkScale(1);
@@ -158,7 +157,7 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
     const t2 = setTimeout(measure, 400);
     const t3 = setTimeout(measure, 1200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [element.content, element.style.fontSize, element.width, element.height, editor, readOnly]);
+  }, [element.content, element.style.fontSize, element.width, element.height, editor]);
 
   if (!editor) return null;
 

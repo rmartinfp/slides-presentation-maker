@@ -67,11 +67,12 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
           id: s.id,
           elements: s.elements,
           background: s.background,
-          videoBackground: s.videoBackground,
-          animationConfig: s.animationConfig,
+          videoBackground: (s as any).videoBackground,
+          animationConfig: (s as any).animationConfig,
         }));
 
-        const { error } = await supabase.from('cinematic_templates').update({
+        console.log('Updating cinematic template:', sourceTemplateId, 'with', slides.length, 'slides');
+        const { error, count } = await supabase.from('cinematic_templates').update({
           slides,
           theme: {
             id: presentation.theme.id,
@@ -82,8 +83,12 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
           },
         }).eq('id', sourceTemplateId);
 
-        if (error) throw error;
-        toast.success('Template updated!');
+        if (error) {
+          console.error('Update failed:', error);
+          throw error;
+        }
+        console.log('Update result — rows affected:', count);
+        toast.success(`Template "${presentation.title}" updated!`);
         onClose();
         return;
       }
