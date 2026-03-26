@@ -42,8 +42,8 @@ function MiniElement({ el }: { el: any }) {
   };
 
   if (el.type === 'text') {
-    // Scale font: convert pt to fraction of 1920-wide canvas, slightly smaller for preview fit
-    const fontSizePct = ((el.style?.fontSize || 12) * 2.666) / 1920 * 100 * 0.92;
+    // Scale font to fit preview: use 0.78x to ensure text fits in mini cards
+    const fontSizePct = ((el.style?.fontSize || 12) * 2.666) / 1920 * 100 * 0.78;
     return (
       <div style={{
         ...style,
@@ -54,11 +54,9 @@ function MiniElement({ el }: { el: any }) {
         fontStyle: el.style?.fontStyle,
         textAlign: el.style?.textAlign as any,
         overflow: 'hidden',
-        lineHeight: 1.1,
-        letterSpacing: '-0.01em',
-        display: '-webkit-box',
-        WebkitLineClamp: Math.max(1, Math.round(el.height / ((el.style?.fontSize || 12) * 2.666 * 1.1))),
-        WebkitBoxOrient: 'vertical' as any,
+        lineHeight: 1.05,
+        letterSpacing: '-0.02em',
+        wordBreak: 'break-word',
       }}>
         {el.content?.replace(/<[^>]+>/g, '') || ''}
       </div>
