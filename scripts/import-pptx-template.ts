@@ -2537,31 +2537,56 @@ async function main() {
     sort_order: 0,
   };
 
-  // Check if template already exists — preserve thumbnail URLs and slide preview images
+  // ─── SAFE UPSERT: NEVER destroy existing thumbnails/screenshots ───
+  // RULE: If template exists, UPDATE only parsed data (preview_slides, theme, fonts, colors).
+  // NEVER overwrite thumbnail_url or layouts — those are generated separately and expensive to recreate.
   const { data: existing } = await supabase.from('templates').select('id, thumbnail_url, layouts').eq('name', title).single();
+
   if (existing) {
-    // Preserve preview thumbnails if they are real URLs (not dummy 'slide-1' strings)
+    // ALWAYS preserve screenshot URLs and thumbnail — these were generated externally
     const hasRealThumbnails = Array.isArray(existing.layouts) && existing.layouts.length > 0
       && typeof existing.layouts[0] === 'string' && existing.layouts[0].startsWith('http');
-    if (hasRealThumbnails) {
-      template.thumbnail_url = existing.thumbnail_url || template.thumbnail_url;
-      template.layouts = existing.layouts;
-      console.log(`  Preserved ${existing.layouts.length} preview thumbnails from existing template`);
+    const hasRealThumb = typeof existing.thumbnail_url === 'string' && existing.thumbnail_url.startsWith('http');
+
+    // Build update payload — ONLY fields that the import script is responsible for
+    const updatePayload: any = {
+      preview_slides: template.preview_slides,
+      theme: template.theme,
+      fonts: template.fonts,
+      colors: template.colors,
+      description: template.description,
+    };
+
+    // NEVER overwrite good thumbnails/layouts with placeholder data
+    if (!hasRealThumbnails) {
+      updatePayload.layouts = template.layouts;
+    } else {
+      console.log(`  🔒 Preserved ${existing.layouts.length} screenshot URLs (NOT overwritten)`);
     }
+    if (!hasRealThumb) {
+      updatePayload.thumbnail_url = template.thumbnail_url;
+    } else {
+      console.log(`  🔒 Preserved thumbnail URL (NOT overwritten)`);
+    }
+
+    console.log(`Updating existing template (ID: ${existing.id})...`);
+    const { error } = await supabase.from('templates').update(updatePayload).eq('id', existing.id);
+    if (error) {
+      console.error('Error updating:', error.message);
+      process.exit(1);
+    }
+    console.log(`\nTemplate updated! ID: ${existing.id} (preserved)`);
+  } else {
+    // INSERT new template — only for truly new templates
+    console.log('Saving new template to Supabase...');
+    const { data, error } = await supabase.from('templates').insert(template).select('id').single();
+    if (error) {
+      console.error('Error:', error.message);
+      process.exit(1);
+    }
+    console.log(`\nNew template saved! ID: ${data.id}`);
   }
 
-  // Delete existing template with same name
-  await supabase.from('templates').delete().eq('name', title);
-
-  console.log('Saving to Supabase...');
-  const { data, error } = await supabase.from('templates').insert(template).select('id').single();
-
-  if (error) {
-    console.error('Error:', error.message);
-    process.exit(1);
-  }
-
-  console.log(`\nTemplate saved! ID: ${data.id}`);
   console.log(`Theme: dk1=${themeColors.dk1} lt1=${themeColors.lt1} accent1=${themeColors.accent1}`);
   console.log(`Fonts: ${themeFonts.titleFont} / ${themeFonts.bodyFont}`);
   console.log('Done.');
