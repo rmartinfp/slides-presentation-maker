@@ -34,7 +34,7 @@ import PropertiesPanel from '@/components/editor/PropertiesPanel';
 import ErrorBoundary from '@/components/editor/ErrorBoundary';
 import EditorSkeleton from '@/components/editor/EditorSkeleton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
-import { runSlideGeneration } from '@/hooks/useSlideGeneration';
+import { runSlideGeneration, resolveTemplate } from '@/hooks/useSlideGeneration';
 import { loadFontsFromSlides, loadFontsFromTheme } from '@/lib/font-loader';
 import { toast } from 'sonner';
 import { exportToPptx } from '@/lib/pptx-export';
@@ -177,13 +177,17 @@ export default function EditorPage() {
       sessionStorage.removeItem('entryTemplate');
 
       if (prompt) {
+        const resolved = resolveTemplate(templateJson);
         setIsGenerating(true);
         setSkeletonCount(slideCount);
         setPresentation({
           id: 'generating', title: 'Generating...',
-          slides: [], theme: THEME_CATALOG[0],
+          slides: [], theme: resolved.theme,
           createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
         });
+        if (resolved.cinematicPreset) {
+          setCinematicPreset(resolved.cinematicPreset);
+        }
 
         runSlideGeneration({ prompt, slideCount, templateJson }).then(result => {
           setPresentation(result);
@@ -587,31 +591,37 @@ export default function EditorPage() {
                     className="flex-1 overflow-y-auto px-2 pb-2 space-y-2"
                   >
                     {isGenerating ? (
-                      Array.from({ length: skeletonCount }).map((_, idx) => (
-                        <div
-                          key={`skeleton-${idx}`}
-                          className={cn(
-                            'relative rounded-lg cursor-default',
-                            idx === 0 ? 'ring-2 ring-[#4F46E5]' : '',
-                          )}
-                        >
-                          <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-400 bg-white/80 rounded px-1">{idx + 1}</div>
-                          <div className="w-full aspect-[16/9] rounded-md overflow-hidden bg-white">
-                            <div className="h-full flex flex-col p-2 justify-end gap-1">
-                              <motion.div
-                                className="w-3/4 h-1.5 bg-slate-200 rounded-full"
-                                animate={{ opacity: [0.4, 0.8, 0.4] }}
-                                transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.12 }}
-                              />
-                              <motion.div
-                                className="w-1/2 h-1 bg-slate-200/70 rounded-full"
-                                animate={{ opacity: [0.3, 0.6, 0.3] }}
-                                transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.12 + 0.2 }}
-                              />
+                      Array.from({ length: skeletonCount }).map((_, idx) => {
+                        const skBg = theme.palette.bg || '#ffffff';
+                        const skText = theme.palette.text || '#000000';
+                        return (
+                          <div
+                            key={`skeleton-${idx}`}
+                            className={cn(
+                              'relative rounded-lg cursor-default',
+                              idx === 0 ? 'ring-2 ring-[#4F46E5]' : '',
+                            )}
+                          >
+                            <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-400 bg-white/80 rounded px-1">{idx + 1}</div>
+                            <div className="w-full aspect-[16/9] rounded-md overflow-hidden" style={{ backgroundColor: skBg }}>
+                              <div className="h-full flex flex-col p-2 justify-end gap-1">
+                                <motion.div
+                                  className="w-3/4 h-1.5 rounded-full"
+                                  style={{ backgroundColor: skText }}
+                                  animate={{ opacity: [0.12, 0.25, 0.12] }}
+                                  transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.12 }}
+                                />
+                                <motion.div
+                                  className="w-1/2 h-1 rounded-full"
+                                  style={{ backgroundColor: skText }}
+                                  animate={{ opacity: [0.08, 0.18, 0.08] }}
+                                  transition={{ duration: 1.5, repeat: Infinity, delay: idx * 0.12 + 0.2 }}
+                                />
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
                       presentation.slides.map((slide, idx) => {
                         const isSlideRevealed = !isRevealing || revealedSlideIds.has(slide.id);
@@ -664,16 +674,18 @@ export default function EditorPage() {
                                       />
                                     </motion.div>
                                   ) : (
-                                    <div className="w-full h-full bg-white">
+                                    <div className="w-full h-full" style={{ backgroundColor: theme.palette.bg }}>
                                       <div className="h-full flex flex-col p-2 justify-end gap-1">
                                         <motion.div
-                                          className="w-3/4 h-1.5 bg-slate-200 rounded-full"
-                                          animate={{ opacity: [0.4, 0.8, 0.4] }}
+                                          className="w-3/4 h-1.5 rounded-full"
+                                          style={{ backgroundColor: theme.palette.text }}
+                                          animate={{ opacity: [0.12, 0.25, 0.12] }}
                                           transition={{ duration: 1.5, repeat: Infinity }}
                                         />
                                         <motion.div
-                                          className="w-1/2 h-1 bg-slate-200/70 rounded-full"
-                                          animate={{ opacity: [0.3, 0.6, 0.3] }}
+                                          className="w-1/2 h-1 rounded-full"
+                                          style={{ backgroundColor: theme.palette.text }}
+                                          animate={{ opacity: [0.08, 0.18, 0.08] }}
                                           transition={{ duration: 1.5, repeat: Infinity, delay: 0.2 }}
                                         />
                                       </div>
@@ -702,7 +714,8 @@ export default function EditorPage() {
                 }}
               >
                 {isGenerating && !activeSlide ? (
-                  <div className="relative overflow-hidden bg-white" style={{
+                  <div className="relative overflow-hidden" style={{
+                    backgroundColor: theme.palette.bg,
                     width: 1920 * scale,
                     height: 1080 * scale,
                     margin: '0 auto',
@@ -712,24 +725,24 @@ export default function EditorPage() {
                   }}>
                     <div className="absolute inset-0 flex flex-col" style={{ padding: `${60 * scale}px ${96 * scale}px` }}>
                       <motion.div
-                        className="bg-slate-200 rounded"
-                        style={{ width: '55%', height: 40 * scale, marginBottom: 20 * scale }}
-                        animate={{ opacity: [0.3, 0.6, 0.3] }}
+                        className="rounded"
+                        style={{ backgroundColor: theme.palette.text, width: '55%', height: 40 * scale, marginBottom: 20 * scale }}
+                        animate={{ opacity: [0.1, 0.22, 0.1] }}
                         transition={{ duration: 1.8, repeat: Infinity }}
                       />
                       <motion.div
-                        className="bg-slate-100 rounded"
-                        style={{ width: '35%', height: 20 * scale, marginBottom: 50 * scale }}
-                        animate={{ opacity: [0.25, 0.5, 0.25] }}
+                        className="rounded"
+                        style={{ backgroundColor: theme.palette.text, width: '35%', height: 20 * scale, marginBottom: 50 * scale }}
+                        animate={{ opacity: [0.06, 0.15, 0.06] }}
                         transition={{ duration: 1.8, repeat: Infinity, delay: 0.2 }}
                       />
                       <div className="flex-1 flex flex-col gap-2">
                         {[1, 0.9, 0.75, 0.6].map((w, i) => (
                           <motion.div
                             key={i}
-                            className="bg-slate-100 rounded"
-                            style={{ width: `${w * 80}%`, height: 14 * scale }}
-                            animate={{ opacity: [0.2, 0.45, 0.2] }}
+                            className="rounded"
+                            style={{ backgroundColor: theme.palette.text, width: `${w * 80}%`, height: 14 * scale }}
+                            animate={{ opacity: [0.05, 0.14, 0.05] }}
                             transition={{ duration: 1.8, repeat: Infinity, delay: 0.3 + i * 0.15 }}
                           />
                         ))}
