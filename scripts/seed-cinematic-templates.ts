@@ -904,7 +904,7 @@ function buildAura(): Slide[] {
       txt(s2l, '{{stat2_label}}', 700, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
       txt(s3v, '{{stat3_value}}', 1300, 680, 540, 140, { fontSize: 88, fontWeight: '600', fontFamily: fH, color: fg, lineHeight: 0.96, letterSpacing: -2, textGradient: gradPurple, zIndex: 15 }),
       txt(s3l, '{{stat3_label}}', 1300, 830, 500, 35, { fontSize: 15, color: fg, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
-    ], background: bg, videoBackground: { url: VA, type: 'mp4', opacity: 0.7, filter: 'brightness(0.55)' },
+    ], background: bg, videoBackground: { url: VA, type: 'hls', opacity: 0.7, filter: 'brightness(0.55)' },
     animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [s1v]: { type: 'slide-up', delay: 0.6, duration: 0.6, easing: E.expoOut }, [s2v]: { type: 'slide-up', delay: 0.7, duration: 0.6, easing: E.expoOut }, [s3v]: { type: 'slide-up', delay: 0.8, duration: 0.6, easing: E.expoOut } }) }); }
 
   // S3: Solution — serif pre + gradient main
@@ -922,7 +922,7 @@ function buildAura(): Slide[] {
       txt(l, '{{content_label}}', 96, 260, 500, 22, { fontSize: 13, color: sub, fontFamily: fB, zIndex: 15, textShadow: 'none' }),
       txt(h, '{{content_heading}}', 96, 310, 1200, 320, { fontSize: 48, fontWeight: '500', fontFamily: fH, color: fg, lineHeight: 1.06, letterSpacing: -0.5, zIndex: 15 }),
       txt(b, '{{content_body}}', 96, 690, 780, 200, { fontSize: 15, color: sub, fontFamily: fB, lineHeight: 1.7, zIndex: 15, textShadow: 'none' }),
-    ], background: bg, videoBackground: { url: VA, type: 'mp4', opacity: 0.65, filter: 'brightness(0.5) saturate(1.2)' },
+    ], background: bg, videoBackground: { url: VA, type: 'hls', opacity: 0.65, filter: 'brightness(0.5) saturate(1.2)' },
     animationConfig: cineAnim({ [l]: { type: 'blur-in', delay: 0.15, duration: 0.6, easing: E.expoOut }, [h]: { type: 'word-by-word', delay: 0.25, duration: 0.55, easing: E.expoOut, stagger: 0.035 }, [b]: { type: 'blur-in', delay: 0.8, duration: 0.8, easing: E.expoOut } }) }); }
 
   // S5: Closing gradient
