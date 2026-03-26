@@ -1838,6 +1838,30 @@ async function main() {
           }
         }
 
+        // Fallback to MASTER slide background if still default
+        if (background.type === 'solid' && background.value === themeColors.lt1) {
+          // Find master via layout rels
+          const layoutRelsPath2 = layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/') + '.rels';
+          if (zip.files[layoutRelsPath2]) {
+            const lRelsXml = await zip.file(layoutRelsPath2)!.async('string');
+            const masterMatch = lRelsXml.match(/Target="([^"]*slideMaster[^"]*)"/);
+            if (masterMatch) {
+              // Resolve relative path: "../slideMasters/slideMaster1.xml" → "ppt/slideMasters/slideMaster1.xml"
+              const masterRelative = masterMatch[1]; // e.g. "../slideMasters/slideMaster1.xml"
+              const masterPath = 'ppt/' + masterRelative.replace(/^\.\.\//g, '');
+              const masterFile = zip.files[masterPath];
+              if (masterFile) {
+                const masterXml = await masterFile.async('string');
+                const masterBg = parseSlideBackground(masterXml, new Map(), themeColors);
+                if (masterBg.type !== 'solid' || masterBg.value !== themeColors.lt1) {
+                  background = masterBg;
+                  console.log(`  Master slide background: ${background.type} = ${background.value.substring(0, 30)}`);
+                }
+              }
+            }
+          }
+        }
+
         // Extract ALL non-placeholder elements from layout IN XML ORDER (preserves z-ordering)
         // This handles both shapes and images interleaved correctly
         const layoutXmlNoGroups = stripBalancedTags(layoutXml, 'p:grpSp');
@@ -1857,7 +1881,9 @@ async function main() {
               const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slideLayouts/');
               result.element.content = url;
 
-              if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9) {
+              if (url && result.element.width > CANVAS_W * 0.9 && result.element.height > CANVAS_H * 0.9 && (result.element.opacity ?? 1) > 0.8) {
+                // Only promote to background if image is nearly full-opacity (>80%)
+                // Low-opacity images (textures, overlays) should stay as elements
                 background = { type: 'image', value: url };
                 console.log(`  Layout bg image uploaded`);
               } else if (url) {
