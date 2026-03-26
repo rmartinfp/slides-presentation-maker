@@ -70,6 +70,10 @@ export default function SlideAIPage() {
         } catch {}
       }
 
+      // Ensure we have a theme (fallback to first catalog theme)
+      if (!selectedTheme) {
+        setSelectedTheme(THEME_CATALOG[0]);
+      }
       // Skip content step — go straight to generating
       setStep('generating');
       autoGenerateRef.current = true;
@@ -530,7 +534,7 @@ export default function SlideAIPage() {
               transition={{ duration: 0.4 }}
             >
               <GeneratingView
-                theme={selectedTheme!}
+                theme={selectedTheme || THEME_CATALOG[0]}
                 generatedSlides={generatedPresentation?.slides || null}
                 generatedTitle={generatedPresentation?.title || null}
                 userPrompt={contentText}
