@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Palette, X, Loader2, Check, Paintbrush, Upload, Image } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Palette, X, Loader2, Check, Paintbrush, Upload, Image, Save, RotateCcw, ChevronDown, Search, Type } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { useAssetUpload } from '@/hooks/useAssetUpload';
@@ -35,6 +35,44 @@ interface BrandKit {
   recommendations: string[];
 }
 
+const BRAND_KIT_KEY = 'slideai-brand-kit';
+
+const POPULAR_FONTS = [
+  'Inter', 'Roboto', 'Open Sans', 'Lato', 'Montserrat', 'Poppins', 'Raleway',
+  'Nunito', 'Playfair Display', 'Merriweather', 'Source Sans 3', 'PT Sans',
+  'Oswald', 'Quicksand', 'Mulish', 'Work Sans', 'Rubik', 'Karla', 'Barlow',
+  'DM Sans', 'Outfit', 'Space Grotesk', 'Plus Jakarta Sans', 'Figtree',
+  'Bricolage Grotesque', 'Sora', 'Manrope', 'Lexend', 'Gabarito',
+  'Josefin Sans', 'Bebas Neue', 'Archivo', 'Bitter', 'Crimson Text',
+  'EB Garamond', 'Libre Baskerville', 'Cormorant Garamond', 'Lora',
+  'Spectral', 'Noto Serif', 'Vidaloka', 'Elsie', 'Concert One',
+  'Permanent Marker', 'Pacifico', 'Dancing Script', 'Caveat', 'Satisfy',
+  'Sacramento', 'Great Vibes',
+];
+
+function loadGoogleFont(fontName: string) {
+  const id = `gfont-${fontName.replace(/\s+/g, '-')}`;
+  if (document.getElementById(id)) return;
+  const link = document.createElement('link');
+  link.id = id;
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@300;400;500;600;700&display=swap`;
+  document.head.appendChild(link);
+}
+
+// Preload all popular fonts for preview rendering
+let _fontsPreloaded = false;
+function preloadPopularFonts() {
+  if (_fontsPreloaded) return;
+  _fontsPreloaded = true;
+  // Load in batches to avoid too many parallel requests
+  const families = POPULAR_FONTS.map(f => `family=${encodeURIComponent(f)}:wght@400;700`).join('&');
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+  document.head.appendChild(link);
+}
+
 const paletteLabels: { key: keyof BrandKit['palette']; label: string }[] = [
   { key: 'primary', label: 'Primary' },
   { key: 'secondary', label: 'Secondary' },
@@ -49,8 +87,22 @@ export default function BrandKitDialog({ onClose }: Props) {
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [loading, setLoading] = useState(true);
   const [applied, setApplied] = useState(false);
+  const [savedKit, setSavedKit] = useState(false);
+  const [activeFontPicker, setActiveFontPicker] = useState<'title' | 'body' | null>(null);
 
   useEffect(() => {
+    // Check localStorage first
+    const saved = localStorage.getItem(BRAND_KIT_KEY);
+    if (saved) {
+      try {
+        setBrandKit(JSON.parse(saved));
+        setLoading(false);
+        setSavedKit(true);
+        return;
+      } catch { /* fall through to extract */ }
+    }
+
+    // Only extract if no saved kit
     const extract = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('extract-brand', {
@@ -71,6 +123,73 @@ export default function BrandKitDialog({ onClose }: Props) {
     };
     extract();
   }, []);
+
+  // Preload popular fonts when dialog opens with brand kit
+  useEffect(() => {
+    if (brandKit) preloadPopularFonts();
+  }, [brandKit]);
+
+  const handleSave = () => {
+    if (!brandKit) return;
+    localStorage.setItem(BRAND_KIT_KEY, JSON.stringify(brandKit));
+    setSavedKit(true);
+    toast.success('Brand kit saved!');
+  };
+
+  const handleReset = async () => {
+    localStorage.removeItem(BRAND_KIT_KEY);
+    setSavedKit(false);
+    setLoading(true);
+    setBrandKit(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('extract-brand', {
+        body: {
+          slides: presentation.slides,
+          currentTheme: presentation.theme.tokens,
+        },
+      });
+      if (error) throw error;
+      setBrandKit(data as BrandKit);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to extract brand kit');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFontToPresentation = useCallback((fontName: string, isTitle: boolean) => {
+    loadGoogleFont(fontName);
+    useEditorStore.setState(produce((state: any) => {
+      for (const slide of state.presentation.slides) {
+        for (const el of slide.elements) {
+          if (el.type !== 'text') continue;
+          const fontSize = el.style?.fontSize || 12;
+          if (isTitle && fontSize >= 24) {
+            el.style.fontFamily = `${fontName}, sans-serif`;
+          } else if (!isTitle && fontSize < 24) {
+            el.style.fontFamily = `${fontName}, sans-serif`;
+          }
+        }
+      }
+    }));
+  }, []);
+
+  const handleFontSelect = useCallback((fontName: string, isTitle: boolean) => {
+    applyFontToPresentation(fontName, isTitle);
+    setBrandKit(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        typography: {
+          ...prev.typography,
+          [isTitle ? 'titleFont' : 'bodyFont']: fontName,
+        },
+      };
+    });
+    setActiveFontPicker(null);
+    toast.success(`${isTitle ? 'Title' : 'Body'} font changed to ${fontName}`);
+  }, [applyFontToPresentation]);
 
   const handleApply = () => {
     if (!brandKit) return;
@@ -120,8 +239,13 @@ export default function BrandKitDialog({ onClose }: Props) {
               <Palette className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">Brand Kit</h3>
-              <p className="text-xs text-slate-400">Extracted from your slides</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-semibold text-slate-800">Brand Kit</h3>
+                {savedKit && (
+                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-[9px] font-semibold text-emerald-700 uppercase tracking-wide">Saved</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-400">{savedKit ? 'Loaded from saved kit' : 'Extracted from your slides'}</p>
             </div>
           </div>
           <button
@@ -175,19 +299,50 @@ export default function BrandKitDialog({ onClose }: Props) {
                     <div>
                       <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Typography</p>
                       <div className="space-y-1.5">
-                        <div className="flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg">
-                          <span className="text-sm font-semibold text-slate-700" style={{ fontFamily: `"${brandKit.typography.titleFont}", sans-serif` }}>
-                            {brandKit.typography.titleFont}
-                          </span>
-                          <span className="text-[10px] text-slate-400">{brandKit.typography.titleSize}pt</span>
+                        <div className="relative">
+                          <button
+                            onClick={() => setActiveFontPicker(activeFontPicker === 'title' ? null : 'title')}
+                            className="w-full flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold text-slate-700" style={{ fontFamily: `"${brandKit.typography.titleFont}", sans-serif` }}>
+                                {brandKit.typography.titleFont}
+                              </span>
+                              <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform', activeFontPicker === 'title' && 'rotate-180')} />
+                            </div>
+                            <span className="text-[10px] text-slate-400">{brandKit.typography.titleSize}pt &middot; Titles</span>
+                          </button>
+                          {activeFontPicker === 'title' && (
+                            <FontPickerDropdown
+                              currentFont={brandKit.typography.titleFont}
+                              onSelect={(f) => handleFontSelect(f, true)}
+                              onClose={() => setActiveFontPicker(null)}
+                            />
+                          )}
                         </div>
-                        <div className="flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg">
-                          <span className="text-xs text-slate-700" style={{ fontFamily: `"${brandKit.typography.bodyFont}", sans-serif` }}>
-                            {brandKit.typography.bodyFont}
-                          </span>
-                          <span className="text-[10px] text-slate-400">{brandKit.typography.bodySize}pt</span>
+                        <div className="relative">
+                          <button
+                            onClick={() => setActiveFontPicker(activeFontPicker === 'body' ? null : 'body')}
+                            className="w-full flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                          >
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-slate-700" style={{ fontFamily: `"${brandKit.typography.bodyFont}", sans-serif` }}>
+                                {brandKit.typography.bodyFont}
+                              </span>
+                              <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform', activeFontPicker === 'body' && 'rotate-180')} />
+                            </div>
+                            <span className="text-[10px] text-slate-400">{brandKit.typography.bodySize}pt &middot; Body</span>
+                          </button>
+                          {activeFontPicker === 'body' && (
+                            <FontPickerDropdown
+                              currentFont={brandKit.typography.bodyFont}
+                              onSelect={(f) => handleFontSelect(f, false)}
+                              onClose={() => setActiveFontPicker(null)}
+                            />
+                          )}
                         </div>
                       </div>
+                      <p className="text-[9px] text-slate-400 mt-1">Click a font to change it across all slides</p>
                     </div>
 
                     {/* Style */}
@@ -200,13 +355,25 @@ export default function BrandKitDialog({ onClose }: Props) {
                       </div>
                     </div>
 
-                    {/* Apply Theme button */}
-                    <Button onClick={handleApply} disabled={applied}
-                      className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl h-9 text-xs">
-                      {applied
-                        ? <><Check className="w-3.5 h-3.5 mr-1.5" />Applied</>
-                        : <><Palette className="w-3.5 h-3.5 mr-1.5" />Apply as Theme</>}
-                    </Button>
+                    {/* Action buttons */}
+                    <div className="space-y-2">
+                      <Button onClick={handleApply} disabled={applied}
+                        className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl h-9 text-xs">
+                        {applied
+                          ? <><Check className="w-3.5 h-3.5 mr-1.5" />Applied</>
+                          : <><Palette className="w-3.5 h-3.5 mr-1.5" />Apply as Theme</>}
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button onClick={handleSave} variant="outline"
+                          className="flex-1 rounded-xl h-8 text-xs border-slate-200">
+                          <Save className="w-3 h-3 mr-1.5" />Save Brand Kit
+                        </Button>
+                        <Button onClick={handleReset} variant="ghost"
+                          className="rounded-xl h-8 text-xs text-slate-500 hover:text-slate-700">
+                          <RotateCcw className="w-3 h-3 mr-1.5" />Reset
+                        </Button>
+                      </div>
+                    </div>
                   </>
                 ) : (
                   <p className="text-sm text-slate-400 py-8 text-center">No brand kit extracted yet</p>
@@ -222,6 +389,78 @@ export default function BrandKitDialog({ onClose }: Props) {
         </div>
       </motion.div>
     </motion.div>
+  );
+}
+
+// ─── Font Picker Dropdown ───
+function FontPickerDropdown({
+  currentFont,
+  onSelect,
+  onClose,
+}: {
+  currentFont: string;
+  onSelect: (font: string) => void;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filtered = search
+    ? POPULAR_FONTS.filter(f => f.toLowerCase().includes(search.toLowerCase()))
+    : POPULAR_FONTS;
+
+  // Close on click outside
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={dropdownRef}
+      className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden"
+    >
+      {/* Search */}
+      <div className="px-2 py-1.5 border-b border-slate-100">
+        <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-md">
+          <Search className="w-3 h-3 text-slate-400 shrink-0" />
+          <input
+            autoFocus
+            type="text"
+            placeholder="Search fonts..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
+          />
+        </div>
+      </div>
+      {/* Font list */}
+      <div className="max-h-[200px] overflow-y-auto">
+        {filtered.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-3">No fonts found</p>
+        ) : (
+          filtered.map(font => (
+            <button
+              key={font}
+              onClick={() => onSelect(font)}
+              className={cn(
+                'w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between',
+                font === currentFont && 'bg-indigo-50 text-indigo-700'
+              )}
+              style={{ fontFamily: `"${font}", sans-serif` }}
+            >
+              <span>{font}</span>
+              {font === currentFont && <Check className="w-3 h-3 text-indigo-600 shrink-0" />}
+            </button>
+          ))
+        )}
+      </div>
+    </div>
   );
 }
 
