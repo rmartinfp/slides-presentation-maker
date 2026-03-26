@@ -39,7 +39,7 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
         types: ['paragraph'],
       }),
     ],
-    content: element.content.startsWith('{') || element.content.startsWith('<')
+    content: element.content.startsWith('<')
       ? element.content
       : `<p>${element.content.replace(/\n/g, '</p><p>')}</p>`,
     editorProps: {
@@ -65,6 +65,30 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
     },
     autofocus: readOnly ? false : 'end',
   });
+
+  // Sync editor styles when element.style changes (e.g., PropertiesPanel font/size/color changes)
+  useEffect(() => {
+    if (!editor) return;
+    const s = element.style;
+    const style = [
+      `font-family: ${s.fontFamily ? `${s.fontFamily}, sans-serif` : 'sans-serif'}`,
+      `font-size: ${(s.fontSize ?? 12) * 2.666}px`,
+      `color: ${s.color || '#000000'}`,
+      `font-weight: ${s.fontWeight || 'normal'}`,
+      `font-style: ${s.fontStyle || 'normal'}`,
+      `text-align: ${s.textAlign || 'left'}`,
+      `line-height: ${s.lineHeight || 1.4}`,
+      s.letterSpacing ? `letter-spacing: ${s.letterSpacing}px` : '',
+    ].filter(Boolean).join('; ');
+    editor.setOptions({
+      editorProps: {
+        attributes: {
+          class: 'outline-none w-full h-full',
+          style,
+        },
+      },
+    });
+  }, [editor, element.style.fontSize, element.style.fontFamily, element.style.color, element.style.fontWeight, element.style.fontStyle, element.style.textAlign, element.style.lineHeight, element.style.letterSpacing]);
 
   // Stop propagation of keyboard events so they don't trigger canvas shortcuts
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
