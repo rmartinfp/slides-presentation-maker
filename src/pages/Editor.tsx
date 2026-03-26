@@ -199,18 +199,29 @@ export default function EditorPage() {
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
   }, [presentation, saveToSupabase, isTemplateMode]);
 
-  // Canvas scaling
+  // Canvas scaling — fill available space with minimal padding
   const updateScale = useCallback(() => {
     if (!canvasContainerRef.current) return;
     const { width, height } = canvasContainerRef.current.getBoundingClientRect();
-    const padding = 80;
-    setScale(Math.min((width - padding) / 1920, (height - padding) / 1080, 1));
+    const px = 40; // horizontal padding
+    const py = 100; // vertical padding (room for toolbar at bottom)
+    setScale(Math.min((width - px) / 1920, (height - py) / 1080, 1));
   }, [setScale]);
 
   useEffect(() => {
     updateScale();
     window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
+    // Also observe the canvas container for size changes (panel open/close)
+    const container = canvasContainerRef.current;
+    let observer: ResizeObserver | null = null;
+    if (container) {
+      observer = new ResizeObserver(() => updateScale());
+      observer.observe(container);
+    }
+    return () => {
+      window.removeEventListener('resize', updateScale);
+      observer?.disconnect();
+    };
   }, [updateScale]);
 
   // Keyboard nav
