@@ -2457,6 +2457,22 @@ async function main() {
   const thumbUrl = parsedSlides[0]?.elements?.find(e => e.type === 'image')?.content
     || parsedSlides[0]?.background?.value || null;
 
+  // Derive palette.bg from the most common ACTUAL slide background (not lt1, which can be wrong)
+  // Korean Aesthetic template has lt1=#664B34 (dark brown) but slides are #F3F3F3 (light gray)
+  const bgCounts = new Map<string, number>();
+  for (const slide of parsedSlides) {
+    const bgValue = (slide as any).background?.value;
+    if (bgValue && typeof bgValue === 'string' && bgValue.startsWith('#')) {
+      bgCounts.set(bgValue, (bgCounts.get(bgValue) || 0) + 1);
+    }
+  }
+  const actualBg = bgCounts.size > 0
+    ? [...bgCounts.entries()].sort((a, b) => b[1] - a[1])[0][0]
+    : themeColors.lt1;
+  if (actualBg !== themeColors.lt1) {
+    console.log(`  palette.bg: using actual slide bg ${actualBg} (lt1=${themeColors.lt1} differs)`);
+  }
+
   const template = {
     name: title,
     slug,
@@ -2473,7 +2489,7 @@ async function main() {
           primary: themeColors.accent1,
           secondary: themeColors.accent2,
           accent: themeColors.accent3,
-          bg: themeColors.lt1,
+          bg: actualBg,
           text: themeColors.dk1,
         },
         typography: {
@@ -2493,7 +2509,7 @@ async function main() {
       primary: themeColors.accent1,
       secondary: themeColors.accent2,
       accent: themeColors.accent3,
-      bg: themeColors.lt1,
+      bg: actualBg,
       text: themeColors.dk1,
       ...themeColors,
     },
