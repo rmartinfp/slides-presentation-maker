@@ -336,6 +336,7 @@ export default function CanvasElement({
             element={element}
             scale={scale}
             shrinkScale={shrinkScale}
+            shrinkRef={shrinkRef}
             onBlur={handleBlur}
             readOnly={!isEditing}
           />

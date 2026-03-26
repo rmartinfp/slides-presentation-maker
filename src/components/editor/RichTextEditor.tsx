@@ -15,11 +15,12 @@ interface Props {
   element: SlideElement;
   scale: number;
   shrinkScale?: number;
+  shrinkRef?: React.RefObject<HTMLDivElement>;
   onBlur: () => void;
   readOnly?: boolean;
 }
 
-export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur, readOnly = false }: Props) {
+export default function RichTextEditor({ element, scale, shrinkScale = 1, shrinkRef, onBlur, readOnly = false }: Props) {
   const updateElement = useEditorStore(s => s.updateElement);
 
   const editor = useEditor({
@@ -47,7 +48,7 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
         class: 'outline-none w-full h-full',
         style: [
           `font-family: ${element.style.fontFamily ? `${element.style.fontFamily}, sans-serif` : 'sans-serif'}`,
-          `font-size: ${(element.style.fontSize ?? 12) * 2.666 * shrinkScale}px`,
+          `font-size: ${(element.style.fontSize ?? 12) * 2.666}px`,
           `color: ${element.style.color || '#000000'}`,
           `font-weight: ${element.style.fontWeight || 'normal'}`,
           `font-style: ${element.style.fontStyle || 'normal'}`,
@@ -84,9 +85,15 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
   const vAlign = element.style.verticalAlign;
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Merge shrinkRef + wrapperRef so useAutoShrink can measure
+  const setRefs = (node: HTMLDivElement | null) => {
+    (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+    if (shrinkRef) (shrinkRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+  };
+
   return (
     <div
-      ref={wrapperRef}
+      ref={setRefs}
       className="w-full h-full relative"
       onKeyDown={readOnly ? undefined : handleKeyDown}
       style={{
@@ -106,7 +113,14 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
       <EditorContent
         editor={editor}
         className={readOnly ? 'w-full pointer-events-none' : 'w-full cursor-text'}
-        style={{ boxSizing: 'border-box' }}
+        style={{
+          boxSizing: 'border-box',
+          ...(shrinkScale < 1 ? {
+            transform: `scale(${shrinkScale})`,
+            transformOrigin: vAlign === 'bottom' ? 'bottom left' : vAlign === 'center' ? 'center left' : 'top left',
+            width: `${100 / shrinkScale}%`,
+          } : {}),
+        }}
         onBlur={readOnly ? undefined : onBlur}
       />
     </div>
