@@ -1046,6 +1046,27 @@ const POPULAR_FONTS = [
   'Josefin Sans', 'Oswald', 'Barlow', 'Cabin', 'Quicksand', 'Rubik',
   'Mulish', 'Urbanist', 'Sora', 'Figtree', 'Geist',
 ];
+
+// Google Fonts API cache — loads full catalog on first open
+let googleFontsCache: string[] | null = null;
+let googleFontsLoading = false;
+async function fetchGoogleFonts(): Promise<string[]> {
+  if (googleFontsCache) return googleFontsCache;
+  if (googleFontsLoading) return POPULAR_FONTS;
+  googleFontsLoading = true;
+  try {
+    const key = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
+    if (!key) return POPULAR_FONTS;
+    const res = await fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`);
+    const data = await res.json();
+    googleFontsCache = (data.items || []).map((f: any) => f.family as string);
+    return googleFontsCache;
+  } catch {
+    return POPULAR_FONTS;
+  } finally {
+    googleFontsLoading = false;
+  }
+}
 const FONT_SIZES_PT = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
 
 function TextPropsSection({ el, updateElement, updateStyle }: {
@@ -1055,6 +1076,7 @@ function TextPropsSection({ el, updateElement, updateStyle }: {
 }) {
   const [fontSearch, setFontSearch] = React.useState('');
   const [showFontPicker, setShowFontPicker] = React.useState(false);
+  const [allFonts, setAllFonts] = React.useState<string[]>(POPULAR_FONTS);
 
   const currentFont = (el.style?.fontFamily || 'Inter').split(',')[0].replace(/['"]/g, '').trim();
   const currentSize = el.style?.fontSize || 18;
@@ -1062,9 +1084,16 @@ function TextPropsSection({ el, updateElement, updateStyle }: {
   const currentWeight = el.style?.fontWeight || '400';
   const currentAlign = el.style?.textAlign || 'left';
 
+  // Load full Google Fonts catalog when picker opens
+  React.useEffect(() => {
+    if (showFontPicker && allFonts.length <= POPULAR_FONTS.length) {
+      fetchGoogleFonts().then(setAllFonts);
+    }
+  }, [showFontPicker]);
+
   const filteredFonts = fontSearch
-    ? POPULAR_FONTS.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase()))
-    : POPULAR_FONTS;
+    ? allFonts.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase())).slice(0, 50)
+    : allFonts.slice(0, 80);
 
   const handleFontChange = (font: string) => {
     // Load the font dynamically
