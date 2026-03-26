@@ -174,7 +174,8 @@ export default function EditorPage() {
   useEffect(() => {
     const stored = sessionStorage.getItem('presentation');
     if (stored) {
-      sessionStorage.removeItem('presentation');
+      // Don't remove in template mode — need it for refresh persistence
+      if (!isTemplateMode) sessionStorage.removeItem('presentation');
       setPresentation(JSON.parse(stored));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -183,8 +184,11 @@ export default function EditorPage() {
   // Auto-save — immediate on first load (so reload doesn't lose data), then debounced
   const hasSavedOnce = useRef(false);
   useEffect(() => {
-    // Don't auto-save to presentations table in template mode
-    if (isTemplateMode) return;
+    // In template mode, save to sessionStorage instead of Supabase
+    if (isTemplateMode) {
+      sessionStorage.setItem('presentation', JSON.stringify(presentation));
+      return;
+    }
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     const delay = hasSavedOnce.current ? 3000 : 500; // Fast first save
     saveTimerRef.current = setTimeout(() => {
