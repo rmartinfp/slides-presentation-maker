@@ -560,10 +560,8 @@ export default function EditorPage() {
             </DragDropContext>
           </div>
 
-          {/* Canvas + right panel wrapper */}
-          <div className="flex-1 flex overflow-hidden">
-            {/* Canvas */}
-            <div className="flex-1 flex flex-col overflow-hidden relative">
+          {/* Canvas area */}
+          <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
               <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative">
                 {activeSlide && (
@@ -751,7 +749,6 @@ export default function EditorPage() {
               </div>
             </div>
 
-          </div>
           {/* Right panel toggle + properties */}
           <div className="flex shrink-0">
             <button
