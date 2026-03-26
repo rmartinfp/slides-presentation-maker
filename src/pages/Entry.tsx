@@ -82,23 +82,30 @@ export default function Entry() {
   }, [prompt]);
 
   // Smart filter: uses search box + debounced prompt keywords
+  // Always shows results — if nothing matches, show all templates
   const allTemplates = React.useMemo(() => {
     const promptWords = debouncedPrompt.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     const searchWords = search.toLowerCase().split(/\s+/).filter(w => w.length > 1);
     const allWords = [...searchWords, ...promptWords];
 
-    return allTemplatesRaw.filter(t => {
+    // Apply type filter first
+    const typeFiltered = allTemplatesRaw.filter(t => {
       if (filter === 'cinematic' && t.type !== 'cinematic') return false;
       if (filter === 'classic' && t.type !== 'classic') return false;
+      return true;
+    });
 
-      // If no search terms, show all
-      if (allWords.length === 0) return true;
+    // If no search terms, show all
+    if (allWords.length === 0) return typeFiltered;
 
-      // Match against name + category + tags
+    // Try matching
+    const matched = typeFiltered.filter(t => {
       const haystack = `${t.name} ${t.category} ${t.tags}`.toLowerCase();
-      // Show template if ANY word matches (loose matching)
       return allWords.some(w => haystack.includes(w));
     });
+
+    // If no matches, show all (never empty)
+    return matched.length > 0 ? matched : typeFiltered;
   }, [allTemplatesRaw, filter, search, debouncedPrompt]);
 
   const handleGenerate = () => {
