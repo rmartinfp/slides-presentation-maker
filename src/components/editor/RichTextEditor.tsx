@@ -18,6 +18,25 @@ interface Props {
   readOnly?: boolean;
 }
 
+function buildStyleString(s: SlideElement['style']) {
+  return [
+    `font-family: ${s.fontFamily ? `${s.fontFamily}, sans-serif` : 'sans-serif'}`,
+    `font-size: ${(s.fontSize ?? 12) * 2.666}px`,
+    `color: ${s.color || '#000000'}`,
+    `font-weight: ${s.fontWeight || 'normal'}`,
+    `font-style: ${s.fontStyle || 'normal'}`,
+    `text-align: ${s.textAlign || 'left'}`,
+    `line-height: ${s.lineHeight || 1.4}`,
+    s.letterSpacing ? `letter-spacing: ${s.letterSpacing}px` : '',
+  ].filter(Boolean).join('; ');
+}
+
+function toHtml(content: string): string {
+  if (content.startsWith('<')) return content;
+  // Wrap plain text (including {{placeholders}}) in <p> tags
+  return `<p>${content.replace(/\n/g, '</p><p>')}</p>`;
+}
+
 export default function RichTextEditor({ element, scale, onBlur, readOnly = false }: Props) {
   const updateElement = useEditorStore(s => s.updateElement);
   const [shrinkScale, setShrinkScale] = useState(1);
@@ -39,52 +58,41 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
         types: ['paragraph'],
       }),
     ],
-    content: element.content.startsWith('<')
-      ? element.content
-      : `<p>${element.content.replace(/\n/g, '</p><p>')}</p>`,
+    content: toHtml(element.content),
     editorProps: {
       attributes: {
         class: 'outline-none w-full h-full',
-        style: [
-          `font-family: ${element.style.fontFamily ? `${element.style.fontFamily}, sans-serif` : 'sans-serif'}`,
-          `font-size: ${(element.style.fontSize ?? 12) * 2.666}px`,
-          `color: ${element.style.color || '#000000'}`,
-          `font-weight: ${element.style.fontWeight || 'normal'}`,
-          `font-style: ${element.style.fontStyle || 'normal'}`,
-          `text-align: ${element.style.textAlign || 'left'}`,
-          `line-height: ${element.style.lineHeight || 1.4}`,
-          element.style.letterSpacing ? `letter-spacing: ${element.style.letterSpacing}px` : '',
-        ].filter(Boolean).join('; '),
+        style: buildStyleString(element.style),
       },
     },
     editable: !readOnly,
-    onUpdate: ({ editor }) => {
+    onUpdate: ({ editor: ed }) => {
       if (readOnly) return;
-      const html = editor.getHTML();
+      const html = ed.getHTML();
       updateElement(element.id, { content: html });
     },
     autofocus: readOnly ? false : 'end',
   });
 
-  // Sync editor styles when element.style changes (e.g., PropertiesPanel font/size/color changes)
+  // CRITICAL: Sync editable state when readOnly prop changes.
+  // Tiptap's useEditor does NOT update editable after initial creation.
   useEffect(() => {
     if (!editor) return;
-    const s = element.style;
-    const style = [
-      `font-family: ${s.fontFamily ? `${s.fontFamily}, sans-serif` : 'sans-serif'}`,
-      `font-size: ${(s.fontSize ?? 12) * 2.666}px`,
-      `color: ${s.color || '#000000'}`,
-      `font-weight: ${s.fontWeight || 'normal'}`,
-      `font-style: ${s.fontStyle || 'normal'}`,
-      `text-align: ${s.textAlign || 'left'}`,
-      `line-height: ${s.lineHeight || 1.4}`,
-      s.letterSpacing ? `letter-spacing: ${s.letterSpacing}px` : '',
-    ].filter(Boolean).join('; ');
+    editor.setEditable(!readOnly);
+    if (!readOnly) {
+      // Focus and place cursor at end when entering edit mode
+      setTimeout(() => editor.commands.focus('end'), 50);
+    }
+  }, [editor, readOnly]);
+
+  // Sync editor wrapper styles when element.style changes from PropertiesPanel
+  useEffect(() => {
+    if (!editor) return;
     editor.setOptions({
       editorProps: {
         attributes: {
           class: 'outline-none w-full h-full',
-          style,
+          style: buildStyleString(element.style),
         },
       },
     });
@@ -107,8 +115,9 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
   const wrapperRef = useRef<HTMLDivElement>(null);
 
   // Auto-shrink: measure text overflow and scale down to fit.
-  // Uses a hidden clone to measure natural height without disrupting visible layout.
+  // Disabled during editing so user sees real size while typing.
   useEffect(() => {
+    if (!readOnly) { setShrinkScale(1); return; }
     const wrapper = wrapperRef.current;
     if (!wrapper || !editor) return;
     setShrinkScale(1);
@@ -116,28 +125,24 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
     const measure = () => {
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
-
-      // The container height is the element's actual height (set on parent via inline style)
       const parent = wrapper.parentElement;
       if (!parent) return;
       const containerHeight = parent.clientHeight;
       const containerWidth = parent.clientWidth;
       if (!containerHeight || !containerWidth) return;
 
-      // Find the actual Tiptap prose content element
       const prose = wrapper.querySelector('.tiptap, .ProseMirror');
       if (!prose) return;
 
-      // Create an off-screen clone to measure natural height
       const clone = prose.cloneNode(true) as HTMLElement;
       clone.style.position = 'absolute';
       clone.style.visibility = 'hidden';
       clone.style.height = 'auto';
-      clone.style.width = `${containerWidth - 16}px`; // 8px padding on each side
+      clone.style.width = `${containerWidth - 16}px`;
       clone.style.left = '-9999px';
       clone.style.top = '0';
       document.body.appendChild(clone);
-      const naturalHeight = clone.scrollHeight + 16; // +16 for padding
+      const naturalHeight = clone.scrollHeight + 16;
       document.body.removeChild(clone);
 
       if (naturalHeight > containerHeight + 2) {
@@ -149,12 +154,11 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
       }
     };
 
-    // Measure after DOM + fonts settle — multiple passes for font loading
     const t1 = setTimeout(measure, 50);
     const t2 = setTimeout(measure, 400);
     const t3 = setTimeout(measure, 1200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [element.content, element.style.fontSize, element.width, element.height, editor]);
+  }, [element.content, element.style.fontSize, element.width, element.height, editor, readOnly]);
 
   if (!editor) return null;
 
