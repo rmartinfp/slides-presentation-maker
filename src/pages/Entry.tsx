@@ -152,12 +152,31 @@ export default function Entry() {
             Describe it. We design it.
           </h1>
           <div className="rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-sm shadow-sm focus-within:ring-2 focus-within:ring-[#4F46E5]/20 focus-within:border-[#4F46E5]/30">
+            {/* Selected template thumbnail */}
+            {selectedId && (() => {
+              const tmpl = allTemplatesRaw.find(t => t.id === selectedId);
+              const thumb = tmpl?.thumbnailUrl || (tmpl?.slideImages?.[0]);
+              return thumb ? (
+                <div className="px-5 pt-4 pb-1">
+                  <div className="group relative inline-block rounded-lg overflow-hidden border border-slate-200/60 shadow-sm">
+                    <img src={thumb} alt={tmpl?.name || 'Template'} className="h-16 w-auto object-cover rounded-lg" />
+                    <button
+                      onClick={() => { setSelectedId(null); setSelectedType(null); }}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                </div>
+              ) : null;
+            })()}
+
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               placeholder="Describe your presentation... e.g. 'A pitch deck for our AI startup, focusing on market opportunity, product features, and team'"
               rows={3}
-              className="w-full px-5 pt-4 pb-2 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none"
+              className={cn("w-full px-5 pb-2 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none", selectedId ? "pt-2" : "pt-4")}
             />
 
             {/* Attached files */}
@@ -245,11 +264,6 @@ export default function Entry() {
             </div>
           </div>
 
-          {selectedId && (
-            <p className="text-xs text-[#4F46E5] mt-2 text-center">
-              Template selected — your presentation will use this design
-            </p>
-          )}
         </div>
 
         {/* Template bar: count + type tabs + search icon + filter icon */}
