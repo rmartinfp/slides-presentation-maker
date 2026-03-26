@@ -11,13 +11,14 @@ import ColorPicker from './ColorPicker';
 interface Props {
   editor: Editor;
   scale: number;
+  anchorRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 // Font sizes in POINTS (same as Google Slides / PowerPoint)
 const FONT_SIZES_PT = [6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
 const PT_TO_PX = 2.666; // 1920px canvas / (10in × 72pt/in)
 
-export default function FormattingToolbar({ editor, scale }: Props) {
+export default function FormattingToolbar({ editor, scale, anchorRef }: Props) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontSize, setShowFontSize] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -84,25 +85,27 @@ export default function FormattingToolbar({ editor, scale }: Props) {
     </button>
   );
 
-  // Position the toolbar using a portal so it escapes overflow-hidden
-  const [pos, setPos] = useState({ top: 0, left: 0 });
+  // Position toolbar near the element using anchorRef
+  const [pos, setPos] = useState({ top: 0, left: 0, ready: false });
   useEffect(() => {
     const updatePos = () => {
-      const parent = toolbarRef.current?.closest('.canvas-element') as HTMLElement;
-      if (!parent) return;
-      const rect = parent.getBoundingClientRect();
-      const toolbarH = 48; // approximate toolbar height
-      // If element is near top, show below; otherwise show above
-      const showBelow = rect.top < toolbarH + 20;
+      const anchor = anchorRef?.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const toolbarH = 48;
+      const showBelow = rect.top < toolbarH + 60;
       setPos({
-        top: showBelow ? rect.bottom + 8 : rect.top - toolbarH - 8,
-        left: rect.left,
+        top: showBelow ? rect.bottom + 4 : rect.top - toolbarH - 4,
+        left: Math.max(8, rect.left),
+        ready: true,
       });
     };
     updatePos();
-    const interval = setInterval(updatePos, 200);
+    const interval = setInterval(updatePos, 150);
     return () => clearInterval(interval);
-  }, []);
+  }, [anchorRef]);
+
+  if (!pos.ready) return null;
 
   return createPortal(
     <div

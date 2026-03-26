@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -81,12 +81,12 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
 
   if (!editor) return null;
 
-  // Match EXACT same styles as the static text view in CanvasElement
-  // to prevent text jumping when entering/exiting edit mode
   const vAlign = element.style.verticalAlign;
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   return (
     <div
+      ref={wrapperRef}
       className="w-full h-full relative"
       onKeyDown={readOnly ? undefined : handleKeyDown}
       style={{
@@ -101,7 +101,7 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
         opacity: typeof element.style.opacity === 'number' ? element.style.opacity : 1,
       }}
     >
-      {!readOnly && <FormattingToolbar editor={editor} scale={scale} />}
+      {!readOnly && <FormattingToolbar editor={editor} scale={scale} anchorRef={wrapperRef} />}
       <EditorContent
         editor={editor}
         className={readOnly ? 'w-full pointer-events-none' : 'w-full cursor-text'}
