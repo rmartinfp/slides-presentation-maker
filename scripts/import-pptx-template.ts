@@ -251,6 +251,17 @@ function parseAlphaFromXml(xml: string): number {
   return 1; // fully opaque by default
 }
 
+/**
+ * Extract element-level opacity from <a:alphaModFix amt="X"> at the spPr level.
+ * Used for connectors and shapes where <a:alpha> inside colors/shadows must be ignored.
+ * Only checks for <a:alphaModFix> (element-level modifier), NOT <a:alpha> (color-level).
+ */
+function parseAlphaModFixFromSpPr(xml: string): number {
+  const alphaModFix = xml.match(/<a:alphaModFix\s+amt="(\d+)"/);
+  if (alphaModFix) return parseInt(alphaModFix[1]) / 100000;
+  return 1;
+}
+
 function parseFontSize(xml: string): number | null {
   // <a:rPr ... sz="1800" ...> → hundredths of a point
   // Store as points (same as Google Slides / PowerPoint UI)
@@ -614,8 +625,16 @@ function parseImageFromSpTree(
     borderWidth = w ? Math.max(1, Math.round(parseInt(w[1]) / 12700 * 2.666)) : 1;
   }
 
-  // Extract image-level alpha from <a:alphaModFix> in effect or blipFill
-  const imageAlpha = parseAlphaFromXml(picXml);
+  // Extract image-level alpha ONLY from <a:alphaModFix amt="X"> inside <a:blip>.
+  // CRITICAL: Do NOT use parseAlphaFromXml(picXml) — it finds <a:alpha> from shadow effects
+  // (e.g. <a:outerShdw><a:srgbClr val="000000"><a:alpha val="50000"/>) and misuses it as image opacity.
+  // Real image opacity is always <a:alphaModFix amt="X"> directly inside <a:blip>.
+  const blipMatch = picXml.match(/<a:blip[^>]*>([\s\S]*?)<\/a:blip>/);
+  let imageAlpha = 1;
+  if (blipMatch) {
+    const amtMatch = blipMatch[1].match(/<a:alphaModFix\s+amt="(\d+)"/);
+    if (amtMatch) imageAlpha = parseInt(amtMatch[1]) / 100000;
+  }
 
   // Parse srcRect (crop) from blipFill — values are in 1/1000 percent
   // e.g. t="50709" means crop 50.709% from top
@@ -2079,7 +2098,7 @@ async function main() {
             id: genId(), type: 'shape', content: '',
             x: adjustedX, y: emuToPxY(parseInt(off[2])),
             width: finalW, height: finalH,
-            rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
+            rotation: 0, opacity: parseAlphaModFixFromSpPr(cxnXml), locked: false, visible: true, zIndex: zIndex++,
             style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined, lineHeadEnd: headEnd?.[1] || undefined, lineTailEnd: tailEnd?.[1] || undefined },
           });
         }
@@ -2213,7 +2232,7 @@ async function main() {
         elements.push({
           id: genId(), type: 'shape', content: '',
           x: isVerticalGrp && cw === 0 ? cx - 2 : cx, y: cy, width: grpFinalW, height: grpFinalH,
-          rotation: 0, opacity: parseAlphaFromXml(cxnXml), locked: false, visible: true, zIndex: zIndex++,
+          rotation: 0, opacity: parseAlphaModFixFromSpPr(cxnXml), locked: false, visible: true, zIndex: zIndex++,
           style: { shapeType: 'line', shapeFill: lineColor, shapeStroke: lineColor, shapeStrokeWidth: strokeWidth, shapeStrokeDash: parseDashStyle(cxnXml) || undefined, lineHeadEnd: headEndGrp?.[1] || undefined, lineTailEnd: tailEndGrp?.[1] || undefined },
         });
       }
