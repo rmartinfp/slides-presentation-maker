@@ -379,7 +379,7 @@ export default function Entry() {
         )}
 
         {/* Templates Grid — 4 columns, max 5 rows scrollable */}
-        <div className="max-h-[calc(5*180px)] overflow-y-auto rounded-2xl p-1" style={{ scrollbarWidth: 'thin' }}>
+        <div className="max-h-[calc(5*180px)] overflow-y-auto rounded-2xl px-2 pt-2 pb-2" style={{ scrollbarWidth: 'thin' }}>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {allTemplates.map((tmpl, i) => {
               const isSelected = selectedId === tmpl.id;
