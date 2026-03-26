@@ -298,12 +298,13 @@ export default function EditorPage() {
   const { upload: uploadAsset } = useAssetUpload();
   const { addConnector } = useEditorStore();
 
-  // Auto-open right panel when element selected, auto-close when deselected
+  // Open right panel when first element is selected — stays open after that.
+  // User can manually close with chevron. Never auto-closes.
+  const hasOpenedPanel = useRef(false);
   useEffect(() => {
-    if (selectedElementIds.length > 0) {
+    if (selectedElementIds.length > 0 && !hasOpenedPanel.current) {
       setShowRightPanel(true);
-    } else {
-      setShowRightPanel(false);
+      hasOpenedPanel.current = true;
     }
   }, [selectedElementIds]);
 
@@ -777,7 +778,12 @@ export default function EditorPage() {
           {/* Right panel toggle + properties */}
           <div className="flex shrink-0">
             <button
-              onClick={() => setShowRightPanel(!showRightPanel)}
+              onClick={() => {
+                const next = !showRightPanel;
+                setShowRightPanel(next);
+                // If user manually closes, allow auto-open on next selection
+                if (!next) hasOpenedPanel.current = false;
+              }}
               className="w-6 bg-white/60 hover:bg-white/90 border-l border-r border-slate-200/60 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors shrink-0"
               title={showRightPanel ? 'Hide panel' : 'Show panel'}
             >
