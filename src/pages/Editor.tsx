@@ -574,7 +574,12 @@ export default function EditorPage() {
           {/* Canvas area */}
           <div className="flex-1 flex flex-col overflow-hidden relative">
             <CanvasContextMenu>
-              <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative">
+              <div ref={canvasContainerRef} className="flex-1 bg-slate-100/50 overflow-auto relative"
+                onClick={(e) => {
+                  // Click on gray area outside slide → deselect
+                  if (e.target === e.currentTarget) clearSelection();
+                }}
+              >
                 {activeSlide && (
                   <ErrorBoundary>
                     <div className="relative overflow-hidden" style={{
