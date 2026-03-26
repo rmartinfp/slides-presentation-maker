@@ -1930,11 +1930,11 @@ async function main() {
 
         // Extract groups from layout (decorative elements like toggles, dot patterns)
         // RECURSIVE: handles nested groups (group inside group) with cumulative transforms
-        function extractGroupShapes(
+        async function extractGroupShapes(
           grpXml: string,
           parentTransform?: Transform,
           parentGroupId?: string,
-        ): void {
+        ): Promise<void> {
           // Parse this group's transform
           const grpSpPr = grpXml.match(/<p:grpSpPr>([\s\S]*?)<\/p:grpSpPr>/);
           if (!grpSpPr) return;
@@ -1972,8 +1972,10 @@ async function main() {
             toH: (ch: number) => ch * scaleGY,
           };
 
-          // Process direct child shapes (strip nested groups to avoid double-processing)
+          // Process direct child elements (strip nested groups to avoid double-processing)
           const grpXmlNoSubGroups = stripBalancedTags(grpXml, 'p:grpSp');
+
+          // Shapes
           const grpSpMatches = grpXmlNoSubGroups.matchAll(/<p:sp>([\s\S]*?)<\/p:sp>/g);
           for (const sm of grpSpMatches) {
             const shapeEl = parseShapeFromSpTree(sm[1], themeColors);
@@ -1981,12 +1983,10 @@ async function main() {
               const childOff = sm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
               const childExt = sm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
               if (childOff && childExt) {
-                const dbgOldX = shapeEl.x, dbgOldY = shapeEl.y;
                 shapeEl.x = emuToPxX(transform.toX(parseInt(childOff[1])));
                 shapeEl.y = emuToPxY(transform.toY(parseInt(childOff[2])));
                 shapeEl.width = safeWidth(parseInt(childExt[1]), transform);
                 shapeEl.height = safeHeight(parseInt(childExt[2]), transform);
-                console.log(`    GRP child: raw(${dbgOldX},${dbgOldY}) → transformed(${shapeEl.x},${shapeEl.y}) ${shapeEl.width}x${shapeEl.height} fill=${shapeEl.style?.shapeFill||'?'}`);
               }
               shapeEl.locked = true;
               shapeEl.groupId = groupId;
@@ -1995,17 +1995,41 @@ async function main() {
             }
           }
 
+          // Images inside layout groups (watercolor decorations, illustrations, etc.)
+          for (const pm of grpXmlNoSubGroups.matchAll(/<p:pic>([\s\S]*?)<\/p:pic>/g)) {
+            const result = parseImageFromSpTree(pm[1], layoutRelsMap, themeColors);
+            if (result && result.imageRef) {
+              const cOff = pm[1].match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+              const cExt = pm[1].match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+              if (cOff && cExt) {
+                result.element.x = emuToPxX(transform.toX(parseInt(cOff[1])));
+                result.element.y = emuToPxY(transform.toY(parseInt(cOff[2])));
+                result.element.width = safeWidth(parseInt(cExt[1]), transform);
+                result.element.height = safeHeight(parseInt(cExt[2]), transform);
+              }
+              const url = await resolveAndUploadImage(zip, result.imageRef, 'ppt/slideLayouts/');
+              if (url) {
+                result.element.content = url;
+                result.element.locked = true;
+                result.element.groupId = groupId;
+                result.element.zIndex = zIndex++;
+                elements.push(result.element);
+                console.log(`  Layout group image uploaded`);
+              }
+            }
+          }
+
           // Recursively process nested groups (share same groupId)
           const nestedGroups = extractBalancedTags(grpXml, 'p:grpSp');
           for (const nestedGrp of nestedGroups) {
-            extractGroupShapes(nestedGrp, transform, groupId);
+            await extractGroupShapes(nestedGrp, transform, groupId);
           }
         }
 
         // Start recursive extraction from top-level layout groups
         const layoutGrpContents = extractBalancedTags(layoutXml, 'p:grpSp');
         for (const grpXml of layoutGrpContents) {
-          extractGroupShapes(grpXml);
+          await extractGroupShapes(grpXml);
         }
       }
     }
