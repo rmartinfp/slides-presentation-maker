@@ -1,18 +1,48 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Sparkles, Palette, Clock, User } from 'lucide-react';
 import { motion } from 'framer-motion';
-
-const templatePreviews = [
-  { title: 'Startup Pitch', category: 'Business', gradient: 'from-indigo-500 to-purple-600' },
-  { title: 'Quarterly Report', category: 'Corporate', gradient: 'from-emerald-500 to-teal-600' },
-  { title: 'Product Launch', category: 'Marketing', gradient: 'from-orange-500 to-rose-500' },
-  { title: 'Course Material', category: 'Education', gradient: 'from-sky-500 to-blue-600' },
-];
+import { supabase } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
+import HlsVideo from '@/components/ui/HlsVideo';
 
 export default function Entry() {
   const navigate = useNavigate();
+
+  // Fetch all templates (classic + cinematic)
+  const { data: classicTemplates } = useQuery({
+    queryKey: ['templates-home'],
+    queryFn: async () => {
+      const { data } = await supabase.from('templates').select('id,name,category,thumbnail_url,layouts,theme').eq('is_active', true).order('sort_order').limit(12);
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const { data: cinematicTemplates } = useQuery({
+    queryKey: ['cinematic-templates-home'],
+    queryFn: async () => {
+      const { data } = await supabase.from('cinematic_templates').select('id,name,category,slides,theme,preset_id').eq('is_active', true).order('sort_order').limit(8);
+      return data || [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const allTemplates = [
+    ...(cinematicTemplates || []).map((t: any) => ({
+      id: t.id, name: t.name, category: t.category, type: 'cinematic' as const,
+      thumbnailUrl: null,
+      videoUrl: t.slides?.[0]?.videoBackground?.url,
+      videoOpacity: t.slides?.[0]?.videoBackground?.opacity || 0.5,
+      bgColor: t.slides?.[0]?.background?.value || t.theme?.tokens?.palette?.bg || '#000',
+    })),
+    ...(classicTemplates || []).map((t: any) => ({
+      id: t.id, name: t.name.replace(/ by Slidesgo$/i, ''), category: t.category === 'Imported' ? 'All' : t.category, type: 'classic' as const,
+      thumbnailUrl: t.thumbnail_url,
+      videoUrl: null, videoOpacity: 0,
+      bgColor: t.theme?.tokens?.palette?.bg || '#fff',
+    })),
+  ];
 
   return (
     <div className="min-h-screen mesh-gradient text-slate-900 overflow-hidden font-body">
@@ -102,55 +132,75 @@ export default function Entry() {
         </div>
       </div>
 
-      {/* Showcase Section */}
-      <div className="py-20 sm:py-28">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+      {/* Templates Showcase — 4 columns, scrollable */}
+      <div className="py-16 sm:py-24">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-center mb-14"
+            className="text-center mb-10"
           >
             <h2 className="font-headline font-extrabold text-3xl sm:text-4xl md:text-5xl headline-tight text-slate-900 mb-4">
-              Presentations of the Future
+              Templates
             </h2>
             <p className="text-lg text-slate-500 max-w-xl mx-auto">
-              Choose from professionally designed templates or let AI create something unique for you.
+              Classic slides and cinematic video presentations.
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {templatePreviews.map((template, i) => (
-              <motion.div
-                key={template.title}
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: i * 0.1 }}
-                onClick={() => navigate('/create')}
-                className="group cursor-pointer rounded-2xl border border-slate-100 bg-white/60 backdrop-blur-sm overflow-hidden shadow-sm hover:shadow-2xl hover:shadow-[#4F46E5]/10 hover:-translate-y-2 transition-all duration-300"
-              >
-                <div className={`aspect-video bg-gradient-to-br ${template.gradient} relative overflow-hidden`}>
-                  {/* Mock slide content */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-                    <div className="w-16 h-2 bg-white/30 rounded-full mb-2" />
-                    <div className="w-24 h-1.5 bg-white/20 rounded-full mb-4" />
-                    <div className="flex gap-2">
-                      {[1, 2, 3].map(j => (
-                        <div key={j} className="w-8 h-8 rounded bg-white/10" />
-                      ))}
+          {/* Scrollable grid: 4 columns, max 5 rows visible */}
+          <div className="max-h-[calc(5*200px)] overflow-y-auto rounded-2xl pr-1" style={{ scrollbarWidth: 'thin' }}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {allTemplates.map((tmpl, i) => (
+                <motion.div
+                  key={`${tmpl.type}-${tmpl.id}`}
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true, margin: '-50px' }}
+                  transition={{ duration: 0.3, delay: Math.min(i * 0.05, 0.4) }}
+                  onClick={() => navigate('/create')}
+                  className="group cursor-pointer rounded-xl overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#4F46E5]/10 hover:-translate-y-1 transition-all duration-300"
+                >
+                  <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: tmpl.bgColor }}>
+                    {/* Classic template thumbnail */}
+                    {tmpl.thumbnailUrl && (
+                      <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />
+                    )}
+                    {/* Cinematic template video */}
+                    {tmpl.videoUrl && (
+                      <HlsVideo
+                        src={tmpl.videoUrl}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        style={{ opacity: tmpl.videoOpacity }}
+                      />
+                    )}
+                    {/* Name overlay */}
+                    <div className="absolute bottom-0 left-0 right-0 p-2.5 bg-gradient-to-t from-black/50 to-transparent">
+                      <p className="text-xs font-medium text-white truncate">{tmpl.name}</p>
                     </div>
+                    {/* Type badge */}
+                    {tmpl.type === 'cinematic' && (
+                      <span className="absolute top-1.5 right-1.5 text-[8px] px-1.5 py-0.5 rounded-full bg-[#9333EA]/80 text-white font-medium">
+                        Cinematic
+                      </span>
+                    )}
                   </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-headline font-bold text-sm text-slate-800 group-hover:text-[#4F46E5] transition-colors">
-                    {template.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">{template.category}</p>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* See all button */}
+          <div className="text-center mt-8">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/create')}
+              className="text-[#4F46E5] hover:text-[#4338CA] font-medium"
+            >
+              See all templates <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
         </div>
       </div>
