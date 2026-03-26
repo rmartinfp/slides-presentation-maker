@@ -559,12 +559,12 @@ export default function EditorPage() {
                                 <Trash2 className="w-3 h-3" />
                               </button>
                             </div>
-                            <div className="w-full aspect-[16/9] rounded-md overflow-hidden relative">
-                              <div style={{ width: 1920 * 0.065, height: 1080 * 0.065, transformOrigin: 'top left' }}>
+                            <div className="w-full rounded-md overflow-hidden relative" style={{ aspectRatio: '16/9' }}>
+                              <div style={{ width: 1920, height: 1080, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0, transform: `scale(${(128) / 1920})` }}>
                                 <SlideCanvas
                                   slide={slide}
                                   theme={presentation.theme}
-                                  scale={0.065}
+                                  scale={128 / 1920}
                                   isEditing={false}
                                 />
                               </div>
