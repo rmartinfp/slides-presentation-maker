@@ -137,7 +137,10 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
         const sp = { stroke, strokeWidth: sw, strokeDasharray: da || undefined };
 
         const renderShape = () => {
-          if (shapeType === 'circle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
+          if (shapeType === 'circle') {
+            const vw = Math.round(element.width); const vh = Math.round(element.height); const esw = sp.stroke === 'transparent' ? 0 : sw;
+            return <svg width="100%" height="100%" viewBox={`0 0 ${vw} ${vh}`} preserveAspectRatio="none"><ellipse cx={vw/2} cy={vh/2} rx={vw/2-esw} ry={vh/2-esw} fill={fill} {...sp} vectorEffect="non-scaling-stroke" /></svg>;
+          }
           if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} {...sp} /></svg>;
           if (shapeType === 'line') {
             const isVert = element.height > element.width * 2;
