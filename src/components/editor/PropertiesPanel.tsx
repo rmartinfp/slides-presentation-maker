@@ -1048,24 +1048,22 @@ const POPULAR_FONTS = [
 ];
 
 // Google Fonts API cache — loads full catalog on first open
-let googleFontsCache: string[] | null = null;
-let googleFontsLoading = false;
-async function fetchGoogleFonts(): Promise<string[]> {
-  if (googleFontsCache) return googleFontsCache;
-  if (googleFontsLoading) return POPULAR_FONTS;
-  googleFontsLoading = true;
-  try {
-    const key = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
-    if (!key) return POPULAR_FONTS;
-    const res = await fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`);
-    const data = await res.json();
-    googleFontsCache = (data.items || []).map((f: any) => f.family as string);
-    return googleFontsCache;
-  } catch {
-    return POPULAR_FONTS;
-  } finally {
-    googleFontsLoading = false;
-  }
+let googleFontsPromise: Promise<string[]> | null = null;
+function fetchGoogleFonts(): Promise<string[]> {
+  if (googleFontsPromise) return googleFontsPromise;
+  googleFontsPromise = (async () => {
+    try {
+      const key = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
+      if (!key) return POPULAR_FONTS;
+      const res = await fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`);
+      const data = await res.json();
+      return (data.items || []).map((f: any) => f.family as string);
+    } catch {
+      googleFontsPromise = null; // retry on next open
+      return POPULAR_FONTS;
+    }
+  })();
+  return googleFontsPromise;
 }
 const FONT_SIZES_PT = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
 
