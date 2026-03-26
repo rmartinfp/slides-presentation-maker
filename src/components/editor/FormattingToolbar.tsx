@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
@@ -83,17 +84,31 @@ export default function FormattingToolbar({ editor, scale }: Props) {
     </button>
   );
 
-  return (
+  // Position the toolbar using a portal so it escapes overflow-hidden
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  useEffect(() => {
+    const updatePos = () => {
+      const parent = toolbarRef.current?.closest('.canvas-element') as HTMLElement;
+      if (!parent) return;
+      const rect = parent.getBoundingClientRect();
+      const toolbarH = 48; // approximate toolbar height
+      // If element is near top, show below; otherwise show above
+      const showBelow = rect.top < toolbarH + 20;
+      setPos({
+        top: showBelow ? rect.bottom + 8 : rect.top - toolbarH - 8,
+        left: rect.left,
+      });
+    };
+    updatePos();
+    const interval = setInterval(updatePos, 200);
+    return () => clearInterval(interval);
+  }, []);
+
+  return createPortal(
     <div
       ref={toolbarRef}
-      className="absolute z-[200] flex items-center gap-0.5 px-2 py-1.5 bg-white rounded-xl shadow-2xl border border-slate-200"
-      style={{
-        transform: `scale(${1 / scale})`,
-        transformOrigin: 'bottom left',
-        bottom: '100%',
-        left: 0,
-        marginBottom: 8 / scale,
-      }}
+      className="fixed z-[9999] flex items-center gap-0.5 px-2 py-1.5 bg-white rounded-xl shadow-2xl border border-slate-200"
+      style={{ top: pos.top, left: pos.left }}
       onMouseDown={e => e.stopPropagation()}
       onClick={e => e.stopPropagation()}
     >
@@ -213,6 +228,7 @@ export default function FormattingToolbar({ editor, scale }: Props) {
         <Sparkles className="w-3.5 h-3.5" />
         <span className="text-[11px] font-medium">Rewrite</span>
       </button>
-    </div>
+    </div>,
+    document.body,
   );
 }
