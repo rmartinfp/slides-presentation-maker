@@ -14,10 +14,11 @@ import FormattingToolbar from './FormattingToolbar';
 interface Props {
   element: SlideElement;
   scale: number;
+  shrinkScale?: number;
   onBlur: () => void;
 }
 
-export default function RichTextEditor({ element, scale, onBlur }: Props) {
+export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur }: Props) {
   const updateElement = useEditorStore(s => s.updateElement);
 
   const editor = useEditor({
@@ -45,7 +46,7 @@ export default function RichTextEditor({ element, scale, onBlur }: Props) {
         class: 'outline-none w-full h-full',
         style: [
           `font-family: ${element.style.fontFamily ? `${element.style.fontFamily}, sans-serif` : 'sans-serif'}`,
-          `font-size: ${(element.style.fontSize ?? 12) * 2.666}px`,
+          `font-size: ${(element.style.fontSize ?? 12) * 2.666 * shrinkScale}px`,
           `color: ${element.style.color || '#000000'}`,
           `font-weight: ${element.style.fontWeight || 'normal'}`,
           `font-style: ${element.style.fontStyle || 'normal'}`,

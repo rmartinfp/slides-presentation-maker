@@ -265,12 +265,13 @@ export default function CanvasElement({
     switch (element.type) {
       case 'text': {
         if (isEditing) {
-          // CRITICAL: Match exact same layout as static view to prevent text jumping.
-          // The only difference is we render RichTextEditor instead of static HTML.
+          // Pass shrinkScale to RichTextEditor so it reduces fontSize
+          // instead of using CSS transform — prevents position jumping.
           return (
             <RichTextEditor
               element={element}
               scale={scale}
+              shrinkScale={shrinkScale}
               onBlur={handleBlur}
             />
           );
