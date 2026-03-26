@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Play, Check, User, Search } from 'lucide-react';
+import { ArrowRight, Sparkles, Play, Check, User, Search, Paperclip, Mic, MicOff, X, Minus, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
 import HlsVideo from '@/components/ui/HlsVideo';
 import { cn } from '@/lib/utils';
 import { getPresetById } from '@/lib/cinematic-presets';
+import { toast } from 'sonner';
 
 export default function Entry() {
   const navigate = useNavigate();
@@ -16,6 +17,11 @@ export default function Entry() {
   const [selectedType, setSelectedType] = useState<'classic' | 'cinematic' | null>(null);
   const [filter, setFilter] = useState<'all' | 'classic' | 'cinematic'>('all');
   const [search, setSearch] = useState('');
+  const [slideCount, setSlideCount] = useState(8);
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [isRecording, setIsRecording] = useState(false);
+  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   // Fetch templates
   const { data: classicTemplates } = useQuery({
@@ -77,8 +83,8 @@ export default function Entry() {
   }, [allTemplatesRaw, filter, search, prompt]);
 
   const handleGenerate = () => {
-    // Store prompt and selected template in sessionStorage
     sessionStorage.setItem('entryPrompt', prompt);
+    sessionStorage.setItem('entrySlideCount', String(slideCount));
     if (selectedId && selectedType) {
       const tmpl = allTemplates.find(t => t.id === selectedId);
       if (tmpl) sessionStorage.setItem('entryTemplate', JSON.stringify({ type: selectedType, data: tmpl.raw }));
@@ -116,23 +122,99 @@ export default function Entry() {
           <h1 className="font-headline font-extrabold text-3xl sm:text-4xl headline-tight text-slate-900 text-center mb-6">
             Create a presentation
           </h1>
-          <div className="relative">
+          <div className="rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-sm shadow-sm focus-within:ring-2 focus-within:ring-[#4F46E5]/20 focus-within:border-[#4F46E5]/30">
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               placeholder="Describe your presentation... e.g. 'A pitch deck for our AI startup, focusing on market opportunity, product features, and team'"
               rows={3}
-              className="w-full px-5 py-4 rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-sm text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20 focus:border-[#4F46E5]/30 resize-none shadow-sm"
+              className="w-full px-5 pt-4 pb-2 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none"
             />
-            <Button
-              onClick={handleGenerate}
-              disabled={!prompt.trim()}
-              className="absolute bottom-3 right-3 bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE] text-white shadow-lg shadow-[#4F46E5]/20 rounded-xl px-5 py-2.5 text-sm font-medium disabled:opacity-40"
-            >
-              <Sparkles className="w-4 h-4 mr-1.5" />
-              Generate
-            </Button>
+
+            {/* Attached files */}
+            {attachedFiles.length > 0 && (
+              <div className="px-5 pb-2 flex flex-wrap gap-2">
+                {attachedFiles.map((f, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 text-xs text-slate-600">
+                    <Paperclip className="w-3 h-3" />
+                    {f.name.length > 25 ? f.name.slice(0, 22) + '...' : f.name}
+                    <button onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))} className="hover:text-red-500">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
+            {/* Bottom bar: attach + mic + slide count + generate */}
+            <div className="flex items-center gap-2 px-4 pb-3 pt-1">
+              {/* Attach file */}
+              <input ref={fileInputRef} type="file" accept=".pdf,.pptx,.docx,.txt,.md" multiple className="hidden"
+                onChange={e => { if (e.target.files) setAttachedFiles(prev => [...prev, ...Array.from(e.target.files!)]); e.target.value = ''; }} />
+              <button onClick={() => fileInputRef.current?.click()} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors" title="Attach files">
+                <Paperclip className="w-4 h-4" />
+              </button>
+
+              {/* Voice input */}
+              <button
+                onClick={() => {
+                  if (isRecording) {
+                    mediaRecorderRef.current?.stop();
+                    setIsRecording(false);
+                    return;
+                  }
+                  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+                    const recognition = new (window as any).webkitSpeechRecognition?.() || new (window as any).SpeechRecognition?.();
+                    if (!recognition) { toast.info('Speech recognition not supported in this browser'); return; }
+                    recognition.continuous = true;
+                    recognition.interimResults = true;
+                    recognition.lang = 'es-ES';
+                    recognition.onresult = (e: any) => {
+                      let text = '';
+                      for (let i = 0; i < e.results.length; i++) text += e.results[i][0].transcript;
+                      setPrompt(prev => prev ? prev + ' ' + text : text);
+                    };
+                    recognition.onerror = () => { setIsRecording(false); stream.getTracks().forEach(t => t.stop()); };
+                    recognition.onend = () => { setIsRecording(false); stream.getTracks().forEach(t => t.stop()); };
+                    recognition.start();
+                    setIsRecording(true);
+                    (mediaRecorderRef as any).current = recognition;
+                  }).catch(() => toast.error('Microphone access denied'));
+                }}
+                className={cn(
+                  'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                  isRecording ? 'bg-red-100 text-red-500 animate-pulse' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'
+                )}
+                title={isRecording ? 'Stop recording' : 'Voice input'}
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </button>
+
+              {/* Slide count */}
+              <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/60">
+                <button onClick={() => setSlideCount(c => Math.max(3, c - 1))} className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 text-slate-500">
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-medium text-slate-700 w-14 text-center">{slideCount} slides</span>
+                <button onClick={() => setSlideCount(c => Math.min(20, c + 1))} className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 text-slate-500">
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="flex-1" />
+
+              {/* Generate */}
+              <Button
+                onClick={handleGenerate}
+                disabled={!prompt.trim()}
+                className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE] text-white shadow-lg shadow-[#4F46E5]/20 rounded-xl px-5 py-2.5 text-sm font-medium disabled:opacity-40"
+              >
+                <Sparkles className="w-4 h-4 mr-1.5" />
+                Generate
+              </Button>
+            </div>
           </div>
+
           {selectedId && (
             <p className="text-xs text-[#4F46E5] mt-2 text-center">
               Template selected — your presentation will use this design
