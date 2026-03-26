@@ -70,8 +70,8 @@ export default function SlideAIPage() {
         } catch {}
       }
 
-      // Ensure we have a theme (fallback to first catalog theme)
-      if (!selectedTheme) {
+      // Fallback theme only if no template was loaded above
+      if (!entryTemplate) {
         setSelectedTheme(THEME_CATALOG[0]);
       }
       // Skip content step — go straight to generating
