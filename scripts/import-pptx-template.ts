@@ -2199,9 +2199,9 @@ async function main() {
         const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleItalic: masterTitleItalic, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) { textEl.zIndex = zIndex++; elements.push(textEl); continue; }
 
-        // Try as shape
+        // Try as shape — lock by default (decorative shapes shouldn't block text selection)
         const shapeEl = parseShapeFromSpTree(spXml, themeColors);
-        if (shapeEl) { shapeEl.zIndex = zIndex++; elements.push(shapeEl); }
+        if (shapeEl) { shapeEl.locked = true; shapeEl.zIndex = zIndex++; elements.push(shapeEl); }
 
       } else if (xmlEl.type === 'pic') {
         const result = parseImageFromSpTree(xmlEl.content, relsMap, themeColors);
@@ -2307,9 +2307,9 @@ async function main() {
             shapeEl.width = safeWidth(parseInt(cExt[1]), transform);
             shapeEl.height = safeHeight(parseInt(cExt[2]), transform);
           }
-          // Lock small decorative shapes from groups (dots, toggles, icons)
-          // These are design elements, not user-editable content
-          if (Math.min(shapeEl.width, shapeEl.height) < 20) shapeEl.locked = true;
+          // Lock ALL shapes from groups — they are decorative, not user-editable content.
+          // This ensures shapes don't block click-through to text elements below.
+          shapeEl.locked = true;
           shapeEl.groupId = groupId;
           shapeEl.zIndex = zIndex++;
           elements.push(shapeEl);
