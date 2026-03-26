@@ -1516,28 +1516,8 @@ function mindloopTheme() {
 // ══════════════════════════════
 
 const TEMPLATES = [
-  {
-    name: 'Nexus',
-    slug: 'nexus',
-    category: 'SaaS / Tech',
-    description: 'Dark purple SaaS style with gradient headlines, liquid glass cards, and bold typography.',
-    preset_id: 'nexus',
-    slides: buildNexus(),
-    theme: nexusTheme(),
-    tags: ['saas', 'tech', 'startup', 'pitch'],
-    sort_order: 1,
-  },
-  {
-    name: 'Prysma',
-    slug: 'prysma',
-    category: 'Growth / Data',
-    description: 'Data-driven dark purple theme with dashboard metrics, glass cards, and testimonial layouts.',
-    preset_id: 'nexus',
-    slides: buildPrysma(),
-    theme: nexusTheme(),
-    tags: ['data', 'growth', 'analytics', 'quarterly'],
-    sort_order: 2,
-  },
+  // Nexus removed — was not from a user prompt
+  // Prysma removed — was not from a user prompt
   {
     name: 'Viktory',
     slug: 'viktory',
