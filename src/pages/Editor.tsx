@@ -294,10 +294,12 @@ export default function EditorPage() {
   const { upload: uploadAsset } = useAssetUpload();
   const { addConnector } = useEditorStore();
 
-  // Auto-open right panel when element is selected, auto-close when deselected
+  // Auto-open right panel when element selected, auto-close when deselected
   useEffect(() => {
     if (selectedElementIds.length > 0) {
       setShowRightPanel(true);
+    } else {
+      setShowRightPanel(false);
     }
   }, [selectedElementIds]);
 
