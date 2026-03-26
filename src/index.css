@@ -217,8 +217,21 @@
   }
   .ProseMirror {
     outline: none;
+    /* Override ProseMirror defaults that cause text position jump */
+    position: static !important;
+    white-space: pre-wrap !important;
+    font-variant-ligatures: normal !important;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
   .ProseMirror:focus {
     outline: none;
+  }
+  /* Tiptap editor container — match static text rendering */
+  .tiptap {
+    width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 }

@@ -88,15 +88,19 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
       onKeyDown={handleKeyDown}
       style={{
         padding: 8,
+        boxSizing: 'border-box',
         display: vAlign ? 'flex' : undefined,
         flexDirection: vAlign ? 'column' as any : undefined,
         justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : undefined,
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
       }}
     >
       <FormattingToolbar editor={editor} scale={scale} />
       <EditorContent
         editor={editor}
-        className="overflow-hidden cursor-text"
+        className="w-full cursor-text"
+        style={{ boxSizing: 'border-box' }}
         onBlur={onBlur}
       />
     </div>
