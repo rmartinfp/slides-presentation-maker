@@ -77,7 +77,7 @@ export default function Entry() {
   // Debounced prompt for filtering — waits 800ms after typing stops
   const [debouncedPrompt, setDebouncedPrompt] = useState('');
   React.useEffect(() => {
-    const t = setTimeout(() => setDebouncedPrompt(prompt), 800);
+    const t = setTimeout(() => setDebouncedPrompt(prompt), 400);
     return () => clearTimeout(t);
   }, [prompt]);
 
