@@ -415,13 +415,11 @@ export default function Entry() {
                         <Play className="w-2 h-2" />Cinematic
                       </span>
                     )}
-                    {/* Hover overlay: "Use template" button */}
+                    {/* Hover: "Use template" button top-right */}
                     {!isSelected && (
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
-                        <span className="px-4 py-2 rounded-full bg-white text-slate-900 text-xs font-semibold shadow-lg">
-                          Use template
-                        </span>
-                      </div>
+                      <span className="absolute top-1.5 right-1.5 px-3 py-1.5 rounded-full bg-white text-slate-900 text-[10px] font-semibold shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        Use template
+                      </span>
                     )}
                     {/* Selected state: check + border handled by parent ring */}
                     {isSelected && (
