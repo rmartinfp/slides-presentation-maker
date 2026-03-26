@@ -79,9 +79,9 @@ export default function CanvasElement({
 
   const { moveElement, resizeElement, pushSnapshot, updateElement } = useEditorStore();
 
-  // Treat full-canvas background images as locked (they block clicks on text elements)
+  // Treat full-canvas background images/videos as locked (they block clicks on text elements)
   const isEffectivelyLocked = element.locked || (
-    element.type === 'image' && element.width >= 1900 && element.height >= 1060
+    (element.type === 'image' || element.type === 'video') && element.width >= 1900 && element.height >= 1060
   );
 
   // interact.js setup — only recreate when id, locked, or editing changes
@@ -167,7 +167,7 @@ export default function CanvasElement({
           const state = useEditorStore.getState();
           const slide = state.presentation.slides[state.activeSlideIndex];
           const elements = slide?.elements || [];
-          const isElLocked = (el: any) => el.locked || (el.type === 'image' && el.width >= 1900 && el.height >= 1060);
+          const isElLocked = (el: any) => el.locked || ((el.type === 'image' || el.type === 'video') && el.width >= 1900 && el.height >= 1060);
           const hit = elements
             .filter(el => !isElLocked(el) && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
             .sort((a, b) => b.zIndex - a.zIndex)[0];
@@ -199,7 +199,7 @@ export default function CanvasElement({
           const state = useEditorStore.getState();
           const slide = state.presentation.slides[state.activeSlideIndex];
           const elements = slide?.elements || [];
-          const isElLocked = (el: any) => el.locked || (el.type === 'image' && el.width >= 1900 && el.height >= 1060);
+          const isElLocked = (el: any) => el.locked || ((el.type === 'image' || el.type === 'video') && el.width >= 1900 && el.height >= 1060);
           const hit = elements
             .filter(el => !isElLocked(el) && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
             .sort((a, b) => b.zIndex - a.zIndex)[0];
