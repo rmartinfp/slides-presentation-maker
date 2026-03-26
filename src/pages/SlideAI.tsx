@@ -38,8 +38,10 @@ export default function SlideAIPage() {
 
       if (entryTemplate) {
         try {
-          const { type, data } = JSON.parse(entryTemplate);
+          const parsed = JSON.parse(entryTemplate);
+          const { type, data } = parsed;
           sessionStorage.removeItem('entryTemplate');
+          console.log('[SlideAI] Template from home:', type, data?.name, 'has preview_slides:', !!data?.preview_slides, 'count:', data?.preview_slides?.length);
 
           if (type === 'cinematic') {
             const preset = getPresetById(data.preset_id || 'midnight');
@@ -73,7 +75,9 @@ export default function SlideAIPage() {
               if (slides) loadFontsFromSlides(slides);
             }
           }
-        } catch {}
+        } catch (err) {
+          console.error('[SlideAI] Failed to load template from home:', err);
+        }
       }
 
       // Fallback theme only if no template was loaded above
@@ -247,6 +251,7 @@ export default function SlideAIPage() {
     // Use refs as fallback when state hasn't updated yet (auto-generate from home)
     const theme = selectedTheme || pendingThemeRef.current || THEME_CATALOG[0];
     const effectiveTemplateSlides = templateSlides || pendingSlidesRef.current;
+    console.log('[handleGenerate] theme:', theme?.name, 'templateSlides:', templateSlides?.length, 'pendingRef:', pendingSlidesRef.current?.length, 'effective:', effectiveTemplateSlides?.length);
 
     try {
       // ─── TEMPLATE-DRIVEN FLOW ───
