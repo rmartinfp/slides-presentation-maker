@@ -942,10 +942,10 @@ function parseDashStyle(xml: string): string | null {
   return map[dash[1]] || null;
 }
 
-function parseSlideBackground(slideXml: string, relsMap: Map<string, string>, themeColors: ThemeColors): { type: string; value: string } {
+function parseSlideBackground(slideXml: string, relsMap: Map<string, string>, themeColors: ThemeColors): { type: string; value: string } | null {
   // Extract <p:bg> section first
   const bgSection = slideXml.match(/<p:bg>([\s\S]*?)<\/p:bg>/);
-  if (!bgSection) return { type: 'solid', value: themeColors.lt1 };
+  if (!bgSection) return null; // No <p:bg> → caller must check parent (layout → master)
 
   const bgXml = bgSection[1];
 
@@ -970,7 +970,7 @@ function parseSlideBackground(slideXml: string, relsMap: Map<string, string>, th
     if (ref) return { type: 'image', value: ref };
   }
 
-  return { type: 'solid', value: themeColors.lt1 };
+  return null;
 }
 
 // ---- Balanced tag utilities ----
@@ -1804,8 +1804,9 @@ async function main() {
       console.log(`  Keeping "Thank You" slide (${elementCount} elements)`);
     }
 
-    // Parse background — first from slide, then inherit from layout if slide has none
-    let background = parseSlideBackground(slideXml, relsMap, themeColors);
+    // Parse background — first from slide, then inherit from layout, then master
+    let background: { type: string; value: string } = parseSlideBackground(slideXml, relsMap, themeColors) || { type: 'solid', value: themeColors.lt1 };
+    const slideHasOwnBg = parseSlideBackground(slideXml, relsMap, themeColors) !== null;
 
     // Parse elements — start with layout decorations (images, shapes that aren't placeholders)
     const elements: ParsedElement[] = [];
@@ -1831,9 +1832,9 @@ async function main() {
         }
 
         // Inherit background from layout if slide doesn't have its own <p:bg>
-        if (background.type === 'solid' && background.value === themeColors.lt1) {
+        if (!slideHasOwnBg) {
           const layoutBg = parseSlideBackground(layoutXml, layoutRelsMap, themeColors);
-          if (layoutBg.type !== 'solid' || layoutBg.value !== themeColors.lt1) {
+          if (layoutBg) {
             background = layoutBg;
             // If layout bg is an image reference, resolve and upload it
             if (background.type === 'image' && background.value.startsWith('../')) {
@@ -1857,22 +1858,22 @@ async function main() {
           }
         }
 
-        // Fallback to MASTER slide background if still default
-        if (background.type === 'solid' && background.value === themeColors.lt1) {
+        // Fallback to MASTER slide background if neither slide nor layout has explicit <p:bg>
+        const layoutHasBg = parseSlideBackground(layoutXml, layoutRelsMap, themeColors) !== null;
+        if (!slideHasOwnBg && !layoutHasBg) {
           // Find master via layout rels
           const layoutRelsPath2 = layoutPath.replace('slideLayouts/', 'slideLayouts/_rels/') + '.rels';
           if (zip.files[layoutRelsPath2]) {
             const lRelsXml = await zip.file(layoutRelsPath2)!.async('string');
             const masterMatch = lRelsXml.match(/Target="([^"]*slideMaster[^"]*)"/);
             if (masterMatch) {
-              // Resolve relative path: "../slideMasters/slideMaster1.xml" → "ppt/slideMasters/slideMaster1.xml"
-              const masterRelative = masterMatch[1]; // e.g. "../slideMasters/slideMaster1.xml"
+              const masterRelative = masterMatch[1];
               const masterPath = 'ppt/' + masterRelative.replace(/^\.\.\//g, '');
               const masterFile = zip.files[masterPath];
               if (masterFile) {
                 const masterXml = await masterFile.async('string');
                 const masterBg = parseSlideBackground(masterXml, new Map(), themeColors);
-                if (masterBg.type !== 'solid' || masterBg.value !== themeColors.lt1) {
+                if (masterBg) {
                   background = masterBg;
                   console.log(`  Master slide background: ${background.type} = ${background.value.substring(0, 30)}`);
                 }
@@ -2104,7 +2105,7 @@ async function main() {
           let lineColor = themeColors.dk1;
           if (srgb) lineColor = `#${srgb[1]}`;
           else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
-          const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
+          const lnW = cxnXml.match(/<a:ln[^>]+w="(\d+)"/);
           const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700 * 2.666)) : 1;
           const cxnW = emuToPxX(parseInt(ext[1]));
           const cxnH = emuToPxY(parseInt(ext[2]));
@@ -2245,7 +2246,7 @@ async function main() {
         let lineColor = themeColors.dk1;
         if (srgb) lineColor = `#${srgb[1]}`;
         else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
-        const lnW = cxnXml.match(/<a:ln\s+w="(\d+)"/);
+        const lnW = cxnXml.match(/<a:ln[^>]+w="(\d+)"/);
         const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700 * 2.666)) : 1;
         // Detect vertical vs horizontal
         const isVerticalGrp = ch > cw * 2 || cw === 0;
