@@ -35,13 +35,14 @@ export default function Entry() {
     staleTime: 5 * 60 * 1000,
   });
 
-  const allTemplates = [
+  const allTemplatesRaw = [
     ...(cinematicTemplates || []).map((t: any) => ({
       id: t.id, name: t.name, category: t.category, type: 'cinematic' as const,
       thumbnailUrl: null,
       videoUrl: t.slides?.[0]?.videoBackground?.url,
       videoOpacity: t.slides?.[0]?.videoBackground?.opacity || 0.5,
       bgColor: t.slides?.[0]?.background?.value || t.theme?.tokens?.palette?.bg || '#000',
+      tags: (t.tags || []).join(' '),
       raw: t,
     })),
     ...(classicTemplates || []).map((t: any) => ({
@@ -49,14 +50,31 @@ export default function Entry() {
       thumbnailUrl: t.thumbnail_url,
       videoUrl: null, videoOpacity: 0,
       bgColor: t.theme?.tokens?.palette?.bg || '#fff',
+      tags: (t.tags || []).join(' '),
       raw: t,
     })),
-  ].filter(t => {
-    if (filter === 'cinematic' && t.type !== 'cinematic') return false;
-    if (filter === 'classic' && t.type !== 'classic') return false;
-    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  ];
+
+  // Smart filter: uses search box + prompt keywords to match templates
+  const allTemplates = React.useMemo(() => {
+    // Build search terms from prompt + search box
+    const promptWords = prompt.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const searchWords = search.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+    const allWords = [...searchWords, ...promptWords];
+
+    return allTemplatesRaw.filter(t => {
+      if (filter === 'cinematic' && t.type !== 'cinematic') return false;
+      if (filter === 'classic' && t.type !== 'classic') return false;
+
+      // If no search terms, show all
+      if (allWords.length === 0) return true;
+
+      // Match against name + category + tags
+      const haystack = `${t.name} ${t.category} ${t.tags}`.toLowerCase();
+      // Show template if ANY word matches (loose matching)
+      return allWords.some(w => haystack.includes(w));
+    });
+  }, [allTemplatesRaw, filter, search, prompt]);
 
   const handleGenerate = () => {
     // Store prompt and selected template in sessionStorage
