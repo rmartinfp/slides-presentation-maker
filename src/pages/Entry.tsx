@@ -74,9 +74,16 @@ export default function Entry() {
     if (i < classicList.length) allTemplatesRaw.push(classicList[i]);
   }
 
-  // Smart filter: uses search box + prompt keywords to match templates
+  // Debounced prompt for filtering — waits 800ms after typing stops
+  const [debouncedPrompt, setDebouncedPrompt] = useState('');
+  React.useEffect(() => {
+    const t = setTimeout(() => setDebouncedPrompt(prompt), 800);
+    return () => clearTimeout(t);
+  }, [prompt]);
+
+  // Smart filter: uses search box + debounced prompt keywords
   const allTemplates = React.useMemo(() => {
-    const promptWords = prompt.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    const promptWords = debouncedPrompt.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     const searchWords = search.toLowerCase().split(/\s+/).filter(w => w.length > 1);
     const allWords = [...searchWords, ...promptWords];
 
@@ -92,7 +99,7 @@ export default function Entry() {
       // Show template if ANY word matches (loose matching)
       return allWords.some(w => haystack.includes(w));
     });
-  }, [allTemplatesRaw, filter, search, prompt]);
+  }, [allTemplatesRaw, filter, search, debouncedPrompt]);
 
   const handleGenerate = () => {
     sessionStorage.setItem('entryPrompt', prompt);
