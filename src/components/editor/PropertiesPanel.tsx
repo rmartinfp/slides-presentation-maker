@@ -175,28 +175,10 @@ export default function PropertiesPanel() {
           </div>
         </Section>
 
-        {/* Text-specific */}
+        {/* Text-specific — editable font, size, color */}
         {el.type === 'text' && (
           <Section icon={<Type className="w-3 h-3" />} title="Text">
-            <div className="space-y-2">
-              <div>
-                <label className="text-[10px] text-slate-500 mb-1 block">Font</label>
-                <p className="text-xs text-slate-700 truncate">{el.style.fontFamily || 'Default'}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[10px] text-slate-500 mb-1 block">Size</label>
-                  <p className="text-xs text-slate-700">{el.style.fontSize}pt</p>
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 mb-1 block">Color</label>
-                  <div className="flex items-center gap-1">
-                    <div className="w-4 h-4 rounded border border-slate-200" style={{ backgroundColor: el.style.color || '#fff' }} />
-                    <p className="text-[10px] text-slate-500">{el.style.color}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
+            <TextPropsSection el={el} updateElement={updateElement} updateStyle={updateStyle} />
           </Section>
         )}
 
@@ -1050,6 +1032,155 @@ function PropInput({ label, value, onChange }: { label: string; value: number; o
         onChange={e => onChange(parseInt(e.target.value) || 0)}
         className="w-full h-7 px-2 bg-slate-50 border border-slate-200 rounded text-xs text-slate-900 focus:outline-none focus:border-[#4F46E5] tabular-nums"
       />
+    </div>
+  );
+}
+
+// ─── Text Properties Section (Editable font, size, color) ───
+const POPULAR_FONTS = [
+  'Inter', 'Roboto', 'Open Sans', 'Montserrat', 'Poppins', 'Lato', 'Raleway',
+  'Playfair Display', 'Merriweather', 'Source Sans 3', 'Nunito', 'Work Sans',
+  'DM Sans', 'Outfit', 'Space Grotesk', 'Bricolage Grotesque', 'Albert Sans',
+  'Corben', 'Archivo', 'Karla', 'Manjari', 'Catamaran', 'Inconsolata',
+  'Roboto Mono', 'Funnel Sans', 'Inter Tight', 'Libre Baskerville',
+  'Josefin Sans', 'Oswald', 'Barlow', 'Cabin', 'Quicksand', 'Rubik',
+  'Mulish', 'Urbanist', 'Sora', 'Figtree', 'Geist',
+];
+const FONT_SIZES_PT = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
+
+function TextPropsSection({ el, updateElement, updateStyle }: {
+  el: SlideElement;
+  updateElement: (id: string, u: Partial<SlideElement>) => void;
+  updateStyle: (s: Record<string, any>) => void;
+}) {
+  const [fontSearch, setFontSearch] = React.useState('');
+  const [showFontPicker, setShowFontPicker] = React.useState(false);
+
+  const currentFont = (el.style?.fontFamily || 'Inter').split(',')[0].replace(/['"]/g, '').trim();
+  const currentSize = el.style?.fontSize || 18;
+  const currentColor = el.style?.color || '#000000';
+  const currentWeight = el.style?.fontWeight || '400';
+  const currentAlign = el.style?.textAlign || 'left';
+
+  const filteredFonts = fontSearch
+    ? POPULAR_FONTS.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase()))
+    : POPULAR_FONTS;
+
+  const handleFontChange = (font: string) => {
+    // Load the font dynamically
+    const link = document.createElement('link');
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@300;400;500;600;700;800&display=swap`;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    updateStyle({ fontFamily: font + ', sans-serif' });
+    setShowFontPicker(false);
+    setFontSearch('');
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Font family picker */}
+      <div className="relative">
+        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Font</label>
+        <button
+          onClick={() => setShowFontPicker(!showFontPicker)}
+          className="w-full h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs text-left truncate hover:border-slate-300 focus:outline-none focus:border-[#4F46E5]"
+          style={{ fontFamily: el.style?.fontFamily }}
+        >
+          {currentFont}
+        </button>
+        {showFontPicker && (
+          <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-hidden flex flex-col">
+            <input
+              type="text"
+              value={fontSearch}
+              onChange={(e) => setFontSearch(e.target.value)}
+              placeholder="Search fonts..."
+              className="px-3 py-2 border-b border-slate-100 text-xs focus:outline-none"
+              autoFocus
+            />
+            <div className="overflow-y-auto flex-1">
+              {filteredFonts.map(font => (
+                <button key={font} onClick={() => handleFontChange(font)}
+                  className={cn('w-full px-3 py-1.5 text-left text-xs hover:bg-indigo-50 transition-colors',
+                    currentFont === font ? 'bg-indigo-50 text-[#4F46E5] font-medium' : 'text-slate-700')}>
+                  <span style={{ fontFamily: font + ', sans-serif' }}>{font}</span>
+                </button>
+              ))}
+              {filteredFonts.length === 0 && fontSearch && (
+                <button onClick={() => handleFontChange(fontSearch)}
+                  className="w-full px-3 py-2 text-left text-xs text-[#4F46E5] hover:bg-indigo-50">
+                  Use "{fontSearch}" from Google Fonts
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Size + Weight row */}
+      <div className="grid grid-cols-2 gap-2">
+        <div>
+          <label className="text-[10px] text-slate-500 mb-1 block font-medium">Size</label>
+          <select
+            value={currentSize}
+            onChange={(e) => updateStyle({ fontSize: Number(e.target.value) })}
+            className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#4F46E5]"
+          >
+            {FONT_SIZES_PT.map(s => (
+              <option key={s} value={s}>{s}pt</option>
+            ))}
+            {!FONT_SIZES_PT.includes(currentSize) && (
+              <option value={currentSize}>{currentSize}pt</option>
+            )}
+          </select>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-500 mb-1 block font-medium">Weight</label>
+          <select
+            value={currentWeight}
+            onChange={(e) => updateStyle({ fontWeight: e.target.value })}
+            className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-[#4F46E5]"
+          >
+            <option value="300">Light</option>
+            <option value="400">Regular</option>
+            <option value="500">Medium</option>
+            <option value="600">SemiBold</option>
+            <option value="700">Bold</option>
+            <option value="800">ExtraBold</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Color */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Color</label>
+        <div className="flex items-center gap-2">
+          <label className="relative cursor-pointer group shrink-0">
+            <div className="w-8 h-8 rounded-lg border-2 border-white shadow-sm group-hover:ring-2 group-hover:ring-[#4F46E5]/30 transition-all"
+              style={{ backgroundColor: currentColor }} />
+            <input type="color" value={currentColor}
+              onChange={e => updateStyle({ color: e.target.value })}
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+          </label>
+          <input value={currentColor} onChange={e => updateStyle({ color: e.target.value })}
+            className="flex-1 h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-xs font-mono focus:outline-none focus:border-[#4F46E5]" />
+        </div>
+      </div>
+
+      {/* Alignment */}
+      <div>
+        <label className="text-[10px] text-slate-500 mb-1 block font-medium">Align</label>
+        <div className="grid grid-cols-3 gap-1">
+          {(['left', 'center', 'right'] as const).map(a => (
+            <button key={a} onClick={() => updateStyle({ textAlign: a })}
+              className={cn('py-1.5 rounded-lg text-[10px] font-medium transition-all',
+                currentAlign === a ? 'bg-[#4F46E5] text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}>
+              {a.charAt(0).toUpperCase() + a.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
