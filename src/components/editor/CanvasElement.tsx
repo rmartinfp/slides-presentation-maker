@@ -145,15 +145,68 @@ export default function CanvasElement({
   // Use mousedown for selection — doesn't interfere with interact.js pointer events
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      // Don't interfere with interact.js resize handles
+      // If this element is locked, find the topmost UNLOCKED element at this click position
+      // and select that instead. This solves the problem where locked decorative shapes
+      // with high z-index sit on top of unlocked text elements with low z-index.
+      // CSS pointer-events:none does NOT work for this — it passes clicks to z-index N-1,
+      // not to the nearest unlocked element.
+      if (element.locked && !isSelected) {
+        // Get click position relative to the slide stage (canvas coordinates)
+        const stage = (e.currentTarget as HTMLElement).closest('.slide-stage') as HTMLElement;
+        if (stage) {
+          const rect = stage.getBoundingClientRect();
+          const s = scaleRef.current;
+          const cx = (e.clientX - rect.left) / s;
+          const cy = (e.clientY - rect.top) / s;
+          // Find the topmost unlocked element whose bounding box contains the click
+          const state = useEditorStore.getState();
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          const elements = slide?.elements || [];
+          const hit = elements
+            .filter(el => !el.locked && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
+            .sort((a, b) => b.zIndex - a.zIndex)[0];
+          if (hit) {
+            onSelect(hit.id, e.shiftKey);
+            e.stopPropagation(); // Prevent stage from clearing selection
+            return;
+          }
+        }
+        // No unlocked element found at this position — don't select locked element
+        return;
+      }
       onSelect(element.id, e.shiftKey);
     },
-    [element.id, onSelect],
+    [element.id, element.locked, isSelected, onSelect],
   );
 
   const handleDoubleClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
+      // Forward double-click on locked elements to unlocked element underneath
+      if (element.locked) {
+        const stage = (e.currentTarget as HTMLElement).closest('.slide-stage') as HTMLElement;
+        if (stage) {
+          const rect = stage.getBoundingClientRect();
+          const s = scaleRef.current;
+          const cx = (e.clientX - rect.left) / s;
+          const cy = (e.clientY - rect.top) / s;
+          const state = useEditorStore.getState();
+          const slide = state.presentation.slides[state.activeSlideIndex];
+          const elements = slide?.elements || [];
+          const hit = elements
+            .filter(el => !el.locked && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
+            .sort((a, b) => b.zIndex - a.zIndex)[0];
+          if (hit) {
+            // Select the element and trigger edit mode via DOM
+            onSelect(hit.id, false);
+            const targetDom = document.querySelector(`[data-element-id="${hit.id}"]`);
+            if (targetDom) {
+              targetDom.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, clientX: e.clientX, clientY: e.clientY }));
+            }
+          }
+        }
+        return;
+      }
       if (element.type === 'text') {
         setIsEditing(true);
         onDoubleClick?.(element.id);
@@ -245,8 +298,11 @@ export default function CanvasElement({
     opacity: element.opacity,
     zIndex: (isEditing || isCropping) ? 9999 : element.zIndex,
     cursor: isCropping ? 'grab' : isEditing ? 'text' : element.locked ? 'default' : 'move',
-    // Locked decorations pass clicks through to elements below
-    pointerEvents: element.locked && !isSelected ? 'none' : undefined,
+    // Locked decorations: keep pointer-events active so they capture clicks,
+    // then forward the click to any unlocked element underneath (see handleMouseDown).
+    // Using 'none' here is WRONG: CSS pointer-events:none passes clicks to the next
+    // element in z-order (another locked element), NOT to unlocked elements with lower z-index.
+    pointerEvents: undefined,
     touchAction: 'none',
     userSelect: isEditing ? 'text' : 'none' as const,
     // Critical: prevent browser default drag behavior
