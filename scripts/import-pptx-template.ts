@@ -59,10 +59,18 @@ function extractThemeColors(themeXml: string): ThemeColors {
   const colors: Record<string, string> = {};
   const schemes = ['dk1', 'lt1', 'dk2', 'lt2', 'accent1', 'accent2', 'accent3', 'accent4', 'accent5', 'accent6'];
 
+  // CRITICAL: Only read from the PRIMARY color scheme inside <a:themeElements>,
+  // NOT from <a:extraClrSchemeLst> which contains alternate schemes with same tag names.
+  // The primary scheme is the FIRST <a:clrScheme> inside <a:themeElements>.
+  const themeElements = themeXml.match(/<a:themeElements>([\s\S]*?)<\/a:themeElements>/);
+  const primaryScheme = themeElements
+    ? themeElements[1].match(/<a:clrScheme[^>]*>([\s\S]*?)<\/a:clrScheme>/)
+    : null;
+  const searchXml = primaryScheme ? primaryScheme[1] : themeXml;
+
   for (const scheme of schemes) {
-    // Match <a:dk1>...</a:dk1> etc
     const regex = new RegExp(`<a:${scheme}>(.*?)</a:${scheme}>`, 's');
-    const match = themeXml.match(regex);
+    const match = searchXml.match(regex);
     if (match) {
       colors[scheme] = parseColorFromXml(match[1]);
     } else {
@@ -819,8 +827,9 @@ function parseShapeFromSpTree(
   }
   const bodyNoFill = spPrNoLn.includes('<a:noFill/>');
 
-  // Get OUTLINE properties (from original XML with <a:ln>)
-  const ln = spXml.match(/<a:ln[^>]*>([\s\S]*?)<\/a:ln>/);
+  // Get OUTLINE properties from spPr XML (NOT full spXml, to avoid matching <a:lnTo> in custGeom paths)
+  // CRITICAL: use spPrXml and the same ln-stripping-safe regex that won't match <a:lnTo>
+  const ln = spPrXml.match(/<a:ln(?:\s+\w+="[^"]*")*\s*>([\s\S]*?)<\/a:ln>/);
   let stroke: string | null = null;
   let strokeWidth = 0;
   let strokeDash: string | null = null;
