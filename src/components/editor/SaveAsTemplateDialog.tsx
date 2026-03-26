@@ -29,6 +29,7 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
   const sourceTable = (presentation as any).sourceTable;
   const sourceTemplateId = (presentation as any).sourceTemplateId;
   const isClassicUpdate = sourceTable === 'templates' && sourceTemplateId;
+  const isCinematicUpdate = sourceTable === 'cinematic_templates' && sourceTemplateId;
 
   const handleSave = async () => {
     setSaving(true);
@@ -56,6 +57,33 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
 
         if (error) throw error;
         toast.success(`Template updated! Changes will reflect in generation.`);
+        onClose();
+        return;
+      }
+
+      if (isCinematicUpdate) {
+        // UPDATE existing cinematic template
+        const slides = presentation.slides.map(s => ({
+          id: s.id,
+          elements: s.elements,
+          background: s.background,
+          videoBackground: s.videoBackground,
+          animationConfig: s.animationConfig,
+        }));
+
+        const { error } = await supabase.from('cinematic_templates').update({
+          slides,
+          theme: {
+            id: presentation.theme.id,
+            name: presentation.title,
+            category: 'Cinematic',
+            tokens: presentation.theme.tokens,
+            previewColors: presentation.theme.previewColors,
+          },
+        }).eq('id', sourceTemplateId);
+
+        if (error) throw error;
+        toast.success('Template updated!');
         onClose();
         return;
       }
@@ -122,8 +150,8 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
               <Upload className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">{isClassicUpdate ? 'Update Template' : 'Save as Cinematic Template'}</h3>
-              <p className="text-xs text-slate-400">{presentation.slides.length} slides{isClassicUpdate ? ` — updating "${presentation.title?.replace(/ by Slidesgo$/i, '')}"` : ' will be saved as a template'}</p>
+              <h3 className="font-semibold text-slate-800">{(isClassicUpdate || isCinematicUpdate) ? 'Update Template' : 'Save as Cinematic Template'}</h3>
+              <p className="text-xs text-slate-400">{presentation.slides.length} slides{(isClassicUpdate || isCinematicUpdate) ? ` — updating "${presentation.title?.replace(/ by Slidesgo$/i, '')}"` : ' will be saved as a template'}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center">
@@ -132,8 +160,8 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
-          {/* Classic template: simple update button */}
-          {isClassicUpdate && (
+          {/* Existing template: simple update button */}
+          {(isClassicUpdate || isCinematicUpdate) && (
             <div className="space-y-3">
               <p className="text-sm text-slate-600">
                 Your changes to text, fonts, sizes, and layout will be saved.
@@ -146,8 +174,8 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
             </div>
           )}
 
-          {/* Cinematic template: full form */}
-          {!isClassicUpdate && <>
+          {/* Cinematic template: full form (new only) */}
+          {!isClassicUpdate && !isCinematicUpdate && <>
           {/* Name */}
           <div>
             <label className="text-xs font-medium text-slate-600 mb-1 block">Template Name *</label>
@@ -210,7 +238,7 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
         </div>
 
         {/* Footer */}
-        {!isClassicUpdate && (
+        {!isClassicUpdate && !isCinematicUpdate && (
           <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
             <Button variant="ghost" onClick={onClose}>Cancel</Button>
             <Button
