@@ -26,7 +26,7 @@ export default function SlideList({ slides, activeIndex, theme, onSelectSlide, o
   const [hoveredSlide, setHoveredSlide] = useState<number | null>(null);
 
   return (
-    <div className="w-64 bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
+    <div className="w-72 bg-slate-50 border-r border-slate-200 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-slate-200 flex-shrink-0 bg-white">
         <div className="flex items-center justify-between mb-3">
