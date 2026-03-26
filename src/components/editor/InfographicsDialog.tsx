@@ -42,8 +42,8 @@ function MiniElement({ el }: { el: any }) {
   };
 
   if (el.type === 'text') {
-    // Scale font: convert pt to fraction of 1920-wide canvas
-    const fontSizePct = ((el.style?.fontSize || 12) * 2.666) / 1920 * 100;
+    // Scale font: convert pt to fraction of 1920-wide canvas, slightly smaller for preview fit
+    const fontSizePct = ((el.style?.fontSize || 12) * 2.666) / 1920 * 100 * 0.92;
     return (
       <div style={{
         ...style,
@@ -52,14 +52,15 @@ function MiniElement({ el }: { el: any }) {
         fontFamily: el.style?.fontFamily,
         fontWeight: el.style?.fontWeight,
         fontStyle: el.style?.fontStyle,
-        textAlign: el.style?.textAlign,
+        textAlign: el.style?.textAlign as any,
         overflow: 'hidden',
-        lineHeight: 1.2,
-        display: 'flex',
-        alignItems: el.style?.verticalAlign === 'center' ? 'center' : el.style?.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start',
-        justifyContent: el.style?.textAlign === 'center' ? 'center' : el.style?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+        lineHeight: 1.1,
+        letterSpacing: '-0.01em',
+        display: '-webkit-box',
+        WebkitLineClamp: Math.max(1, Math.round(el.height / ((el.style?.fontSize || 12) * 2.666 * 1.1))),
+        WebkitBoxOrient: 'vertical' as any,
       }}>
-        <span>{el.content?.replace(/<[^>]+>/g, '') || ''}</span>
+        {el.content?.replace(/<[^>]+>/g, '') || ''}
       </div>
     );
   }
