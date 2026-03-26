@@ -392,7 +392,27 @@ export default function BrandKitDialog({ onClose }: Props) {
   );
 }
 
-// ─── Font Picker Dropdown ───
+// ─── Font Picker Dropdown (with full Google Fonts catalog) ───
+let _gfCache: string[] | null = null;
+let _gfLoading = false;
+async function fetchAllGoogleFonts(): Promise<string[]> {
+  if (_gfCache) return _gfCache;
+  if (_gfLoading) return POPULAR_FONTS;
+  _gfLoading = true;
+  try {
+    const key = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
+    if (!key) return POPULAR_FONTS;
+    const res = await fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`);
+    const data = await res.json();
+    _gfCache = (data.items || []).map((f: any) => f.family as string);
+    return _gfCache;
+  } catch {
+    return POPULAR_FONTS;
+  } finally {
+    _gfLoading = false;
+  }
+}
+
 function FontPickerDropdown({
   currentFont,
   onSelect,
@@ -403,11 +423,17 @@ function FontPickerDropdown({
   onClose: () => void;
 }) {
   const [search, setSearch] = useState('');
+  const [allFonts, setAllFonts] = useState<string[]>(POPULAR_FONTS);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Load full catalog on mount
+  useEffect(() => {
+    fetchAllGoogleFonts().then(setAllFonts);
+  }, []);
+
   const filtered = search
-    ? POPULAR_FONTS.filter(f => f.toLowerCase().includes(search.toLowerCase()))
-    : POPULAR_FONTS;
+    ? allFonts.filter(f => f.toLowerCase().includes(search.toLowerCase())).slice(0, 60)
+    : allFonts.slice(0, 80);
 
   // Close on click outside
   useEffect(() => {
@@ -423,16 +449,16 @@ function FontPickerDropdown({
   return (
     <div
       ref={dropdownRef}
-      className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-lg border border-slate-200 shadow-lg overflow-hidden"
+      className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
     >
       {/* Search */}
       <div className="px-2 py-1.5 border-b border-slate-100">
-        <div className="flex items-center gap-1.5 px-2 py-1 bg-slate-50 rounded-md">
+        <div className="flex items-center gap-1.5 px-2 py-1.5 bg-slate-50 rounded-lg">
           <Search className="w-3 h-3 text-slate-400 shrink-0" />
           <input
             autoFocus
             type="text"
-            placeholder="Search fonts..."
+            placeholder="Search 1500+ fonts..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full bg-transparent text-xs text-slate-700 outline-none placeholder:text-slate-400"
@@ -440,14 +466,17 @@ function FontPickerDropdown({
         </div>
       </div>
       {/* Font list */}
-      <div className="max-h-[200px] overflow-y-auto">
-        {filtered.length === 0 ? (
-          <p className="text-xs text-slate-400 text-center py-3">No fonts found</p>
+      <div className="max-h-[280px] overflow-y-auto">
+        {filtered.length === 0 && search ? (
+          <button onClick={() => { loadGoogleFont(search); onSelect(search); }}
+            className="w-full text-left px-3 py-2 text-xs text-[#4F46E5] hover:bg-indigo-50">
+            Use "{search}" from Google Fonts
+          </button>
         ) : (
           filtered.map(font => (
             <button
               key={font}
-              onClick={() => onSelect(font)}
+              onClick={() => { loadGoogleFont(font); onSelect(font); }}
               className={cn(
                 'w-full text-left px-3 py-1.5 text-sm hover:bg-indigo-50 transition-colors flex items-center justify-between',
                 font === currentFont && 'bg-indigo-50 text-indigo-700'
