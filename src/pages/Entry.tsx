@@ -410,19 +410,29 @@ export default function Entry() {
                       <p className="text-[11px] font-medium text-white truncate">{tmpl.name}</p>
                     </div>
                     {/* Cinematic badge */}
-                    {tmpl.type === 'cinematic' && (
+                    {tmpl.type === 'cinematic' && !isSelected && (
                       <span className="absolute top-1.5 right-1.5 text-[8px] px-1.5 py-0.5 rounded-full bg-[#9333EA]/80 text-white font-medium flex items-center gap-0.5">
                         <Play className="w-2 h-2" />Cinematic
                       </span>
                     )}
-                    {/* Selected check */}
+                    {/* Hover overlay: "Use template" button */}
+                    {!isSelected && (
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center">
+                        <span className="px-4 py-2 rounded-full bg-white text-slate-900 text-xs font-semibold shadow-lg">
+                          Use template
+                        </span>
+                      </div>
+                    )}
+                    {/* Selected state: check + border handled by parent ring */}
                     {isSelected && (
-                      <motion.div
-                        initial={{ scale: 0 }} animate={{ scale: 1 }}
-                        className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-lg"
-                      >
-                        <Check className="w-3 h-3 text-white" />
-                      </motion.div>
+                      <div className="absolute inset-0 bg-[#4F46E5]/15 flex items-center justify-center">
+                        <motion.div
+                          initial={{ scale: 0 }} animate={{ scale: 1 }}
+                          className="w-10 h-10 rounded-full bg-[#4F46E5] flex items-center justify-center shadow-xl"
+                        >
+                          <Check className="w-5 h-5 text-white" />
+                        </motion.div>
+                      </div>
                     )}
                   </div>
                 </motion.div>
