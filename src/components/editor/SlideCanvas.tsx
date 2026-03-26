@@ -51,8 +51,9 @@ export default function SlideCanvas({
 
   const handleCanvasClick = useCallback(
     (e: React.MouseEvent) => {
-      // Only deselect if clicking directly on the canvas background
-      if (e.target === e.currentTarget) {
+      // Deselect if clicking anywhere that's NOT inside a canvas element
+      const target = e.target as HTMLElement;
+      if (!target.closest('.canvas-element')) {
         clearSelection();
       }
     },
