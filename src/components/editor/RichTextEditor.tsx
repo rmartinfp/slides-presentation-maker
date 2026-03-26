@@ -82,54 +82,55 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
   const vAlign = element.style.verticalAlign;
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Auto-shrink: measure text overflow and scale down to fit
-  // Runs directly in the component that owns the DOM — no external ref needed
+  // Auto-shrink: measure text overflow and scale down to fit.
+  // Uses a hidden clone to measure natural height without disrupting visible layout.
   useEffect(() => {
-    if (!wrapperRef.current) return;
-    setShrinkScale(1); // reset first
+    const wrapper = wrapperRef.current;
+    if (!wrapper || !editor) return;
+    setShrinkScale(1);
 
     const measure = () => {
-      const el = wrapperRef.current;
-      if (!el) return;
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
 
-      const containerHeight = el.parentElement?.clientHeight || el.clientHeight;
-      const containerWidth = el.parentElement?.clientWidth || el.clientWidth;
+      // The container height is the element's actual height (set on parent via inline style)
+      const parent = wrapper.parentElement;
+      if (!parent) return;
+      const containerHeight = parent.clientHeight;
+      const containerWidth = parent.clientWidth;
       if (!containerHeight || !containerWidth) return;
 
-      // Temporarily make element auto-height + block to measure natural content
-      const orig = {
-        height: el.style.height, width: el.style.width,
-        display: el.style.display, transform: el.style.transform,
-        justifyContent: el.style.justifyContent,
-      };
-      el.style.height = 'auto';
-      el.style.width = `${containerWidth}px`;
-      el.style.display = 'block';
-      el.style.transform = 'none';
-      el.style.justifyContent = '';
+      // Find the actual Tiptap prose content element
+      const prose = wrapper.querySelector('.tiptap, .ProseMirror');
+      if (!prose) return;
 
-      const naturalHeight = el.scrollHeight;
-
-      // Restore
-      el.style.height = orig.height;
-      el.style.width = orig.width;
-      el.style.display = orig.display;
-      el.style.transform = orig.transform;
-      el.style.justifyContent = orig.justifyContent;
+      // Create an off-screen clone to measure natural height
+      const clone = prose.cloneNode(true) as HTMLElement;
+      clone.style.position = 'absolute';
+      clone.style.visibility = 'hidden';
+      clone.style.height = 'auto';
+      clone.style.width = `${containerWidth - 16}px`; // 8px padding on each side
+      clone.style.left = '-9999px';
+      clone.style.top = '0';
+      document.body.appendChild(clone);
+      const naturalHeight = clone.scrollHeight + 16; // +16 for padding
+      document.body.removeChild(clone);
 
       if (naturalHeight > containerHeight + 2) {
         const ratio = containerHeight / naturalHeight;
-        setShrinkScale(Math.max(0.3, Math.floor(ratio * 100) / 100));
+        const newScale = Math.max(0.3, Math.floor(ratio * 100) / 100);
+        setShrinkScale(newScale);
+      } else {
+        setShrinkScale(1);
       }
     };
 
-    // Measure after DOM + fonts settle
-    requestAnimationFrame(() => {
-      measure();
-      setTimeout(measure, 300);
-      setTimeout(measure, 800); // extra delay for slow font loading
-    });
-  }, [element.content, element.style.fontSize, element.width, element.height]);
+    // Measure after DOM + fonts settle — multiple passes for font loading
+    const t1 = setTimeout(measure, 50);
+    const t2 = setTimeout(measure, 400);
+    const t3 = setTimeout(measure, 1200);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [element.content, element.style.fontSize, element.width, element.height, editor]);
 
   if (!editor) return null;
 
