@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Sparkles, Play, Check, User, Search, Paperclip, Mic, MicOff, X, Minus, Plus } from 'lucide-react';
+import { ArrowRight, Sparkles, Play, Check, User, Search, Paperclip, Mic, MicOff, X, Minus, Plus, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +19,12 @@ export default function Entry() {
   const [search, setSearch] = useState('');
   const [slideCount, setSlideCount] = useState(8);
   const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [filterIndustry, setFilterIndustry] = useState('all');
+  const [filterStyle, setFilterStyle] = useState('all');
+  const [filterColor, setFilterColor] = useState('all');
+  const [sortBy, setSortBy] = useState('popular');
   const [isRecording, setIsRecording] = useState(false);
   const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -229,9 +235,14 @@ export default function Entry() {
           )}
         </div>
 
-        {/* Filter tabs + search */}
+        {/* Template bar: count + type tabs + search icon + filter icon */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="flex gap-1.5">
+          {/* Left: count + label */}
+          <span className="text-sm font-medium text-slate-800">15,000+</span>
+          <span className="text-xs text-slate-400">Designed by professionals</span>
+
+          {/* Type tabs */}
+          <div className="flex gap-1 ml-4">
             {[
               { id: 'all' as const, label: 'All' },
               { id: 'cinematic' as const, label: 'Cinematic' },
@@ -241,28 +252,123 @@ export default function Entry() {
                 key={f.id}
                 onClick={() => setFilter(f.id)}
                 className={cn(
-                  'px-4 py-2 rounded-full text-xs font-medium transition-all border',
+                  'px-3 py-1.5 rounded-full text-[11px] font-medium transition-all',
                   filter === f.id
-                    ? 'bg-[#4F46E5]/10 border-[#4F46E5]/20 text-[#4F46E5]'
-                    : 'bg-white/60 border-slate-200/60 text-slate-500 hover:text-slate-700 hover:bg-white/80'
+                    ? 'bg-slate-900 text-white'
+                    : 'text-slate-500 hover:text-slate-700 hover:bg-slate-100'
                 )}
               >
                 {f.label}
               </button>
             ))}
           </div>
-          <div className="relative ml-auto">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-40 h-9 pl-8 pr-3 bg-white/60 border border-slate-200/60 rounded-full text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#4F46E5]/20"
-            />
+
+          <div className="flex-1" />
+
+          {/* Search — collapsible */}
+          <div className="flex items-center gap-1.5">
+            {searchOpen ? (
+              <div className="relative flex items-center">
+                <Search className="absolute left-2.5 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Search templates..."
+                  autoFocus
+                  onBlur={() => { if (!search) setSearchOpen(false); }}
+                  className="w-48 h-8 pl-8 pr-8 bg-white border border-slate-200 rounded-full text-xs text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-[#4F46E5]/30"
+                />
+                <button onClick={() => { setSearch(''); setSearchOpen(false); }} className="absolute right-2">
+                  <X className="w-3 h-3 text-slate-400" />
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => setSearchOpen(true)} className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                <Search className="w-4 h-4" />
+              </button>
+            )}
+
+            {/* Filters icon */}
+            <button
+              onClick={() => setFiltersOpen(!filtersOpen)}
+              className={cn(
+                'w-8 h-8 rounded-full flex items-center justify-center transition-colors',
+                filtersOpen ? 'bg-[#4F46E5] text-white' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'
+              )}
+            >
+              <SlidersHorizontal className="w-4 h-4" />
+            </button>
           </div>
-          <span className="text-xs text-slate-400">{allTemplates.length} templates</span>
         </div>
+
+        {/* Expanded filters panel */}
+        {filtersOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+            className="mb-5 p-4 rounded-xl bg-white/70 backdrop-blur-sm border border-slate-200/60 overflow-hidden"
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {/* Industry */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Industry</label>
+                <div className="flex flex-wrap gap-1">
+                  {['all', 'Tech', 'Finance', 'Education', 'Marketing', 'Healthcare'].map(v => (
+                    <button key={v} onClick={() => setFilterIndustry(v)}
+                      className={cn('px-2.5 py-1 rounded-full text-[10px] transition-all', filterIndustry === v ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                      {v === 'all' ? 'All' : v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Style */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Style</label>
+                <div className="flex flex-wrap gap-1">
+                  {['all', 'Minimal', 'Bold', 'Elegant', 'Dark', 'Light', 'Serif'].map(v => (
+                    <button key={v} onClick={() => setFilterStyle(v)}
+                      className={cn('px-2.5 py-1 rounded-full text-[10px] transition-all', filterStyle === v ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                      {v === 'all' ? 'All' : v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Color */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Color</label>
+                <div className="flex gap-1.5">
+                  {[
+                    { id: 'all', color: 'bg-gradient-to-br from-slate-300 to-slate-500' },
+                    { id: 'dark', color: 'bg-slate-900' },
+                    { id: 'light', color: 'bg-white border border-slate-200' },
+                    { id: 'blue', color: 'bg-blue-500' },
+                    { id: 'purple', color: 'bg-purple-500' },
+                    { id: 'warm', color: 'bg-orange-400' },
+                  ].map(v => (
+                    <button key={v.id} onClick={() => setFilterColor(v.id)}
+                      className={cn('w-6 h-6 rounded-full transition-all', v.color, filterColor === v.id ? 'ring-2 ring-[#4F46E5] ring-offset-2 scale-110' : 'hover:scale-105')} />
+                  ))}
+                </div>
+              </div>
+              {/* Sort */}
+              <div>
+                <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1.5 block">Sort by</label>
+                <div className="flex flex-wrap gap-1">
+                  {[
+                    { id: 'popular', label: 'Popular' },
+                    { id: 'newest', label: 'Newest' },
+                    { id: 'name', label: 'Name' },
+                  ].map(v => (
+                    <button key={v.id} onClick={() => setSortBy(v.id)}
+                      className={cn('px-2.5 py-1 rounded-full text-[10px] transition-all', sortBy === v.id ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Templates Grid — 4 columns, max 5 rows scrollable */}
         <div className="max-h-[calc(5*180px)] overflow-y-auto rounded-2xl" style={{ scrollbarWidth: 'thin' }}>
