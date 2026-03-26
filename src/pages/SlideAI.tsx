@@ -565,6 +565,7 @@ export default function SlideAIPage() {
                 generatedTitle={generatedPresentation?.title || null}
                 userPrompt={contentText}
                 templateSlides={templateSlides || pendingSlidesRef.current}
+                requestedSlideCount={genOptions.slideCount}
                 onComplete={() => navigate('/editor')}
               />
             </motion.div>

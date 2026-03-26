@@ -1883,15 +1883,66 @@ async function main() {
         }
 
         // Extract ALL non-placeholder elements from layout IN XML ORDER (preserves z-ordering)
-        // This handles both shapes and images interleaved correctly
+        // This handles shapes, images, AND connectors interleaved correctly
         const layoutXmlNoGroups = stripBalancedTags(layoutXml, 'p:grpSp');
-        const layoutElementMatches = layoutXmlNoGroups.matchAll(/<p:(sp|pic)>([\s\S]*?)<\/p:\1>/g);
+        const layoutElementMatches = layoutXmlNoGroups.matchAll(/<p:(sp|pic|cxnSp)>([\s\S]*?)<\/p:\1>/g);
         for (const m of layoutElementMatches) {
-          const tagType = m[1]; // 'sp' or 'pic'
+          const tagType = m[1]; // 'sp', 'pic', or 'cxnSp'
           const content = m[2];
 
           // Skip placeholders
           if (content.includes('<p:ph')) continue;
+
+          if (tagType === 'cxnSp') {
+            // Connector line from layout (decorative borders, curves)
+            const off = content.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
+            const ext = content.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
+            if (off && ext) {
+              const srgb = content.match(/<a:srgbClr\s+val="([A-Fa-f0-9]{6})"/);
+              const scheme = content.match(/<a:schemeClr\s+val="(\w+)"/);
+              let lineColor = themeColors.dk1;
+              if (srgb) lineColor = `#${srgb[1]}`;
+              else if (scheme) lineColor = resolveSchemeColor(scheme[1], themeColors);
+              const lnW = content.match(/<a:ln[^>]+w="(\d+)"/);
+              const strokeWidth = lnW ? Math.max(1, Math.round(parseInt(lnW[1]) / 12700 * 2.666)) : 1;
+              const cxnW = emuToPxX(parseInt(ext[1]));
+              const cxnH = emuToPxY(parseInt(ext[2]));
+              const isVertical = cxnH > cxnW * 2 || cxnW === 0;
+              const finalW = isVertical ? Math.max(cxnW, 4) : Math.max(cxnW, 2);
+              const finalH = isVertical ? Math.max(cxnH, 2) : Math.max(cxnH, 4);
+              const headEnd = content.match(/<a:headEnd[^>]*type="(\w+)"/);
+              const tailEnd = content.match(/<a:tailEnd[^>]*type="(\w+)"/);
+              // Check for curved connector (custGeom or curvedConnector preset)
+              const isCurved = content.includes('curvedConnector') || content.includes('<a:custGeom>');
+              let svgPath: string | null = null;
+              let svgViewBox: string | null = null;
+              if (isCurved) {
+                const custGeom = content.match(/<a:custGeom>([\s\S]*?)<\/a:custGeom>/);
+                if (custGeom) {
+                  const rawW = parseInt(ext[1]);
+                  const rawH = parseInt(ext[2]);
+                  const result = custGeomToSvgPath(custGeom[1], rawW, rawH);
+                  if (result) { svgPath = result.path; svgViewBox = result.viewBox; }
+                }
+              }
+              elements.push({
+                id: genId(), type: 'shape', content: svgPath || '',
+                x: emuToPxX(parseInt(off[1])), y: emuToPxY(parseInt(off[2])),
+                width: svgPath ? cxnW : finalW, height: svgPath ? cxnH : finalH,
+                rotation: 0, opacity: parseAlphaModFixFromSpPr(content), locked: true, visible: true, zIndex: zIndex++,
+                style: {
+                  shapeType: svgPath ? 'custom' : 'line',
+                  shapeFill: svgPath ? 'transparent' : lineColor,
+                  shapeStroke: lineColor, shapeStrokeWidth: strokeWidth,
+                  shapeStrokeDash: parseDashStyle(content) || undefined,
+                  lineHeadEnd: headEnd?.[1] || undefined, lineTailEnd: tailEnd?.[1] || undefined,
+                  ...(svgPath ? { svgViewBox } : {}),
+                },
+              });
+              console.log(`  Layout connector imported`);
+            }
+            continue;
+          }
 
           if (tagType === 'pic') {
             // Image element

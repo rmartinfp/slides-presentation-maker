@@ -60,6 +60,7 @@ interface Props {
   generatedTitle: string | null;
   userPrompt?: string;
   templateSlides?: Slide[] | null;
+  requestedSlideCount?: number;
   onComplete: () => void;
 }
 
@@ -72,8 +73,8 @@ const STAGES = [
   'Polishing the design...',
 ];
 
-export default function GeneratingView({ theme, generatedSlides, generatedTitle, userPrompt, templateSlides, onComplete }: Props) {
-  const slideCount = templateSlides?.length || 8;
+export default function GeneratingView({ theme, generatedSlides, generatedTitle, userPrompt, templateSlides, requestedSlideCount, onComplete }: Props) {
+  const slideCount = requestedSlideCount || templateSlides?.length || 8;
   const cols = slideCount <= 4 ? 2 : slideCount <= 6 ? 3 : slideCount <= 9 ? 3 : 4;
   const palette = theme.tokens.palette;
   const isGenerated = !!generatedSlides && generatedSlides.length > 0;
