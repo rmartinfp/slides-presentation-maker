@@ -79,10 +79,15 @@ export default function CanvasElement({
 
   const { moveElement, resizeElement, pushSnapshot, updateElement } = useEditorStore();
 
+  // Treat full-canvas background images as locked (they block clicks on text elements)
+  const isEffectivelyLocked = element.locked || (
+    element.type === 'image' && element.width >= 1900 && element.height >= 1060
+  );
+
   // interact.js setup — only recreate when id, locked, or editing changes
   useEffect(() => {
     const node = ref.current;
-    if (!node || element.locked || isEditing || isCropping) return;
+    if (!node || isEffectivelyLocked || isEditing || isCropping) return;
 
     // Set low start threshold so drag activates quickly even at small canvas scale
     interact.pointerMoveTolerance(2);
@@ -140,7 +145,7 @@ export default function CanvasElement({
     return () => {
       interactable.unset();
     };
-  }, [element.id, element.locked, isEditing, isCropping, moveElement, resizeElement, pushSnapshot]);
+  }, [element.id, isEffectivelyLocked, isEditing, isCropping, moveElement, resizeElement, pushSnapshot]);
 
   // Use mousedown for selection — doesn't interfere with interact.js pointer events
   const handleMouseDown = useCallback(
@@ -150,7 +155,7 @@ export default function CanvasElement({
       // with high z-index sit on top of unlocked text elements with low z-index.
       // CSS pointer-events:none does NOT work for this — it passes clicks to z-index N-1,
       // not to the nearest unlocked element.
-      if (element.locked && !isSelected) {
+      if (isEffectivelyLocked && !isSelected) {
         // Get click position relative to the slide stage (canvas coordinates)
         const stage = (e.currentTarget as HTMLElement).closest('.slide-stage') as HTMLElement;
         if (stage) {
@@ -162,8 +167,9 @@ export default function CanvasElement({
           const state = useEditorStore.getState();
           const slide = state.presentation.slides[state.activeSlideIndex];
           const elements = slide?.elements || [];
+          const isElLocked = (el: any) => el.locked || (el.type === 'image' && el.width >= 1900 && el.height >= 1060);
           const hit = elements
-            .filter(el => !el.locked && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
+            .filter(el => !isElLocked(el) && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
             .sort((a, b) => b.zIndex - a.zIndex)[0];
           if (hit) {
             onSelect(hit.id, e.shiftKey);
@@ -193,8 +199,9 @@ export default function CanvasElement({
           const state = useEditorStore.getState();
           const slide = state.presentation.slides[state.activeSlideIndex];
           const elements = slide?.elements || [];
+          const isElLocked = (el: any) => el.locked || (el.type === 'image' && el.width >= 1900 && el.height >= 1060);
           const hit = elements
-            .filter(el => !el.locked && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
+            .filter(el => !isElLocked(el) && cx >= el.x && cx <= el.x + el.width && cy >= el.y && cy <= el.y + el.height)
             .sort((a, b) => b.zIndex - a.zIndex)[0];
           if (hit) {
             // Select the element and trigger edit mode via DOM
