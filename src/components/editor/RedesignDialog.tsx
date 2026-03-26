@@ -1,18 +1,164 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wand2, X, Loader2, Check, LayoutGrid, ImageIcon } from 'lucide-react';
+import { Wand2, X, Loader2, Check, LayoutGrid, ImageIcon, Type, Columns2, BarChart3, Quote, Milestone, Users, SplitSquareHorizontal, Image as ImageLucide } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { produce } from 'immer';
 import { SlideElement } from '@/types/presentation';
+import { cn } from '@/lib/utils';
 
 interface Props {
   onClose: () => void;
 }
 
 type Mode = 'redesign' | 'reorganize';
+
+// ─── Layout presets ───
+interface LayoutPreset {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  instruction: string;
+  // Mini preview blocks (percentages of slide)
+  blocks: { x: number; y: number; w: number; h: number; type: 'title' | 'body' | 'image' | 'accent' | 'divider' | 'number' }[];
+}
+
+const LAYOUT_PRESETS: LayoutPreset[] = [
+  {
+    id: 'title-content',
+    label: 'Title + Content',
+    icon: <Type className="w-3.5 h-3.5" />,
+    instruction: 'Reorganize as a clean title at the top (large, bold) with body text below. Left-aligned. Leave right side open.',
+    blocks: [
+      { type: 'title', x: 5, y: 8, w: 55, h: 10 },
+      { type: 'body', x: 5, y: 25, w: 50, h: 5 },
+      { type: 'body', x: 5, y: 33, w: 45, h: 5 },
+      { type: 'body', x: 5, y: 41, w: 48, h: 5 },
+    ],
+  },
+  {
+    id: 'two-column',
+    label: 'Two Columns',
+    icon: <Columns2 className="w-3.5 h-3.5" />,
+    instruction: 'Reorganize into two equal columns. Title spans full width at top. Split body text evenly between left and right columns with a clear vertical separation.',
+    blocks: [
+      { type: 'title', x: 5, y: 8, w: 90, h: 10 },
+      { type: 'divider', x: 50, y: 24, w: 0.5, h: 55 },
+      { type: 'body', x: 5, y: 26, w: 40, h: 5 },
+      { type: 'body', x: 5, y: 34, w: 38, h: 5 },
+      { type: 'body', x: 55, y: 26, w: 40, h: 5 },
+      { type: 'body', x: 55, y: 34, w: 38, h: 5 },
+    ],
+  },
+  {
+    id: 'image-left',
+    label: 'Image Left',
+    icon: <SplitSquareHorizontal className="w-3.5 h-3.5" />,
+    instruction: 'Place the main image on the left half (50% width, full height). Title and text on the right side, vertically centered.',
+    blocks: [
+      { type: 'image', x: 0, y: 0, w: 48, h: 100 },
+      { type: 'title', x: 54, y: 20, w: 42, h: 12 },
+      { type: 'body', x: 54, y: 38, w: 38, h: 5 },
+      { type: 'body', x: 54, y: 46, w: 35, h: 5 },
+    ],
+  },
+  {
+    id: 'image-right',
+    label: 'Image Right',
+    icon: <ImageLucide className="w-3.5 h-3.5" />,
+    instruction: 'Title and text on the left side. Place the main image on the right half (50% width, full height). Vertically center the text.',
+    blocks: [
+      { type: 'title', x: 5, y: 20, w: 42, h: 12 },
+      { type: 'body', x: 5, y: 38, w: 38, h: 5 },
+      { type: 'body', x: 5, y: 46, w: 35, h: 5 },
+      { type: 'image', x: 52, y: 0, w: 48, h: 100 },
+    ],
+  },
+  {
+    id: 'big-statement',
+    label: 'Big Statement',
+    icon: <Quote className="w-3.5 h-3.5" />,
+    instruction: 'Center the most important text as a large bold statement in the middle of the slide. Small subtitle or attribution below. Minimal, dramatic, lots of whitespace.',
+    blocks: [
+      { type: 'title', x: 12, y: 28, w: 76, h: 16 },
+      { type: 'body', x: 25, y: 55, w: 50, h: 5 },
+    ],
+  },
+  {
+    id: 'three-stats',
+    label: '3 Key Numbers',
+    icon: <BarChart3 className="w-3.5 h-3.5" />,
+    instruction: 'Reorganize as 3 large key numbers/stats in a row (evenly spaced). Each stat has a big bold number and a small label below. Title at top.',
+    blocks: [
+      { type: 'title', x: 5, y: 8, w: 50, h: 10 },
+      { type: 'number', x: 8, y: 32, w: 22, h: 16 },
+      { type: 'number', x: 38, y: 32, w: 22, h: 16 },
+      { type: 'number', x: 68, y: 32, w: 22, h: 16 },
+      { type: 'accent', x: 14, y: 52, w: 10, h: 1.5 },
+      { type: 'accent', x: 44, y: 52, w: 10, h: 1.5 },
+      { type: 'accent', x: 74, y: 52, w: 10, h: 1.5 },
+      { type: 'body', x: 8, y: 57, w: 22, h: 4 },
+      { type: 'body', x: 38, y: 57, w: 22, h: 4 },
+      { type: 'body', x: 68, y: 57, w: 22, h: 4 },
+    ],
+  },
+  {
+    id: 'timeline',
+    label: 'Timeline',
+    icon: <Milestone className="w-3.5 h-3.5" />,
+    instruction: 'Reorganize as a horizontal timeline with 3-4 milestones. Title at top. A horizontal line in the middle with circular markers. Milestone labels above/below alternating.',
+    blocks: [
+      { type: 'title', x: 5, y: 6, w: 40, h: 10 },
+      { type: 'divider', x: 5, y: 50, w: 90, h: 0.8 },
+      { type: 'accent', x: 14, y: 47, w: 5, h: 5 },
+      { type: 'accent', x: 38, y: 47, w: 5, h: 5 },
+      { type: 'accent', x: 62, y: 47, w: 5, h: 5 },
+      { type: 'accent', x: 84, y: 47, w: 5, h: 5 },
+      { type: 'body', x: 8, y: 30, w: 18, h: 4 },
+      { type: 'body', x: 32, y: 58, w: 18, h: 4 },
+      { type: 'body', x: 56, y: 30, w: 18, h: 4 },
+      { type: 'body', x: 78, y: 58, w: 18, h: 4 },
+    ],
+  },
+  {
+    id: 'team',
+    label: 'Team / Grid',
+    icon: <Users className="w-3.5 h-3.5" />,
+    instruction: 'Reorganize as a grid of 3-4 cards in a row. Each card has an image/icon at top and name/description below. Title at top left.',
+    blocks: [
+      { type: 'title', x: 5, y: 6, w: 40, h: 10 },
+      { type: 'image', x: 6, y: 24, w: 19, h: 32 },
+      { type: 'image', x: 28, y: 24, w: 19, h: 32 },
+      { type: 'image', x: 50, y: 24, w: 19, h: 32 },
+      { type: 'image', x: 72, y: 24, w: 19, h: 32 },
+      { type: 'body', x: 6, y: 60, w: 19, h: 4 },
+      { type: 'body', x: 28, y: 60, w: 19, h: 4 },
+      { type: 'body', x: 50, y: 60, w: 19, h: 4 },
+      { type: 'body', x: 72, y: 60, w: 19, h: 4 },
+    ],
+  },
+];
+
+function LayoutMiniPreview({ blocks, selected }: { blocks: LayoutPreset['blocks']; selected: boolean }) {
+  const colorMap: Record<string, string> = {
+    title: selected ? 'bg-indigo-400' : 'bg-slate-300',
+    body: selected ? 'bg-indigo-300/60' : 'bg-slate-200',
+    image: selected ? 'bg-purple-300/50' : 'bg-slate-100',
+    accent: selected ? 'bg-indigo-500' : 'bg-slate-400',
+    divider: selected ? 'bg-indigo-400/60' : 'bg-slate-200',
+    number: selected ? 'bg-indigo-400' : 'bg-slate-300',
+  };
+  return (
+    <div className="relative w-full aspect-video rounded-md overflow-hidden bg-white border border-slate-100">
+      {blocks.map((b, i) => (
+        <div key={i} className={cn('absolute rounded-[1px]', colorMap[b.type] || 'bg-slate-200')}
+          style={{ left: `${b.x}%`, top: `${b.y}%`, width: `${b.w}%`, height: `${b.h}%` }} />
+      ))}
+    </div>
+  );
+}
 
 interface Variant {
   name: string;
@@ -109,6 +255,7 @@ function VariantCard({
 export default function RedesignDialog({ onClose }: Props) {
   const [mode, setMode] = useState<Mode>('redesign');
   const [instruction, setInstruction] = useState('');
+  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [appliedIndex, setAppliedIndex] = useState<number | null>(null);
@@ -185,7 +332,7 @@ export default function RedesignDialog({ onClose }: Props) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-3xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
@@ -209,7 +356,7 @@ export default function RedesignDialog({ onClose }: Props) {
         </div>
 
         {/* Description + optional instruction */}
-        <div className="px-6 pt-4">
+        <div className="px-6 pt-4 overflow-y-auto flex-1">
           <p className="text-xs text-slate-400 mb-3">
             Generates 3 different layout variants. Your content stays the same — only positions change.
           </p>
@@ -217,16 +364,43 @@ export default function RedesignDialog({ onClose }: Props) {
           <input
             type="text"
             value={instruction}
-            onChange={(e) => setInstruction(e.target.value)}
+            onChange={(e) => { setInstruction(e.target.value); setSelectedPreset(null); }}
             onKeyDown={(e) => e.key === 'Enter' && !loading && handleGenerate()}
-            placeholder="Optional: e.g. Make the title bigger, center the image, more whitespace..."
+            placeholder="Describe the layout you want, or pick one below..."
             className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-[#4F46E5] focus:ring-1 focus:ring-[#4F46E5]/20 mb-3"
             disabled={loading}
           />
 
+          {/* Layout presets grid */}
+          <div className="grid grid-cols-4 gap-2 mb-4">
+            {LAYOUT_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                onClick={() => {
+                  setSelectedPreset(preset.id === selectedPreset ? null : preset.id);
+                  setInstruction(preset.id === selectedPreset ? '' : preset.instruction);
+                }}
+                disabled={loading}
+                className={cn(
+                  'group flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all text-center',
+                  selectedPreset === preset.id
+                    ? 'border-[#4F46E5] bg-indigo-50/80 ring-1 ring-[#4F46E5]/20'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                )}
+              >
+                <LayoutMiniPreview blocks={preset.blocks} selected={selectedPreset === preset.id} />
+                <div className="flex items-center gap-1">
+                  <span className={cn('text-[10px] font-medium', selectedPreset === preset.id ? 'text-[#4F46E5]' : 'text-slate-500')}>
+                    {preset.label}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+
           <Button
             onClick={handleGenerate}
-            disabled={loading}
+            disabled={loading || (!instruction.trim() && !selectedPreset)}
             className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-6 rounded-xl"
           >
             {loading ? (
@@ -237,7 +411,7 @@ export default function RedesignDialog({ onClose }: Props) {
             ) : (
               <>
                 <Wand2 className="w-4 h-4 mr-2" />
-                Generate Variants
+                {selectedPreset ? 'Apply Layout' : 'Generate Variants'}
               </>
             )}
           </Button>
