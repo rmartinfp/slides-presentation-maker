@@ -25,6 +25,8 @@ export default function SlideAIPage() {
   const [contentText, setContentText] = useState('');
   const [generatedPresentation, setGeneratedPresentation] = useState<{ title: string; slides: Slide[]; theme: PresentationTheme } | null>(null);
   const autoGenerateRef = React.useRef(false);
+  const pendingThemeRef = React.useRef<PresentationTheme | null>(null);
+  const pendingSlidesRef = React.useRef<Slide[] | null>(null);
 
   // Auto-pickup from home page (Entry.tsx)
   React.useEffect(() => {
@@ -40,29 +42,33 @@ export default function SlideAIPage() {
           sessionStorage.removeItem('entryTemplate');
 
           if (type === 'cinematic') {
-            // Load cinematic template
             const preset = getPresetById(data.preset_id || 'midnight');
             if (preset) {
               setCinematicPreset(preset);
-              const dbTheme = data.theme;
-              setSelectedTheme(dbTheme || {
+              const dbTheme = data.theme || {
                 id: preset.id, name: preset.name, category: 'Cinematic',
                 tokens: { palette: { primary: preset.accentColor, secondary: preset.secondaryTextColor, accent: preset.accentColor, bg: preset.backgroundColor, text: preset.primaryTextColor },
                   typography: { titleFont: preset.fontHeading, bodyFont: preset.fontBody, titleSize: 42, bodySize: 24 }, radii: '16px', shadows: 'lg' },
                 previewColors: [preset.accentColor, preset.secondaryTextColor, preset.backgroundColor],
-              });
+              };
+              setSelectedTheme(dbTheme);
+              pendingThemeRef.current = dbTheme;
               const realSlides = data.slides;
               if (Array.isArray(realSlides) && realSlides.length > 0 && realSlides[0]?.elements) {
                 setTemplateSlides(realSlides as Slide[]);
+                pendingSlidesRef.current = realSlides as Slide[];
               }
             }
           } else {
-            // Load classic template
             const theme = data.theme as PresentationTheme;
             if (theme) {
               setSelectedTheme(theme);
+              pendingThemeRef.current = theme;
               const slides = data.preview_slides as Slide[];
-              if (slides && slides.length > 0) setTemplateSlides(slides);
+              if (slides && slides.length > 0) {
+                setTemplateSlides(slides);
+                pendingSlidesRef.current = slides;
+              }
               loadFontsFromTheme(theme.tokens);
               if (slides) loadFontsFromSlides(slides);
             }
@@ -238,15 +244,17 @@ export default function SlideAIPage() {
     if (options) setGenOptions(options);
     const opts = options || genOptions;
     setStep('generating');
-    const theme = selectedTheme || THEME_CATALOG[0];
+    // Use refs as fallback when state hasn't updated yet (auto-generate from home)
+    const theme = selectedTheme || pendingThemeRef.current || THEME_CATALOG[0];
+    const effectiveTemplateSlides = templateSlides || pendingSlidesRef.current;
 
     try {
       // ─── TEMPLATE-DRIVEN FLOW ───
       // If we have template slides, analyze them and send a brief to the AI
       // so it generates content that maps 1:1 to the template's text boxes.
-      if (templateSlides && templateSlides.length > 0) {
+      if (effectiveTemplateSlides && effectiveTemplateSlides.length > 0) {
         // Filter out leaked final pages (instructions, resources — have 20+ elements)
-        const cleanSlides = templateSlides.filter((s, idx) => {
+        const cleanSlides = effectiveTemplateSlides.filter((s, idx) => {
           const elCount = s.elements?.length || 0;
           const allText = (s.elements || []).map(e => e.content).join(' ').toLowerCase();
           // Never filter the cover slide (index 0) or closing slides
@@ -473,13 +481,21 @@ export default function SlideAIPage() {
     }
   };
 
-  // Auto-generate when coming from home page
+  // Auto-generate when coming from home page — use refs since state may not be updated yet
   React.useEffect(() => {
     if (autoGenerateRef.current && step === 'generating' && contentText && !generatedPresentation) {
       autoGenerateRef.current = false;
+      // Apply pending refs to state before generating
+      if (pendingThemeRef.current && !selectedTheme) {
+        setSelectedTheme(pendingThemeRef.current);
+      }
+      if (pendingSlidesRef.current && !templateSlides) {
+        setTemplateSlides(pendingSlidesRef.current);
+      }
       const slideCount = parseInt(sessionStorage.getItem('entrySlideCount') || '8', 10);
       sessionStorage.removeItem('entrySlideCount');
-      handleGenerate({ slideCount });
+      // Delay to let setState apply
+      setTimeout(() => handleGenerate({ slideCount }), 50);
     }
   }, [step, contentText]);
 
