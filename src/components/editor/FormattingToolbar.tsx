@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Editor } from '@tiptap/react';
 import {
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
-  List, ListOrdered, Palette, ChevronDown, Minus, Plus,
+  List, ListOrdered, Palette, ChevronDown, Minus, Plus, Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import ColorPicker from './ColorPicker';
@@ -197,6 +197,22 @@ export default function FormattingToolbar({ editor, scale }: Props) {
       <Btn active={editor.isActive('orderedList')} onClick={() => editor.chain().focus().toggleOrderedList().run()} title="Numbered List">
         <ListOrdered className="w-4 h-4" />
       </Btn>
+
+      <div className="w-px h-6 bg-slate-200 mx-0.5" />
+
+      {/* AI Rewrite */}
+      <button
+        onMouseDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          window.dispatchEvent(new CustomEvent('slideai-rewrite-text'));
+        }}
+        title="Rewrite with AI"
+        className="flex items-center gap-1 px-2 h-8 rounded-md text-[#4F46E5] hover:bg-indigo-50 transition-colors"
+      >
+        <Sparkles className="w-3.5 h-3.5" />
+        <span className="text-[11px] font-medium">Rewrite</span>
+      </button>
     </div>
   );
 }

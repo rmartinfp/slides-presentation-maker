@@ -323,13 +323,16 @@ export default function EditorPage() {
       editChartRef.current = (e as CustomEvent).detail;
       setShowChart(true);
     };
+    const handleRewriteText = () => setShowAIRewrite(true);
     window.addEventListener('slideai-open-ai-image', handleAI);
     window.addEventListener('slideai-replace-image', handleReplace);
     window.addEventListener('slideai-edit-chart', handleEditChart);
+    window.addEventListener('slideai-rewrite-text', handleRewriteText);
     return () => {
       window.removeEventListener('slideai-open-ai-image', handleAI);
       window.removeEventListener('slideai-replace-image', handleReplace);
       window.removeEventListener('slideai-edit-chart', handleEditChart);
+      window.removeEventListener('slideai-rewrite-text', handleRewriteText);
     };
   }, []);
 
