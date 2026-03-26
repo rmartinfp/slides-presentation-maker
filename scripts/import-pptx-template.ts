@@ -300,7 +300,7 @@ function parseTextFromSpTree(
   layoutPlaceholderFonts?: Map<string, string>,
   layoutPlaceholderBold?: Map<string, boolean>,
   layoutPlaceholderColors?: Map<string, string>,
-  masterDefaults?: { titleBold: boolean; titleSz: number | null; bodySz: number | null; titleColor: string | null; bodyColor: string | null },
+  masterDefaults?: { titleBold: boolean; titleItalic: boolean; titleSz: number | null; bodySz: number | null; titleColor: string | null; bodyColor: string | null },
 ): ParsedElement | null {
   // Extract position (support negative offsets)
   const off = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
@@ -356,6 +356,7 @@ function parseTextFromSpTree(
   let firstColor: string | null = null;
   let firstAlign: string | null = null;
   let firstBold = false;
+  let firstItalic = false;
 
   for (const pXml of paragraphs) {
     const align = parseAlignment(pXml);
@@ -399,6 +400,7 @@ function parseTextFromSpTree(
       const runBold = isBold(rPrXml) || paragraphBold;
       const runItalic = isItalic(rPrXml) || paragraphItalic;
       if (!firstBold && runBold) firstBold = true;
+      if (!firstItalic && runItalic) firstItalic = true;
 
       // Extract text
       const textMatch = rXml.match(/<a:t>([\s\S]*?)<\/a:t>/);
@@ -493,6 +495,9 @@ function parseTextFromSpTree(
   if (!firstBold && masterDefaults && (phType === 'ctrTitle' || phType === 'title')) {
     if (masterDefaults.titleBold) firstBold = true;
   }
+  if (!firstItalic && masterDefaults && (phType === 'ctrTitle' || phType === 'title')) {
+    if (masterDefaults.titleItalic) firstItalic = true;
+  }
 
   // If all runs use the SAME explicit font (no mixing, no inherited), use it as container.
   // If fonts are mixed OR some runs are inherited, let placeholder/theme define container.
@@ -545,6 +550,7 @@ function parseTextFromSpTree(
       fontFamily: firstFontFamily || defaultFonts.bodyFont,
       fontSize: firstFontSize || 12,
       fontWeight: firstBold ? 'bold' : 'normal',
+      fontStyle: firstItalic ? 'italic' : 'normal',
       color: firstColor || (() => {
         // Inherit text color: run → layout placeholder → master placeholder → theme dk1
         const isTitle = phType === 'ctrTitle' || phType === 'title';
@@ -831,10 +837,11 @@ function parseShapeFromSpTree(
     }
   }
 
-  // Skip only if truly invisible: no body fill AND no outline AND no custom geometry.
+  // Skip only if truly invisible: no body fill AND no outline AND no custom geometry AND not a special preset.
   // Custom geometry shapes (icons, vectors) inherit fill from group/theme — always keep them.
+  const isSpecialPreset = geomType && !shapeMap[geomType] && geomType !== 'rect';
   const noFill = bodyNoFill || (!fill && !solidFill && !gradientFill);
-  if (noFill && !hasOutline && !custGeom) return null;
+  if (noFill && !hasOutline && !custGeom && !isSpecialPreset) return null;
 
   // Convert custom geometry to SVG path
   let svgPath: string | null = null;
@@ -846,6 +853,35 @@ function parseShapeFromSpTree(
     if (result) {
       svgPath = result.path;
       svgViewBox = result.viewBox;
+    }
+  }
+
+  // Convert known preset geometries that aren't in our basic shapeMap to SVG paths
+  if (!svgPath && isSpecialPreset) {
+    const w = parseInt(ext[1]);
+    const h = parseInt(ext[2]);
+    const presetSvgPaths: Record<string, (w: number, h: number) => string> = {
+      // 4-pointed concave star (plaque)
+      plaque: (w, h) => `M ${w/2} 0 Q ${w/2} ${h/2} ${w} ${h/2} Q ${w/2} ${h/2} ${w/2} ${h} Q ${w/2} ${h/2} 0 ${h/2} Q ${w/2} ${h/2} ${w/2} 0 Z`,
+      // 4-pointed star
+      star4: (w, h) => `M ${w/2} 0 L ${w*0.62} ${h*0.38} L ${w} ${h/2} L ${w*0.62} ${h*0.62} L ${w/2} ${h} L ${w*0.38} ${h*0.62} L 0 ${h/2} L ${w*0.38} ${h*0.38} Z`,
+      // Diamond
+      diamond: (w, h) => `M ${w/2} 0 L ${w} ${h/2} L ${w/2} ${h} L 0 ${h/2} Z`,
+      // Cross/plus
+      plus: (w, h) => `M ${w*0.3} 0 L ${w*0.7} 0 L ${w*0.7} ${h*0.3} L ${w} ${h*0.3} L ${w} ${h*0.7} L ${w*0.7} ${h*0.7} L ${w*0.7} ${h} L ${w*0.3} ${h} L ${w*0.3} ${h*0.7} L 0 ${h*0.7} L 0 ${h*0.3} L ${w*0.3} ${h*0.3} Z`,
+      // Pentagon
+      pentagon: (w, h) => `M ${w/2} 0 L ${w} ${h*0.38} L ${w*0.81} ${h} L ${w*0.19} ${h} L 0 ${h*0.38} Z`,
+      // Hexagon
+      hexagon: (w, h) => `M ${w*0.25} 0 L ${w*0.75} 0 L ${w} ${h/2} L ${w*0.75} ${h} L ${w*0.25} ${h} L 0 ${h/2} Z`,
+      // Parallelogram
+      parallelogram: (w, h) => `M ${w*0.25} 0 L ${w} 0 L ${w*0.75} ${h} L 0 ${h} Z`,
+      // Trapezoid
+      trapezoid: (w, h) => `M ${w*0.2} 0 L ${w*0.8} 0 L ${w} ${h} L 0 ${h} Z`,
+    };
+    const pathFn = presetSvgPaths[geomType];
+    if (pathFn) {
+      svgPath = pathFn(w, h);
+      svgViewBox = `0 0 ${w} ${h}`;
     }
   }
 
@@ -1470,6 +1506,7 @@ async function main() {
   // This covers: 1) master placeholder defRPr, 2) txStyles (titleStyle/bodyStyle)
   // Master fonts are used for ALL elements that don't have explicit overrides
   let masterTitleBold = false;
+  let masterTitleItalic = false;
   let masterBodyBold = false;
   let masterTitleSz: number | null = null;
   let masterBodySz: number | null = null;
@@ -1501,6 +1538,7 @@ async function main() {
             if (sz) masterTitleSz = parseInt(sz);
           }
           if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+          if (!masterTitleItalic && /\bi="1"/.test(attrs)) masterTitleItalic = true;
           if (!masterTitleColor) {
             const sf = attrs.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
             if (sf) masterTitleColor = parseColorFromShapeXml(sf[1], themeColors);
@@ -1548,6 +1586,7 @@ async function main() {
             if (font && font !== 'Arial') themeFonts.titleFont = cleanFontName(font);
             if (!masterTitleSz) { const sz = attrs.match(/\bsz="(\d+)"/)?.[1]; if (sz) masterTitleSz = parseInt(sz); }
             if (!masterTitleBold && /\bb="1"/.test(attrs)) masterTitleBold = true;
+            if (!masterTitleItalic && /\bi="1"/.test(attrs)) masterTitleItalic = true;
             if (!masterTitleColor) {
               const sf = attrs.match(/<a:solidFill>([\s\S]*?)<\/a:solidFill>/);
               if (sf) masterTitleColor = parseColorFromShapeXml(sf[1], themeColors);
@@ -1576,6 +1615,7 @@ async function main() {
 
       console.log(`  Master fonts: ${themeFonts.titleFont} / ${themeFonts.bodyFont}`);
       if (masterTitleBold) console.log(`  Master title bold: true`);
+      if (masterTitleItalic) console.log(`  Master title italic: true`);
       if (masterTitleSz) console.log(`  Master title sz: ${masterTitleSz}`);
       if (masterBodySz) console.log(`  Master body sz: ${masterBodySz}`);
       if (masterTitleColor) console.log(`  Master title color: ${masterTitleColor}`);
@@ -2126,7 +2166,7 @@ async function main() {
         if (/<p:ph[^>]*type="pic"/.test(spXml) || /<p:ph[^>]*type="media"/.test(spXml)) continue;
 
         // Try as text first
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleItalic: masterTitleItalic, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) { textEl.zIndex = zIndex++; elements.push(textEl); continue; }
 
         // Try as shape
@@ -2245,7 +2285,7 @@ async function main() {
           elements.push(shapeEl);
           continue;
         }
-        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
+        const textEl = parseTextFromSpTree(spXml, themeColors, themeFonts, layoutPlaceholderSizes, layoutPlaceholderFonts, layoutPlaceholderBold, layoutPlaceholderColors, { titleBold: masterTitleBold, titleItalic: masterTitleItalic, titleSz: masterTitleSz, bodySz: masterBodySz, titleColor: masterTitleColor, bodyColor: masterBodyColor });
         if (textEl) {
           const cOff = spXml.match(/<a:off\s+x="(-?\d+)"\s+y="(-?\d+)"/);
           const cExt = spXml.match(/<a:ext\s+cx="(\d+)"\s+cy="(\d+)"/);
