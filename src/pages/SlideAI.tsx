@@ -41,7 +41,9 @@ export default function SlideAIPage() {
           const parsed = JSON.parse(entryTemplate);
           const { type, data } = parsed;
           sessionStorage.removeItem('entryTemplate');
-          console.log('[SlideAI] Template from home:', type, data?.name, 'has preview_slides:', !!data?.preview_slides, 'count:', data?.preview_slides?.length);
+          console.log('[SlideAI] Template from home:', type, data?.name);
+          console.log('[SlideAI] preview_slides:', !!data?.preview_slides, 'count:', data?.preview_slides?.length, 'first slide elements:', data?.preview_slides?.[0]?.elements?.length);
+          console.log('[SlideAI] theme:', !!data?.theme, 'theme name:', data?.theme?.name);
 
           if (type === 'cinematic') {
             const preset = getPresetById(data.preset_id || 'midnight');
@@ -251,7 +253,10 @@ export default function SlideAIPage() {
     // Use refs as fallback when state hasn't updated yet (auto-generate from home)
     const theme = selectedTheme || pendingThemeRef.current || THEME_CATALOG[0];
     const effectiveTemplateSlides = templateSlides || pendingSlidesRef.current;
-    console.log('[handleGenerate] theme:', theme?.name, 'templateSlides:', templateSlides?.length, 'pendingRef:', pendingSlidesRef.current?.length, 'effective:', effectiveTemplateSlides?.length);
+    console.log('[handleGenerate] theme:', theme?.name, 'templateSlides state:', templateSlides?.length, 'pendingRef:', pendingSlidesRef.current?.length, 'effective:', effectiveTemplateSlides?.length);
+    if (effectiveTemplateSlides?.[0]) {
+      console.log('[handleGenerate] First slide elements:', effectiveTemplateSlides[0].elements?.length, 'bg:', effectiveTemplateSlides[0].background?.type);
+    }
 
     try {
       // ─── TEMPLATE-DRIVEN FLOW ───
