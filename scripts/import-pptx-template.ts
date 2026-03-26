@@ -1964,7 +1964,19 @@ async function main() {
                   const result = custGeomToSvgPath(custGeom[1], rawW, rawH);
                   if (result) { svgPath = result.path; svgViewBox = result.viewBox; }
                 }
+                // Fallback: generate SVG for preset curvedConnector (no custGeom)
+                if (!svgPath && content.includes('curvedConnector')) {
+                  const rawW = parseInt(ext[1]);
+                  const rawH = parseInt(ext[2]);
+                  // curvedConnector3: S-curve from (0,0) to (w,h) via cubic bezier
+                  svgPath = `M 0 0 C ${rawW / 2} 0, ${rawW / 2} ${rawH}, ${rawW} ${rawH}`;
+                  svgViewBox = `0 0 ${rawW} ${rawH}`;
+                }
               }
+              // Extract flip from <a:xfrm flipH="1" flipV="1">
+              const xfrmFlip = content.match(/<a:xfrm[^>]*>/);
+              const flipH = xfrmFlip ? /flipH="1"/.test(xfrmFlip[0]) : false;
+              const flipV = xfrmFlip ? /flipV="1"/.test(xfrmFlip[0]) : false;
               elements.push({
                 id: genId(), type: 'shape', content: svgPath || '',
                 x: emuToPxX(parseInt(off[1])), y: emuToPxY(parseInt(off[2])),
@@ -1977,6 +1989,8 @@ async function main() {
                   shapeStrokeDash: parseDashStyle(content) || undefined,
                   lineHeadEnd: headEnd?.[1] || undefined, lineTailEnd: tailEnd?.[1] || undefined,
                   ...(svgPath ? { svgViewBox } : {}),
+                  ...(flipH ? { flipH: true } : {}),
+                  ...(flipV ? { flipV: true } : {}),
                 },
               });
               console.log(`  Layout connector imported`);

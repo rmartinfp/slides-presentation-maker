@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
@@ -14,14 +14,13 @@ import FormattingToolbar from './FormattingToolbar';
 interface Props {
   element: SlideElement;
   scale: number;
-  shrinkScale?: number;
-  shrinkRef?: React.RefObject<HTMLDivElement>;
   onBlur: () => void;
   readOnly?: boolean;
 }
 
-export default function RichTextEditor({ element, scale, shrinkScale = 1, shrinkRef, onBlur, readOnly = false }: Props) {
+export default function RichTextEditor({ element, scale, onBlur, readOnly = false }: Props) {
   const updateElement = useEditorStore(s => s.updateElement);
+  const [shrinkScale, setShrinkScale] = useState(1);
 
   const editor = useEditor({
     extensions: [
@@ -80,20 +79,63 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, shrink
     };
   }, []);
 
-  if (!editor) return null;
-
   const vAlign = element.style.verticalAlign;
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Merge shrinkRef + wrapperRef so useAutoShrink can measure
-  const setRefs = (node: HTMLDivElement | null) => {
-    (wrapperRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-    if (shrinkRef) (shrinkRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-  };
+  // Auto-shrink: measure text overflow and scale down to fit
+  // Runs directly in the component that owns the DOM — no external ref needed
+  useEffect(() => {
+    if (!wrapperRef.current) return;
+    setShrinkScale(1); // reset first
+
+    const measure = () => {
+      const el = wrapperRef.current;
+      if (!el) return;
+
+      const containerHeight = el.parentElement?.clientHeight || el.clientHeight;
+      const containerWidth = el.parentElement?.clientWidth || el.clientWidth;
+      if (!containerHeight || !containerWidth) return;
+
+      // Temporarily make element auto-height + block to measure natural content
+      const orig = {
+        height: el.style.height, width: el.style.width,
+        display: el.style.display, transform: el.style.transform,
+        justifyContent: el.style.justifyContent,
+      };
+      el.style.height = 'auto';
+      el.style.width = `${containerWidth}px`;
+      el.style.display = 'block';
+      el.style.transform = 'none';
+      el.style.justifyContent = '';
+
+      const naturalHeight = el.scrollHeight;
+
+      // Restore
+      el.style.height = orig.height;
+      el.style.width = orig.width;
+      el.style.display = orig.display;
+      el.style.transform = orig.transform;
+      el.style.justifyContent = orig.justifyContent;
+
+      if (naturalHeight > containerHeight + 2) {
+        const ratio = containerHeight / naturalHeight;
+        setShrinkScale(Math.max(0.3, Math.floor(ratio * 100) / 100));
+      }
+    };
+
+    // Measure after DOM + fonts settle
+    requestAnimationFrame(() => {
+      measure();
+      setTimeout(measure, 300);
+      setTimeout(measure, 800); // extra delay for slow font loading
+    });
+  }, [element.content, element.style.fontSize, element.width, element.height]);
+
+  if (!editor) return null;
 
   return (
     <div
-      ref={setRefs}
+      ref={wrapperRef}
       className="w-full h-full relative"
       onKeyDown={readOnly ? undefined : handleKeyDown}
       style={{
@@ -104,8 +146,6 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, shrink
         justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : undefined,
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
-        // Do NOT set pointer-events:none here — it prevents parent CanvasElement
-        // from receiving clicks. Instead, pointer-events-none is on EditorContent only.
         opacity: typeof element.style.opacity === 'number' ? element.style.opacity : 1,
       }}
     >

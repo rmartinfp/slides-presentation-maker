@@ -245,9 +245,13 @@ export default function SlideAIPage() {
   };
 
   const [genOptions, setGenOptions] = useState<{ slideCount?: number; audience?: string; tone?: string }>({});
+  const requestedSlideCountRef = React.useRef<number | undefined>(undefined);
 
   const handleGenerate = async (options?: { slideCount?: number; audience?: string; tone?: string }) => {
-    if (options) setGenOptions(options);
+    if (options) {
+      setGenOptions(options);
+      if (options.slideCount) requestedSlideCountRef.current = options.slideCount;
+    }
     const opts = options || genOptions;
     setStep('generating');
     // Use refs as fallback when state hasn't updated yet (auto-generate from home)
@@ -565,7 +569,7 @@ export default function SlideAIPage() {
                 generatedTitle={generatedPresentation?.title || null}
                 userPrompt={contentText}
                 templateSlides={templateSlides || pendingSlidesRef.current}
-                requestedSlideCount={genOptions.slideCount}
+                requestedSlideCount={requestedSlideCountRef.current || genOptions.slideCount}
                 onComplete={() => navigate('/editor')}
               />
             </motion.div>

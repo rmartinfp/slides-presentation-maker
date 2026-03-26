@@ -4,7 +4,7 @@ import { SlideElement } from '@/types/presentation';
 import { useEditorStore } from '@/stores/editor-store';
 import { cn } from '@/lib/utils';
 import RichTextEditor from './RichTextEditor';
-import { useAutoShrink } from '@/hooks/useAutoShrink';
+// Auto-shrink is now built into RichTextEditor directly
 import { resolveConnectorPosition } from '@/lib/connector-utils';
 import ChartRenderer from './ChartRenderer';
 import type { ChartData } from '@/types/presentation';
@@ -316,10 +316,7 @@ export default function CanvasElement({
     filter: element.style.filter || undefined,
   };
 
-  // Auto-shrink for text elements (hook must be at top level, not inside switch)
-  // Uses CSS transform: scale() so it works with inline font-size styles too
-  const baseFontPx = (element.style.fontSize ?? 12) * 2.666;
-  const { containerRef: shrinkRef, scale: shrinkScale } = useAutoShrink(baseFontPx, element.content);
+  // Auto-shrink is now handled internally by RichTextEditor (no external hook needed)
 
   // Render element content based on type
   const renderContent = () => {
@@ -335,8 +332,6 @@ export default function CanvasElement({
           <RichTextEditor
             element={element}
             scale={scale}
-            shrinkScale={shrinkScale}
-            shrinkRef={shrinkRef}
             onBlur={handleBlur}
             readOnly={!isEditing}
           />
