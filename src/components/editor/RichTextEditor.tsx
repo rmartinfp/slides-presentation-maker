@@ -97,7 +97,8 @@ export default function RichTextEditor({ element, scale, shrinkScale = 1, onBlur
         justifyContent: vAlign === 'center' ? 'center' : vAlign === 'bottom' ? 'flex-end' : undefined,
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
-        pointerEvents: readOnly ? 'none' : undefined,
+        // Do NOT set pointer-events:none here — it prevents parent CanvasElement
+        // from receiving clicks. Instead, pointer-events-none is on EditorContent only.
         opacity: typeof element.style.opacity === 'number' ? element.style.opacity : 1,
       }}
     >

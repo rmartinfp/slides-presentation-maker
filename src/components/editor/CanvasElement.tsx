@@ -251,7 +251,12 @@ export default function CanvasElement({
     userSelect: isEditing ? 'text' : 'none' as const,
     // Critical: prevent browser default drag behavior
     WebkitUserDrag: 'none' as any,
-    boxShadow: element.style.boxShadow || undefined,
+    // Selection indicator — double border (white + indigo) visible on ANY background
+    outline: isSelected ? '2px solid #4F46E5' : undefined,
+    outlineOffset: isSelected ? '2px' : undefined,
+    boxShadow: isSelected
+      ? [element.style.boxShadow, '0 0 0 1px rgba(255,255,255,0.9)', '0 0 0 4px rgba(79,70,229,0.7)'].filter(Boolean).join(', ')
+      : element.style.boxShadow || undefined,
     filter: element.style.filter || undefined,
   };
 
@@ -653,7 +658,6 @@ export default function CanvasElement({
       onDoubleClick={handleDoubleClick}
       className={cn(
         'canvas-element group',
-        isSelected && 'ring-2 ring-[#4F46E5] ring-offset-1 ring-offset-white',
         element.locked && 'opacity-90',
       )}
       data-element-id={element.id}
