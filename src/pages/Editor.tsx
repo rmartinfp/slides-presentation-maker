@@ -183,6 +183,8 @@ export default function EditorPage() {
   // Auto-save — immediate on first load (so reload doesn't lose data), then debounced
   const hasSavedOnce = useRef(false);
   useEffect(() => {
+    // Don't auto-save to presentations table in template mode
+    if (isTemplateMode) return;
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     const delay = hasSavedOnce.current ? 3000 : 500; // Fast first save
     saveTimerRef.current = setTimeout(() => {
@@ -190,7 +192,7 @@ export default function EditorPage() {
       hasSavedOnce.current = true;
     }, delay);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [presentation, saveToSupabase]);
+  }, [presentation, saveToSupabase, isTemplateMode]);
 
   // Canvas scaling
   const updateScale = useCallback(() => {
