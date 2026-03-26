@@ -550,11 +550,11 @@ export default function SlideAIPage() {
               transition={{ duration: 0.4 }}
             >
               <GeneratingView
-                theme={selectedTheme || THEME_CATALOG[0]}
+                theme={selectedTheme || pendingThemeRef.current || THEME_CATALOG[0]}
                 generatedSlides={generatedPresentation?.slides || null}
                 generatedTitle={generatedPresentation?.title || null}
                 userPrompt={contentText}
-                templateSlides={templateSlides}
+                templateSlides={templateSlides || pendingSlidesRef.current}
                 onComplete={() => navigate('/editor')}
               />
             </motion.div>
