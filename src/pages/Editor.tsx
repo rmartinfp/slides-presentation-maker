@@ -257,7 +257,7 @@ export default function EditorPage() {
 
   const [isPresenterView, setIsPresenterView] = React.useState(false);
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
-  const [showRightPanel, setShowRightPanel] = React.useState(true);
+  const [showRightPanel, setShowRightPanel] = React.useState(false);
   const [showAIImage, setShowAIImage] = React.useState(false);
   const [showTranslate, setShowTranslate] = React.useState(false);
   const [showCoach, setShowCoach] = React.useState(false);
@@ -276,6 +276,13 @@ export default function EditorPage() {
   const vidInputRef = useRef<HTMLInputElement>(null);
   const { upload: uploadAsset } = useAssetUpload();
   const { addConnector } = useEditorStore();
+
+  // Auto-open right panel when element is selected, auto-close when deselected
+  useEffect(() => {
+    if (selectedElementIds.length > 0) {
+      setShowRightPanel(true);
+    }
+  }, [selectedElementIds]);
 
   // Recalculate canvas scale when right panel toggles
   useEffect(() => {
@@ -729,7 +736,7 @@ export default function EditorPage() {
                 <DropdownMenuTrigger asChild><ToolBtn icon={<Sparkles className="w-4 h-4" />} label="AI" highlight /></DropdownMenuTrigger>
                 <DropdownMenuContent side="top" className="mb-2 w-56">
                   <DropdownMenuItem onClick={() => setShowAIRewrite(true)}><Sparkles className="w-4 h-4 mr-2" />Rewrite this slide</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setShowRedesign(true)}><Wand2 className="w-4 h-4 mr-2" />Redesign this slide</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setShowRedesign(true)}><Wand2 className="w-4 h-4 mr-2" />Cambiar layout</DropdownMenuItem>
                   {singleSelected?.type === 'image' && (
                     <>
                       <DropdownMenuSeparator />
