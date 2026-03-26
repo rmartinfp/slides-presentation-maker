@@ -1086,14 +1086,16 @@ function TextPropsSection({ el, updateElement, updateStyle }: {
 
   // Load full Google Fonts catalog when picker opens
   React.useEffect(() => {
-    if (showFontPicker && allFonts.length <= POPULAR_FONTS.length) {
-      fetchGoogleFonts().then(setAllFonts);
+    if (showFontPicker) {
+      fetchGoogleFonts().then(fonts => {
+        if (fonts.length > POPULAR_FONTS.length) setAllFonts(fonts);
+      });
     }
   }, [showFontPicker]);
 
   const filteredFonts = fontSearch
-    ? allFonts.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase())).slice(0, 50)
-    : allFonts.slice(0, 80);
+    ? allFonts.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase())).slice(0, 100)
+    : allFonts.slice(0, 100);
 
   const handleFontChange = (font: string) => {
     // Load the font dynamically

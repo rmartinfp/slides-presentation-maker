@@ -181,7 +181,7 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
       {!readOnly && <FormattingToolbar editor={editor} scale={scale} anchorRef={wrapperRef} />}
       <EditorContent
         editor={editor}
-        className={readOnly ? 'w-full pointer-events-none' : 'w-full cursor-text'}
+        className={readOnly ? 'w-full pointer-events-none' : 'w-full pointer-events-auto cursor-text'}
         style={{
           boxSizing: 'border-box',
           ...(shrinkScale < 1 ? {
