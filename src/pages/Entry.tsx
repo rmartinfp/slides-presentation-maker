@@ -167,7 +167,20 @@ export default function Entry() {
                 <Paperclip className="w-4 h-4" />
               </button>
 
-              {/* Voice input */}
+              {/* Slide count */}
+              <div className="flex items-center gap-1.5 ml-1 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/60">
+                <button onClick={() => setSlideCount(c => Math.max(3, c - 1))} className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 text-slate-500">
+                  <Minus className="w-3 h-3" />
+                </button>
+                <span className="text-xs font-medium text-slate-700 w-14 text-center">{slideCount} slides</span>
+                <button onClick={() => setSlideCount(c => Math.min(20, c + 1))} className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 text-slate-500">
+                  <Plus className="w-3 h-3" />
+                </button>
+              </div>
+
+              <div className="flex-1" />
+
+              {/* Voice input — next to Generate */}
               <button
                 onClick={() => {
                   if (isRecording) {
@@ -195,26 +208,13 @@ export default function Entry() {
                   }).catch(() => toast.error('Microphone access denied'));
                 }}
                 className={cn(
-                  'w-8 h-8 rounded-lg flex items-center justify-center transition-colors',
+                  'w-9 h-9 rounded-xl flex items-center justify-center transition-colors',
                   isRecording ? 'bg-red-100 text-red-500 animate-pulse' : 'hover:bg-slate-100 text-slate-400 hover:text-slate-600'
                 )}
                 title={isRecording ? 'Stop recording' : 'Voice input'}
               >
                 {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </button>
-
-              {/* Slide count */}
-              <div className="flex items-center gap-1.5 ml-2 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200/60">
-                <button onClick={() => setSlideCount(c => Math.max(3, c - 1))} className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 text-slate-500">
-                  <Minus className="w-3 h-3" />
-                </button>
-                <span className="text-xs font-medium text-slate-700 w-14 text-center">{slideCount} slides</span>
-                <button onClick={() => setSlideCount(c => Math.min(20, c + 1))} className="w-5 h-5 rounded flex items-center justify-center hover:bg-slate-200 text-slate-500">
-                  <Plus className="w-3 h-3" />
-                </button>
-              </div>
-
-              <div className="flex-1" />
 
               {/* Generate */}
               <Button
