@@ -520,7 +520,7 @@ export default function SlideAIPage() {
     } catch (error) {
       console.error('Generation failed:', error);
       toast.error('Failed to generate presentation. Please try again.');
-      setStep('content');
+      navigate('/');
     }
   };
 
@@ -544,7 +544,7 @@ export default function SlideAIPage() {
 
   const handleBack = () => {
     if (step === 'content') setStep('template');
-    else if (step === 'generating') setStep('content');
+    else if (step === 'generating') navigate('/');
   };
 
   return (
