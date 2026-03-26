@@ -10,8 +10,14 @@ function getTemplateTitle(slide: Slide): string {
     .filter(e => e.type === 'text' && e.content)
     .sort((a, b) => (b.style.fontSize || 0) - (a.style.fontSize || 0));
   const raw = texts[0]?.content || '';
-  // Clean placeholder markers
-  return raw.replace(/\{\{|\}\}/g, '').replace(/_/g, ' ').trim() || 'Writing content...';
+  // Strip HTML tags, clean placeholder markers, normalize whitespace
+  return raw
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\{\{|\}\}/g, '')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || 'Writing content...';
 }
 
 /** Typewriter component for the generating view */
@@ -177,14 +183,15 @@ export default function GeneratingView({ theme, generatedSlides, generatedTitle,
             const bg = getBg(realSlide || tmplSlide);
             const bgImg = getBgImage(realSlide || tmplSlide);
 
-            // Get real slide title if available
+            // Get real slide title if available — strip all HTML and entities
             let realTitle = '';
             let realBody = '';
             if (realSlide) {
               const texts = (realSlide.elements || []).filter(e => e.type === 'text')
                 .sort((a, b) => (b.style.fontSize || 0) - (a.style.fontSize || 0));
-              realTitle = texts[0]?.content?.replace(/<[^>]+>/g, '').slice(0, 60) || '';
-              realBody = texts[1]?.content?.replace(/<[^>]+>/g, '').slice(0, 80) || '';
+              const clean = (s: string) => s.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\{\{|\}\}/g, '').replace(/\s+/g, ' ').trim();
+              realTitle = clean(texts[0]?.content || '').slice(0, 60);
+              realBody = clean(texts[1]?.content || '').slice(0, 80);
             }
 
             return (
