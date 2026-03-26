@@ -454,7 +454,14 @@ export default function SlideAIPage() {
         return;
       }
 
-      // ─── LEGACY FREE-FORM FLOW (no template) ───
+      // ─── NO TEMPLATE AVAILABLE — redirect to home ───
+      // The legacy free-form flow produces low-quality generic slides.
+      // Better to send the user back to pick a template.
+      toast.error('No template selected. Please choose a template first.');
+      navigate('/');
+      return;
+
+      // Legacy flow disabled — kept for reference only
       const result = await generatePresentation({
         prompt: contentText,
         length: (opts.slideCount || 10) <= 7 ? 'short' : (opts.slideCount || 10) >= 13 ? 'detailed' : 'informative',
