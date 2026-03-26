@@ -26,14 +26,44 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
 
   const { presentation } = useEditorStore();
 
-  const handleSave = async () => {
-    if (!name.trim()) { toast.error('Template name is required'); return; }
+  const sourceTable = (presentation as any).sourceTable;
+  const sourceTemplateId = (presentation as any).sourceTemplateId;
+  const isClassicUpdate = sourceTable === 'templates' && sourceTemplateId;
 
+  const handleSave = async () => {
     setSaving(true);
     try {
-      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      if (isClassicUpdate) {
+        // UPDATE existing classic template — only update preview_slides and theme
+        const slides = presentation.slides.map(s => ({
+          id: s.id,
+          elements: s.elements,
+          background: s.background,
+          notes: '',
+          layout: (s as any).layout || 'content',
+        }));
 
-      // Build theme from current presentation
+        const { error } = await supabase.from('templates').update({
+          preview_slides: slides,
+          theme: {
+            id: presentation.theme.id,
+            name: presentation.title,
+            category: 'Imported',
+            tokens: presentation.theme.tokens,
+            previewColors: presentation.theme.previewColors,
+          },
+        }).eq('id', sourceTemplateId);
+
+        if (error) throw error;
+        toast.success(`Template updated! Changes will reflect in generation.`);
+        onClose();
+        return;
+      }
+
+      // NEW cinematic template
+      if (!name.trim()) { toast.error('Template name is required'); return; }
+
+      const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
       const theme = {
         id: presentation.theme.id,
         name: name.trim(),
@@ -42,7 +72,6 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
         previewColors: presentation.theme.previewColors,
       };
 
-      // Use slides as-is (with elements, videoBackground, animationConfig)
       const slides = presentation.slides.map(s => ({
         id: s.id,
         elements: s.elements,
@@ -65,7 +94,6 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
       });
 
       if (error) throw error;
-
       toast.success(`Template "${name}" saved! It will appear in Cinematic gallery.`);
       onClose();
     } catch (err: any) {
@@ -94,8 +122,8 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
               <Upload className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-slate-800">Save as Cinematic Template</h3>
-              <p className="text-xs text-slate-400">{presentation.slides.length} slides will be saved as a template</p>
+              <h3 className="font-semibold text-slate-800">{isClassicUpdate ? 'Update Template' : 'Save as Cinematic Template'}</h3>
+              <p className="text-xs text-slate-400">{presentation.slides.length} slides{isClassicUpdate ? ` — updating "${presentation.title?.replace(/ by Slidesgo$/i, '')}"` : ' will be saved as a template'}</p>
             </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center">
@@ -104,6 +132,22 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Classic template: simple update button */}
+          {isClassicUpdate && (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-600">
+                Your changes to text, fonts, sizes, and layout will be saved.
+                The next time someone generates with this template, they'll see your edits.
+              </p>
+              <Button onClick={handleSave} disabled={saving}
+                className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl py-3">
+                {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : <><Upload className="w-4 h-4 mr-2" />Update Template</>}
+              </Button>
+            </div>
+          )}
+
+          {/* Cinematic template: full form */}
+          {!isClassicUpdate && <>
           {/* Name */}
           <div>
             <label className="text-xs font-medium text-slate-600 mb-1 block">Template Name *</label>
@@ -162,19 +206,22 @@ export default function SaveAsTemplateDialog({ onClose }: Props) {
             <p>This saves your current presentation design as a cinematic template. Text content will be used as placeholders — AI will replace them when users generate with this template.</p>
             <p className="mt-1">Tip: Use descriptive placeholder text like "Your company mission statement" so AI knows what to generate.</p>
           </div>
+          </>}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
-          <Button variant="ghost" onClick={onClose}>Cancel</Button>
-          <Button
-            onClick={handleSave}
-            disabled={saving || !name.trim()}
-            className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white"
-          >
-            {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : 'Save Template'}
-          </Button>
-        </div>
+        {!isClassicUpdate && (
+          <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+            <Button variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving || !name.trim()}
+              className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white"
+            >
+              {saving ? <><Loader2 className="w-4 h-4 animate-spin mr-2" />Saving...</> : 'Save Template'}
+            </Button>
+          </div>
+        )}
       </motion.div>
     </motion.div>
   );

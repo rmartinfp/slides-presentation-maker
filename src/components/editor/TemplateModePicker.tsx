@@ -13,13 +13,28 @@ interface Props {
 
 export default function TemplateModePicker({ onSelect, onBlank, onClose }: Props) {
   const navigate = useNavigate();
-  const [templates, setTemplates] = useState<any[]>([]);
+  const [cinematicTemplates, setCinematicTemplates] = useState<any[]>([]);
+  const [classicTemplates, setClassicTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'classic' | 'cinematic'>('classic');
 
   useEffect(() => {
-    supabase.from('cinematic_templates').select('*').eq('is_active', true).order('sort_order')
-      .then(({ data }) => { setTemplates(data || []); setLoading(false); });
+    Promise.all([
+      supabase.from('cinematic_templates').select('*').eq('is_active', true).order('sort_order'),
+      supabase.from('templates').select('*').eq('is_active', true).order('sort_order'),
+    ]).then(([cin, cls]) => {
+      setCinematicTemplates(cin.data || []);
+      // Map classic templates to a format with slides from preview_slides
+      setClassicTemplates((cls.data || []).map((t: any) => ({
+        ...t,
+        slides: t.preview_slides,
+        _sourceTable: 'templates',
+      })));
+      setLoading(false);
+    });
   }, []);
+
+  const templates = tab === 'cinematic' ? cinematicTemplates : classicTemplates;
 
   return (
     <div className="fixed inset-0 z-[200] bg-white flex flex-col">
@@ -51,8 +66,17 @@ export default function TemplateModePicker({ onSelect, onBlank, onClose }: Props
             <p className="text-xs text-slate-400 mt-1">5 blank black slides — add videos, text, shapes, everything</p>
           </button>
 
-          {/* Existing templates */}
-          <h2 className="text-sm font-semibold text-slate-700 mb-4">Or edit an existing template</h2>
+          {/* Template type tabs */}
+          <div className="flex items-center gap-1 mb-4 bg-slate-100 rounded-lg p-0.5 w-fit">
+            <button onClick={() => setTab('classic')}
+              className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${tab === 'classic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              Classic ({classicTemplates.length})
+            </button>
+            <button onClick={() => setTab('cinematic')}
+              className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${tab === 'cinematic' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+              Cinematic ({cinematicTemplates.length})
+            </button>
+          </div>
 
           {loading && (
             <div className="flex items-center gap-2 text-sm text-slate-400 py-12 justify-center">
@@ -65,6 +89,8 @@ export default function TemplateModePicker({ onSelect, onBlank, onClose }: Props
               const firstSlide = tmpl.slides?.[0];
               const videoUrl = firstSlide?.videoBackground?.url || firstSlide?.videoUrl;
               const bgColor = firstSlide?.background?.value || tmpl.theme?.tokens?.palette?.bg || '#000';
+              const thumbUrl = tmpl.thumbnail_url;
+              const isClassic = tmpl._sourceTable === 'templates';
 
               return (
                 <button
@@ -73,19 +99,21 @@ export default function TemplateModePicker({ onSelect, onBlank, onClose }: Props
                   className="rounded-xl overflow-hidden border border-slate-200 hover:border-[#9333EA] hover:shadow-xl hover:shadow-purple-500/10 transition-all text-left group"
                 >
                   <div className="aspect-video relative overflow-hidden" style={{ backgroundColor: bgColor }}>
-                    {videoUrl && (
+                    {isClassic && thumbUrl?.startsWith('http') ? (
+                      <img src={thumbUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />
+                    ) : videoUrl ? (
                       <HlsVideo
                         src={videoUrl}
                         className="absolute inset-0 w-full h-full object-cover"
                         style={{ opacity: firstSlide?.videoBackground?.opacity || 0.5 }}
                       />
-                    )}
+                    ) : null}
                     <div className="absolute bottom-1.5 right-2 text-[10px] text-white/70 font-mono bg-black/30 px-1.5 py-0.5 rounded">
                       {tmpl.slides?.length || 0} slides
                     </div>
                   </div>
                   <div className="p-3">
-                    <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-[#9333EA]">{tmpl.name}</p>
+                    <p className="text-sm font-semibold text-slate-800 truncate group-hover:text-[#9333EA]">{tmpl.name?.replace(/ by Slidesgo$/i, '')}</p>
                     <p className="text-[11px] text-slate-400 truncate mt-0.5">{tmpl.category}</p>
                   </div>
                 </button>

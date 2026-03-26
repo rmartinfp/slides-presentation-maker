@@ -1165,12 +1165,17 @@ export default function EditorPage() {
                 background: s.background || { type: 'solid', value: '#000000' },
               }));
               const theme = tmpl.theme || presentation.theme;
+              const isClassic = tmpl._sourceTable === 'templates';
               setPresentation({
                 id: crypto.randomUUID(), title: tmpl.name || 'Template',
                 slides, theme: theme as any,
-                templateType: 'cinematic', cinematicPresetId: tmpl.preset_id || 'midnight',
+                templateType: isClassic ? 'classic' : 'cinematic',
+                cinematicPresetId: tmpl.preset_id || 'midnight',
+                // Store source info for save-back
+                sourceTemplateId: tmpl.id,
+                sourceTable: tmpl._sourceTable || 'cinematic_templates',
                 createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-              });
+              } as any);
               setShowTemplatePicker(false);
             }}
             onBlank={() => {
