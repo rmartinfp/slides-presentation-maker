@@ -1473,17 +1473,7 @@ const TEMPLATES = [
     tags: ['saas', 'product', 'light', 'clean', 'task', 'ai'],
     sort_order: 9,
   },
-  {
-    name: 'Aura',
-    slug: 'aura',
-    category: 'Agency / Startup',
-    description: 'Purple-pink gradient accents with glassmorphism. Instrument Sans + gradient headlines on dark.',
-    preset_id: 'midnight',
-    slides: buildAura(),
-    theme: auraTheme(),
-    tags: ['agency', 'startup', 'gradient', 'purple', 'glassmorphism'],
-    sort_order: 10,
-  },
+  // Aura removed — Cloudflare video URL returns 404
   {
     name: 'Apex',
     slug: 'apex',
