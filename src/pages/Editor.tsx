@@ -210,8 +210,10 @@ export default function EditorPage() {
 
   useEffect(() => {
     updateScale();
+    // Recalculate after layout settles (fonts loaded, panel animations done)
+    const t1 = setTimeout(updateScale, 100);
+    const t2 = setTimeout(updateScale, 500);
     window.addEventListener('resize', updateScale);
-    // Also observe the canvas container for size changes (panel open/close)
     const container = canvasContainerRef.current;
     let observer: ResizeObserver | null = null;
     if (container) {
@@ -219,6 +221,8 @@ export default function EditorPage() {
       observer.observe(container);
     }
     return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
       window.removeEventListener('resize', updateScale);
       observer?.disconnect();
     };
