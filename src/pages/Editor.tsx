@@ -224,6 +224,7 @@ export default function EditorPage() {
           setActiveSlideIndex(next);
         } else {
           setIsTypewriting(false);
+          setTimeout(() => setActiveSlideIndex(0), 350);
         }
       }, 600);
       return () => clearTimeout(timeout);
@@ -239,7 +240,7 @@ export default function EditorPage() {
   useEffect(() => {
     if (!isTypewriting) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setIsTypewriting(false);
+      if (e.key === 'Escape') { setIsTypewriting(false); setTimeout(() => setActiveSlideIndex(0), 150); }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -902,7 +903,7 @@ export default function EditorPage() {
                         borderRadius: 4,
                         cursor: isTypewriting ? 'pointer' : undefined,
                       }}
-                      onClick={isTypewriting ? () => setIsTypewriting(false) : undefined}
+                      onClick={isTypewriting ? () => { setIsTypewriting(false); setTimeout(() => setActiveSlideIndex(0), 150); } : undefined}
                     >
                       {!isTypewriting && activeSlideIndex > 0 && (
                         <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute -left-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
@@ -985,7 +986,10 @@ export default function EditorPage() {
             }} />
 
             {/* Bottom floating toolbar — 3 groups: INSERT | AI | SLIDE */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-0 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl">
+            <div className={cn(
+              "absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-0 glass-effect border border-slate-200/60 rounded-2xl shadow-2xl transition-opacity duration-300",
+              (isGenerating || isTypewriting) && "opacity-40 pointer-events-none"
+            )}>
 
               {/* ── GROUP 1: INSERT (element creation) ── */}
               <div className="flex items-center gap-1 px-3 py-2">
