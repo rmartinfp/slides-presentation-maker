@@ -98,7 +98,8 @@ export default function Entry() {
     sessionStorage.setItem('entryPrompt', prompt);
     sessionStorage.setItem('entrySlideCount', String(slideCount));
     if (selectedId && selectedType) {
-      const tmpl = allTemplates.find(t => t.id === selectedId);
+      // Search in UNFILTERED list — the selected template may have been filtered out by prompt keywords
+      const tmpl = allTemplatesRaw.find(t => t.id === selectedId);
       if (tmpl) sessionStorage.setItem('entryTemplate', JSON.stringify({ type: selectedType, data: tmpl.raw }));
     }
     navigate('/create');
