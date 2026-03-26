@@ -295,12 +295,9 @@ export default function InfographicsDialog({ onClose }: Props) {
                   />
                 </div>
 
-                {/* Template name */}
-                <div className="px-3 py-2.5 border-t border-slate-100 bg-slate-50/50">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">{template.icon}</span>
-                    <span className="text-sm font-medium text-slate-700 group-hover:text-[#4F46E5] transition-colors">{template.name}</span>
-                  </div>
+                {/* Template name — clean, no emoji */}
+                <div className="px-3 py-2.5 border-t border-slate-100 bg-white">
+                  <span className="text-xs font-semibold text-slate-600 group-hover:text-[#4F46E5] transition-colors tracking-wide uppercase">{template.name}</span>
                 </div>
               </button>
             ))}

@@ -802,8 +802,9 @@ function parseShapeFromSpTree(
   };
 
   // Extract <p:spPr> section for fill detection — avoids confusing shape fill with text fill from <p:txBody>
-  const spPrMatch = spXml.match(/<p:spPr>([\s\S]*?)<\/p:spPr>/);
-  const spPrXml = spPrMatch ? spPrMatch[1] : '';
+  // Handle <p:spPr> with or without attributes (e.g. bwMode="auto")
+  const spPrMatch = spXml.match(/<p:spPr(?:\s[^>]*)?>[\s\S]*?<\/p:spPr>/);
+  const spPrXml = spPrMatch ? spPrMatch[0].replace(/<p:spPr(?:\s[^>]*)?>/, '').replace(/<\/p:spPr>$/, '') : '';
   // Strip <a:ln> (outline) from spPr to avoid confusing body fill with outline fill
   // CRITICAL: must NOT match <a:lnTo> (path command in custGeom) — only <a:ln> or <a:ln w="...">
   const spPrNoLn = spPrXml.replace(/<a:ln(?:\s+\w+="[^"]*")*\s*>[\s\S]*?<\/a:ln>/g, '');
