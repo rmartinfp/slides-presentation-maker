@@ -164,8 +164,9 @@ export default function Entry() {
                     return;
                   }
                   navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-                    const recognition = new (window as any).webkitSpeechRecognition?.() || new (window as any).SpeechRecognition?.();
-                    if (!recognition) { toast.info('Speech recognition not supported in this browser'); return; }
+                    const SpeechRec = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+                    if (!SpeechRec) { toast.info('Speech recognition not supported'); stream.getTracks().forEach(t => t.stop()); return; }
+                    const recognition = new SpeechRec();
                     recognition.continuous = true;
                     recognition.interimResults = true;
                     recognition.lang = 'es-ES';
