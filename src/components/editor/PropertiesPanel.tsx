@@ -1,13 +1,16 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useEditorStore } from '@/stores/editor-store';
 import { SlideElement, TableData, Slide, SlideVideoBackground } from '@/types/presentation';
 import { VIDEO_POOL } from '@/lib/video-pool';
+import { useAssetUpload } from '@/hooks/useAssetUpload';
+import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import {
   RotateCw, Move, Maximize2, Eye, Palette, Type,
   Lock, Unlock, Trash2, Copy, ArrowUpToLine, ArrowDownToLine,
-  BoxSelect, ImageIcon, Video, X, Play,
+  BoxSelect, ImageIcon, Video, X, Play, Upload, Sparkles, Send, Loader2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -437,8 +440,8 @@ export default function PropertiesPanel() {
 
 function Section({ icon, title, children }: { icon: React.ReactNode; title: string; children: React.ReactNode }) {
   return (
-    <div>
-      <div className="flex items-center gap-1.5 mb-2">
+    <div className="pt-4 mt-4 border-t border-slate-200/60 first:pt-0 first:mt-0 first:border-t-0">
+      <div className="flex items-center gap-1.5 mb-2.5">
         <span className="text-slate-500">{icon}</span>
         <span className="text-[11px] font-medium text-slate-500">{title}</span>
       </div>
@@ -546,188 +549,302 @@ function TablePropsSection({ el, updateElement }: { el: SlideElement; updateElem
   );
 }
 
+const SOLID_PRESETS = [
+  '#FFFFFF', '#F8FAFC', '#F1F5F9', '#E2E8F0', '#CBD5E1', '#94A3B8', '#64748B', '#475569',
+  '#334155', '#1E293B', '#0F172A', '#000000', '#FEF2F2', '#FEF9C3', '#ECFDF5', '#EFF6FF',
+  '#EF4444', '#F97316', '#EAB308', '#22C55E', '#14B8A6', '#3B82F6', '#6366F1', '#8B5CF6',
+  '#DC2626', '#EA580C', '#CA8A04', '#16A34A', '#0D9488', '#2563EB', '#4F46E5', '#7C3AED',
+];
+
+
 // ── Slide Properties (no element selected) ──
 function SlidePropertiesPanel({ slide }: { slide: Slide | undefined }) {
-  const { setSlideVideoBackground, setSlideBackground, presentation } = useEditorStore();
+  const { setSlideVideoBackground, setSlideBackground } = useEditorStore();
+  const { upload, uploading } = useAssetUpload();
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   const [showVideoPicker, setShowVideoPicker] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiPreview, setAiPreview] = useState<string | null>(null);
+
   const video = slide?.videoBackground;
+  const currentBg = slide?.background;
+  const hasBackgroundImage = currentBg?.type === 'image';
 
   const categories = [...new Set(VIDEO_POOL.map(v => v.category))];
 
-  // Collect unique backgrounds from all slides in the presentation
-  const uniqueBackgrounds = useMemo(() => {
-    const seen = new Set<string>();
-    const bgs: { type: string; value: string }[] = [];
-    for (const sl of presentation.slides) {
-      if (!sl.background) continue;
-      const key = `${sl.background.type}:${sl.background.value}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        bgs.push(sl.background);
-      }
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await upload(file);
+    if (result) {
+      setSlideBackground({ type: 'image', value: result.url });
     }
-    return bgs;
-  }, [presentation.slides]);
+    e.target.value = '';
+  }, [upload, setSlideBackground]);
 
-  return (
-    <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto">
-      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
-      <p className="text-[11px] text-slate-500 mb-4">{slide?.elements?.length || 0} elements</p>
+  const handleVideoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await upload(file);
+    if (result) {
+      setSlideVideoBackground({ url: result.url, type: 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
+    }
+    e.target.value = '';
+  }, [upload, setSlideVideoBackground]);
 
-      {/* Slide Background Picker */}
-      {uniqueBackgrounds.length > 1 && (
-        <Section icon={<Palette className="w-3 h-3" />} title="Slide Background">
-          <div className="grid grid-cols-3 gap-1.5">
-            {uniqueBackgrounds.map((bg, i) => {
-              const isActive = slide?.background?.type === bg.type && slide?.background?.value === bg.value;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setSlideBackground(bg as any)}
-                  className={cn(
-                    'aspect-video rounded-md overflow-hidden border-2 transition-all',
-                    isActive ? 'border-[#4F46E5] shadow-sm' : 'border-transparent hover:border-slate-300'
-                  )}
-                >
-                  {bg.type === 'solid' && (
-                    <div className="w-full h-full" style={{ backgroundColor: bg.value }} />
-                  )}
-                  {bg.type === 'gradient' && (
-                    <div className="w-full h-full" style={{ background: bg.value }} />
-                  )}
-                  {bg.type === 'image' && (
-                    <img src={bg.value} alt="" className="w-full h-full object-cover" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </Section>
+  const handleAiGenerate = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiLoading(true);
+    setAiPreview(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-image', {
+        body: { prompt: aiPrompt.trim(), aspectRatio: '16:9' },
+      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+      if (!data?.url) throw new Error('No image URL returned');
+      setAiPreview(data.url);
+    } catch (err: any) {
+      toast.error(err.message || 'Error generating image');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handleAiApply = () => {
+    if (!aiPreview) return;
+    setSlideBackground({ type: 'image', value: aiPreview });
+    setAiPreview(null);
+    setAiPrompt('');
+    toast.success('Background image applied');
+  };
+
+  const mediaSection = (
+    <Section icon={<ImageIcon className="w-3 h-3" />} title="Background Media">
+      {hasBackgroundImage && (
+        <div className="relative rounded-lg overflow-hidden border border-slate-200 aspect-video mb-2 group">
+          <img src={currentBg.value} alt="" className="w-full h-full object-cover" />
+          <button
+            onClick={() => setSlideBackground({ type: 'solid', value: '#FFFFFF' })}
+            className="absolute top-1.5 right-1.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full items-center justify-center hidden group-hover:flex"
+          >
+            <X className="w-3 h-3 text-white" />
+          </button>
+        </div>
       )}
 
-      {/* Video Background Section */}
-      <Section icon={<Video className="w-3 h-3" />} title="Video Background">
-        {video ? (
-          <div className="space-y-2">
-            {/* Current video preview */}
-            <div className="relative rounded-lg overflow-hidden bg-black aspect-video">
-              <video
-                src={video.url}
-                autoPlay muted loop playsInline
-                className="w-full h-full object-cover"
-                style={{ opacity: video.opacity, filter: video.filter || undefined }}
-              />
-              <button
-                onClick={() => setSlideVideoBackground(undefined)}
-                className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
-              >
-                <X className="w-3 h-3 text-white" />
-              </button>
-            </div>
-            {/* Opacity */}
-            <div>
-              <label className="text-[10px] text-slate-500 mb-1 block">Opacity</label>
-              <Slider
-                value={[video.opacity * 100]}
-                onValueChange={([v]) => setSlideVideoBackground({ ...video, opacity: v / 100 })}
-                min={5} max={100} step={5}
-              />
-              <span className="text-[9px] text-slate-400">{Math.round(video.opacity * 100)}%</span>
-            </div>
-            {/* Filter */}
-            <div>
-              <label className="text-[10px] text-slate-500 mb-1 block">Filter</label>
-              <div className="flex flex-wrap gap-1">
-                {[
-                  { label: 'None', value: '' },
-                  { label: 'Dark', value: 'brightness(0.4)' },
-                  { label: 'Dim', value: 'brightness(0.6)' },
-                  { label: 'B&W', value: 'grayscale(100%) brightness(0.5)' },
-                  { label: 'Warm', value: 'brightness(0.5) sepia(30%)' },
-                  { label: 'Cool', value: 'brightness(0.5) hue-rotate(30deg)' },
-                ].map(f => (
-                  <button
-                    key={f.label}
-                    onClick={() => setSlideVideoBackground({ ...video, filter: f.value || undefined })}
-                    className={cn(
-                      'px-1.5 py-0.5 rounded text-[9px] font-medium transition-colors',
-                      (video.filter || '') === f.value ? 'bg-[#4F46E5] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'
-                    )}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            {/* Change video */}
-            <button
-              onClick={() => setShowVideoPicker(!showVideoPicker)}
-              className="w-full text-[10px] text-[#4F46E5] hover:text-[#4338CA] font-medium py-1 rounded hover:bg-indigo-50 transition-colors"
-            >
-              Change video
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => imageInputRef.current?.click()}
+          disabled={uploading}
+          className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2 border-dashed border-slate-300 bg-white hover:border-indigo-400 hover:bg-indigo-50/50 text-slate-500 hover:text-indigo-600 transition-all disabled:opacity-50"
+        >
+          <ImageIcon className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Image</span>
+        </button>
+        <button
+          onClick={() => videoInputRef.current?.click()}
+          disabled={uploading}
+          className="flex flex-col items-center justify-center gap-1.5 py-4 rounded-xl border-2 border-dashed border-slate-300 bg-white hover:border-indigo-400 hover:bg-indigo-50/50 text-slate-500 hover:text-indigo-600 transition-all disabled:opacity-50"
+        >
+          <Video className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Video</span>
+        </button>
+      </div>
+
+      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+      <input ref={videoInputRef} type="file" accept="video/mp4,video/webm" className="hidden" onChange={handleVideoUpload} />
+
+      {uploading && (
+        <div className="mt-2 flex items-center gap-2 text-[10px] text-indigo-500">
+          <Loader2 className="w-3 h-3 animate-spin" /> Uploading...
+        </div>
+      )}
+
+      {video && (
+        <div className="mt-2 space-y-2 pt-2 border-t border-slate-100">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-500 font-medium">Video Background</span>
+            <button onClick={() => setSlideVideoBackground(undefined)} className="text-[9px] text-red-400 hover:text-red-500">
+              Remove
             </button>
           </div>
-        ) : (
+          <div className="relative rounded-md overflow-hidden bg-black aspect-video">
+            <video src={video.url} autoPlay muted loop playsInline className="w-full h-full object-cover" style={{ opacity: video.opacity, filter: video.filter || undefined }} />
+          </div>
+          <div>
+            <label className="text-[10px] text-slate-500 mb-1 block">Opacity</label>
+            <div className="flex items-center gap-2">
+              <Slider value={[video.opacity * 100]} onValueChange={([v]) => setSlideVideoBackground({ ...video, opacity: v / 100 })} min={5} max={100} step={5} className="flex-1" />
+              <span className="text-[9px] text-slate-400 w-7 text-right">{Math.round(video.opacity * 100)}%</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <button
+        onClick={() => setShowVideoPicker(!showVideoPicker)}
+        className="mt-2 w-full text-[10px] text-[#4F46E5] hover:text-[#4338CA] font-medium py-1 rounded hover:bg-indigo-50 transition-colors"
+      >
+        {showVideoPicker ? 'Hide video library' : 'Browse video library'}
+      </button>
+
+      {showVideoPicker && (
+        <div className="mt-2 space-y-2">
+          {categories.map(cat => {
+            const vids = VIDEO_POOL.filter(v => v.category === cat);
+            return (
+              <div key={cat}>
+                <label className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">{cat}</label>
+                <div className="grid grid-cols-2 gap-1 mt-1">
+                  {vids.slice(0, 4).map(v => (
+                    <button
+                      key={v.id}
+                      onClick={() => {
+                        setSlideVideoBackground({ url: v.url, type: v.url.includes('.m3u8') ? 'hls' : 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
+                        setShowVideoPicker(false);
+                      }}
+                      className={cn(
+                        'relative rounded overflow-hidden aspect-video bg-black border-2 transition-all',
+                        video?.url === v.url ? 'border-[#4F46E5]' : 'border-transparent hover:border-slate-300'
+                      )}
+                    >
+                      <video src={v.url} muted playsInline className="w-full h-full object-cover opacity-70" onMouseEnter={e => (e.target as HTMLVideoElement).play()} onMouseLeave={e => (e.target as HTMLVideoElement).pause()} />
+                      <div className="absolute bottom-0 inset-x-0 bg-black/60 px-1 py-0.5">
+                        <span className="text-[8px] text-white/80">{v.id}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <div>
+            <label className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">Custom URL</label>
+            <input
+              placeholder="Paste MP4 URL..."
+              className="w-full mt-1 px-2 py-1 text-[10px] rounded border border-slate-200 focus:border-[#4F46E5] focus:outline-none"
+              onKeyDown={e => {
+                if (e.key === 'Enter') {
+                  const url = (e.target as HTMLInputElement).value.trim();
+                  if (url) {
+                    setSlideVideoBackground({ url, type: url.includes('.m3u8') ? 'hls' : 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
+                    setShowVideoPicker(false);
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+      )}
+    </Section>
+  );
+
+  const colorSection = (
+    <Section icon={<Palette className="w-3 h-3" />} title="Background Color">
+      <div className="grid grid-cols-8 gap-1">
+        {SOLID_PRESETS.map(color => (
           <button
-            onClick={() => setShowVideoPicker(!showVideoPicker)}
-            className="w-full py-6 border-2 border-dashed border-slate-200 rounded-lg flex flex-col items-center gap-2 text-slate-400 hover:border-[#4F46E5] hover:text-[#4F46E5] transition-colors"
-          >
-            <Video className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Add Video Background</span>
-          </button>
+            key={color}
+            onClick={() => setSlideBackground({ type: 'solid', value: color })}
+            className={cn(
+              'w-full aspect-square rounded-sm border transition-transform hover:scale-110',
+              currentBg?.type === 'solid' && currentBg.value === color ? 'border-indigo-500 scale-110 ring-1 ring-indigo-500' : 'border-slate-200'
+            )}
+            style={{ backgroundColor: color }}
+          />
+        ))}
+      </div>
+      <div className="mt-1.5 flex gap-2">
+        <input
+          type="color"
+          value={currentBg?.type === 'solid' ? currentBg.value : '#ffffff'}
+          onChange={(e) => setSlideBackground({ type: 'solid', value: e.target.value })}
+          className="w-6 h-6 rounded cursor-pointer border-0 p-0"
+        />
+        <input
+          type="text"
+          value={currentBg?.type === 'solid' ? currentBg.value : ''}
+          onChange={(e) => {
+            if (/^#[0-9A-Fa-f]{6}$/.test(e.target.value)) {
+              setSlideBackground({ type: 'solid', value: e.target.value });
+            }
+          }}
+          placeholder="#FFFFFF"
+          className="flex-1 px-2 py-1 text-[10px] rounded border border-slate-200 focus:outline-none focus:border-indigo-500"
+        />
+      </div>
+    </Section>
+  );
+
+  const aiSection = (
+    <Section icon={<Sparkles className="w-3 h-3" />} title="Generate Image">
+      <div className="space-y-2">
+        {aiPreview && (
+          <div className="relative rounded-lg overflow-hidden border border-slate-200 aspect-video">
+            <img src={aiPreview} alt="AI Generated" className="w-full h-full object-cover" />
+            <button
+              onClick={() => setAiPreview(null)}
+              className="absolute top-1 right-1 w-4 h-4 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+            >
+              <X className="w-2.5 h-2.5 text-white" />
+            </button>
+          </div>
         )}
 
-        {/* Video picker */}
-        {showVideoPicker && (
-          <div className="mt-2 space-y-2">
-            {categories.map(cat => {
-              const vids = VIDEO_POOL.filter(v => v.category === cat);
-              return (
-                <div key={cat}>
-                  <label className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">{cat}</label>
-                  <div className="grid grid-cols-2 gap-1 mt-1">
-                    {vids.slice(0, 4).map(v => (
-                      <button
-                        key={v.id}
-                        onClick={() => {
-                          setSlideVideoBackground({ url: v.url, type: v.url.includes('.m3u8') ? 'hls' : 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
-                          setShowVideoPicker(false);
-                        }}
-                        className={cn(
-                          'relative rounded overflow-hidden aspect-video bg-black border-2 transition-all',
-                          video?.url === v.url ? 'border-[#4F46E5]' : 'border-transparent hover:border-slate-300'
-                        )}
-                      >
-                        <video src={v.url} muted playsInline className="w-full h-full object-cover opacity-70" onMouseEnter={e => (e.target as HTMLVideoElement).play()} onMouseLeave={e => (e.target as HTMLVideoElement).pause()} />
-                        <div className="absolute bottom-0 inset-x-0 bg-black/60 px-1 py-0.5">
-                          <span className="text-[8px] text-white/80">{v.id}</span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-            {/* Custom URL */}
-            <div>
-              <label className="text-[9px] text-slate-400 font-medium uppercase tracking-wider">Custom URL</label>
-              <input
-                placeholder="Paste MP4 URL..."
-                className="w-full mt-1 px-2 py-1 text-[10px] rounded border border-slate-200 focus:border-[#4F46E5] focus:outline-none"
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    const url = (e.target as HTMLInputElement).value.trim();
-                    if (url) {
-                      setSlideVideoBackground({ url, type: url.includes('.m3u8') ? 'hls' : 'mp4', opacity: 0.3, filter: 'brightness(0.5)' });
-                      setShowVideoPicker(false);
-                    }
-                  }
-                }}
-              />
+        {aiLoading && (
+          <div className="flex items-center justify-center py-6">
+            <div className="text-center">
+              <Loader2 className="w-5 h-5 text-indigo-500 animate-spin mx-auto mb-1" />
+              <p className="text-[10px] text-slate-400">Generating...</p>
             </div>
           </div>
         )}
-      </Section>
+
+        <div className="flex gap-1.5">
+          <input
+            type="text"
+            value={aiPrompt}
+            onChange={e => setAiPrompt(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !aiLoading && handleAiGenerate()}
+            placeholder="Describe the background..."
+            className="flex-1 px-2 py-1.5 rounded-md border border-slate-200 text-[10px] focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/20"
+            disabled={aiLoading}
+          />
+          <button
+            onClick={handleAiGenerate}
+            disabled={aiLoading || !aiPrompt.trim()}
+            className="px-2 py-1.5 rounded-md bg-gradient-to-r from-pink-500 to-orange-500 text-white disabled:opacity-50 transition-opacity"
+          >
+            {aiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Send className="w-3 h-3" />}
+          </button>
+        </div>
+
+        {aiPreview && (
+          <Button
+            onClick={handleAiApply}
+            size="sm"
+            className="w-full h-7 text-[10px] bg-gradient-to-r from-indigo-600 to-purple-600 text-white"
+          >
+            Apply as Background
+          </Button>
+        )}
+      </div>
+    </Section>
+  );
+
+  return (
+    <div className="w-64 bg-white/60 backdrop-blur-xl border-l border-slate-200/60 p-4 overflow-y-auto max-h-[calc(100vh-3rem)]">
+      <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Slide</h3>
+
+      {hasBackgroundImage ? (
+        <>{mediaSection}{colorSection}{aiSection}</>
+      ) : (
+        <>{colorSection}{mediaSection}{aiSection}</>
+      )}
 
       <p className="text-[10px] text-slate-400 mt-4">Select an element to edit its properties</p>
     </div>
