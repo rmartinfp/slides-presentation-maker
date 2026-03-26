@@ -380,7 +380,6 @@ export default function CanvasElement({
 
         if (shapeType === 'circle') {
           // Small circles: use CSS border-radius for pixel-perfect rendering
-          // SVG viewBox="0 0 100 100" can't render accurately at < 20px
           if (Math.min(element.width, element.height) < 20) {
             return (
               <div className="w-full h-full pointer-events-none" style={{
@@ -390,10 +389,15 @@ export default function CanvasElement({
               }} />
             );
           }
+          // Use actual element dimensions as viewBox to avoid stroke distortion
+          // with preserveAspectRatio="none" (stroke scales non-uniformly in 100x100 viewBox)
+          const vw = Math.round(element.width);
+          const vh = Math.round(element.height);
+          const sw = effectiveStroke !== 'none' ? strokeWidth : 0;
           return (
-            <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" style={svgStyle}>
+            <svg width="100%" height="100%" viewBox={`0 0 ${vw} ${vh}`} preserveAspectRatio="none" style={svgStyle}>
               {gradDef}
-              <ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...strokeProps} />
+              <ellipse cx={vw / 2} cy={vh / 2} rx={vw / 2 - sw} ry={vh / 2 - sw} fill={fill} {...strokeProps} vectorEffect="non-scaling-stroke" />
             </svg>
           );
         }

@@ -313,7 +313,10 @@ function StaticElement({ element }: { element: SlideElement }) {
           if (Math.min(element.width, element.height) < 20) {
             return <div className="w-full h-full" style={{ borderRadius: '50%', backgroundColor: fill !== 'transparent' ? fill : undefined, border: effectiveStroke !== 'none' ? `${strokeWidth}px solid ${effectiveStroke}` : undefined }} />;
           }
-          return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><ellipse cx="50" cy="50" rx="49" ry="49" fill={fill} {...sp} /></svg>;
+          const vw = Math.round(element.width);
+          const vh = Math.round(element.height);
+          const sw2 = effectiveStroke !== 'none' ? strokeWidth : 0;
+          return <svg width="100%" height="100%" viewBox={`0 0 ${vw} ${vh}`} preserveAspectRatio="none"><ellipse cx={vw/2} cy={vh/2} rx={vw/2-sw2} ry={vh/2-sw2} fill={fill} {...sp} vectorEffect="non-scaling-stroke" /></svg>;
         }
         if (shapeType === 'triangle') return <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="50,2 98,98 2,98" fill={fill} {...sp} /></svg>;
         if (shapeType === 'line') {
