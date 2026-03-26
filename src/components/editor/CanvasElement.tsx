@@ -245,6 +245,8 @@ export default function CanvasElement({
     opacity: element.opacity,
     zIndex: (isEditing || isCropping) ? 9999 : element.zIndex,
     cursor: isCropping ? 'grab' : isEditing ? 'text' : element.locked ? 'default' : 'move',
+    // Locked decorations pass clicks through to elements below
+    pointerEvents: element.locked && !isSelected ? 'none' : undefined,
     touchAction: 'none',
     userSelect: isEditing ? 'text' : 'none' as const,
     // Critical: prevent browser default drag behavior
@@ -651,7 +653,7 @@ export default function CanvasElement({
       onDoubleClick={handleDoubleClick}
       className={cn(
         'canvas-element group',
-        isSelected && Math.min(element.width, element.height) >= 15 && 'ring-2 ring-[#4F46E5] ring-offset-1 ring-offset-white',
+        isSelected && 'ring-2 ring-[#4F46E5] ring-offset-1 ring-offset-white',
         element.locked && 'opacity-90',
       )}
       data-element-id={element.id}
