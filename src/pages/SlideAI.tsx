@@ -24,6 +24,7 @@ export default function SlideAIPage() {
   const [templateSlides, setTemplateSlides] = useState<Slide[] | null>(null);
   const [contentText, setContentText] = useState('');
   const [generatedPresentation, setGeneratedPresentation] = useState<{ title: string; slides: Slide[]; theme: PresentationTheme } | null>(null);
+  const autoGenerateRef = React.useRef(false);
 
   // Auto-pickup from home page (Entry.tsx)
   React.useEffect(() => {
@@ -69,8 +70,9 @@ export default function SlideAIPage() {
         } catch {}
       }
 
-      // Go directly to content step (prompt is pre-filled)
-      setStep('content');
+      // Skip content step — go straight to generating
+      setStep('generating');
+      autoGenerateRef.current = true;
     }
   }, []);
 
@@ -466,6 +468,16 @@ export default function SlideAIPage() {
       setStep('content');
     }
   };
+
+  // Auto-generate when coming from home page
+  React.useEffect(() => {
+    if (autoGenerateRef.current && step === 'generating' && contentText && !generatedPresentation) {
+      autoGenerateRef.current = false;
+      const slideCount = parseInt(sessionStorage.getItem('entrySlideCount') || '8', 10);
+      sessionStorage.removeItem('entrySlideCount');
+      handleGenerate({ slideCount });
+    }
+  }, [step, contentText]);
 
   const handleBack = () => {
     if (step === 'content') setStep('template');
