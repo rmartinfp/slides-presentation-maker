@@ -58,6 +58,55 @@ import {
 import { ShapeType } from '@/types/presentation';
 import { Input } from '@/components/ui/input';
 
+function stripHtml(html: string): string {
+  return html.replace(/<[^>]+>/g, '').replace(/&\w+;/g, ' ');
+}
+
+function truncateHtml(html: string, maxChars: number): string {
+  if (maxChars <= 0) return '';
+  let visible = 0;
+  let i = 0;
+  const openTags: string[] = [];
+  let result = '';
+
+  while (i < html.length && visible < maxChars) {
+    if (html[i] === '<') {
+      const closeIdx = html.indexOf('>', i);
+      if (closeIdx === -1) break;
+      const tag = html.substring(i, closeIdx + 1);
+      const isClosing = tag[1] === '/';
+      const isSelfClosing = tag[closeIdx - i - 1] === '/' || /^<(br|hr|img|input|meta|link)\b/i.test(tag);
+      if (isClosing) {
+        if (openTags.length > 0) openTags.pop();
+      } else if (!isSelfClosing) {
+        const m = tag.match(/^<(\w+)/);
+        if (m) openTags.push(m[1]);
+      }
+      result += tag;
+      i = closeIdx + 1;
+    } else if (html[i] === '&') {
+      const semiIdx = html.indexOf(';', i);
+      if (semiIdx !== -1 && semiIdx - i < 10) {
+        result += html.substring(i, semiIdx + 1);
+        i = semiIdx + 1;
+      } else {
+        result += html[i];
+        i++;
+      }
+      visible++;
+    } else {
+      result += html[i];
+      i++;
+      visible++;
+    }
+  }
+
+  for (let j = openTags.length - 1; j >= 0; j--) {
+    result += `</${openTags[j]}>`;
+  }
+  return result;
+}
+
 export default function EditorPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -74,6 +123,11 @@ export default function EditorPage() {
   const [revealedSlideIds, setRevealedSlideIds] = useState<Set<string>>(new Set());
   const [isRevealing, setIsRevealing] = useState(false);
   const [templateBackgrounds, setTemplateBackgrounds] = useState<SlideBackground[]>([]);
+
+  // Typewriter reveal after generation
+  const [isTypewriting, setIsTypewriting] = useState(false);
+  const [twSlideIdx, setTwSlideIdx] = useState(0);
+  const [twCharCount, setTwCharCount] = useState(0);
 
   const {
     presentation, activeSlideIndex, selectedElementIds,
@@ -151,6 +205,67 @@ export default function EditorPage() {
 
   useKeyboardShortcuts();
 
+  // Typewriter: increment characters, auto-advance slides, handle skip
+  useEffect(() => {
+    if (!isTypewriting) return;
+    const slide = presentation.slides[twSlideIdx];
+    if (!slide) { setIsTypewriting(false); return; }
+
+    const totalChars = slide.elements
+      .filter(e => e.type === 'text')
+      .reduce((sum, e) => sum + stripHtml(e.content).length, 0);
+
+    if (twCharCount >= totalChars) {
+      const timeout = setTimeout(() => {
+        if (twSlideIdx < presentation.slides.length - 1) {
+          const next = twSlideIdx + 1;
+          setTwSlideIdx(next);
+          setTwCharCount(0);
+          setActiveSlideIndex(next);
+        } else {
+          setIsTypewriting(false);
+        }
+      }, 600);
+      return () => clearTimeout(timeout);
+    }
+
+    const interval = setInterval(() => {
+      setTwCharCount(prev => prev + 3);
+    }, 18);
+    return () => clearInterval(interval);
+  }, [isTypewriting, twSlideIdx, twCharCount, presentation.slides, setActiveSlideIndex]);
+
+  // Skip typewriter with Escape
+  useEffect(() => {
+    if (!isTypewriting) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsTypewriting(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isTypewriting]);
+
+  // Build a modified slide with truncated text for the typewriter effect
+  const typewriterSlide = React.useMemo(() => {
+    if (!isTypewriting) return null;
+    const slide = presentation.slides[twSlideIdx];
+    if (!slide) return null;
+
+    let charsLeft = twCharCount;
+    const modifiedElements = slide.elements.map(el => {
+      if (el.type !== 'text') return el;
+      const plainLen = stripHtml(el.content).length;
+      if (charsLeft >= plainLen) {
+        charsLeft -= plainLen;
+        return el;
+      }
+      const truncated = truncateHtml(el.content, charsLeft);
+      charsLeft = 0;
+      return { ...el, content: truncated };
+    });
+
+    return { ...slide, elements: modifiedElements };
+  }, [isTypewriting, twSlideIdx, twCharCount, presentation.slides]);
 
   // Load fonts
   useEffect(() => {
@@ -206,12 +321,18 @@ export default function EditorPage() {
                 next.add(slide.id);
                 return next;
               });
-              // When it's the last slide, end reveal mode
               if (idx === result.slides.length - 1) {
                 setTimeout(() => setIsRevealing(false), 400);
               }
             }, idx * 250);
           });
+          // Start typewriter reveal on canvas
+          if (result.slides.length > 0) {
+            setActiveSlideIndex(0);
+            setTwSlideIdx(0);
+            setTwCharCount(0);
+            setIsTypewriting(true);
+          }
         }).catch(() => {
           toast.error('Failed to generate presentation. Please try again.');
           setIsGenerating(false);
@@ -642,10 +763,10 @@ export default function EditorPage() {
                                   activeSlideIndex === idx ? 'ring-2 ring-[#4F46E5]' : 'hover:ring-1 hover:ring-slate-300',
                                   snapshot.isDragging && 'ring-2 ring-[#4F46E5] opacity-90 shadow-lg shadow-indigo-500/20'
                                 )}
-                                onClick={() => setActiveSlideIndex(idx)}
+                                onClick={() => { if (!isTypewriting) setActiveSlideIndex(idx); }}
                               >
                                 <div className="absolute top-1 left-1 z-10 text-[9px] font-bold text-slate-600 bg-white/80 rounded px-1">{idx + 1}</div>
-                                {!isRevealing && (
+                                {!isRevealing && !isTypewriting && (
                                   <div className="absolute top-1 right-1 z-10 hidden group-hover:flex gap-0.5">
                                     <button
                                       onClick={(e) => { e.stopPropagation(); duplicateSlide(idx); }}
@@ -770,25 +891,49 @@ export default function EditorPage() {
                   })()
                 ) : activeSlide ? (
                   <ErrorBoundary>
-                    <div className="relative overflow-hidden" style={{
-                      width: 1920 * scale,
-                      height: 1080 * scale,
-                      margin: '0 auto',
-                      marginTop: Math.max(20, (canvasContainerRef.current?.clientHeight || 0) / 2 - (1080 * scale) / 2),
-                      boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
-                      borderRadius: 4,
-                    }}>
-                      {activeSlideIndex > 0 && (
+                    <div
+                      className="relative overflow-hidden"
+                      style={{
+                        width: 1920 * scale,
+                        height: 1080 * scale,
+                        margin: '0 auto',
+                        marginTop: Math.max(20, (canvasContainerRef.current?.clientHeight || 0) / 2 - (1080 * scale) / 2),
+                        boxShadow: '0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.08)',
+                        borderRadius: 4,
+                        cursor: isTypewriting ? 'pointer' : undefined,
+                      }}
+                      onClick={isTypewriting ? () => setIsTypewriting(false) : undefined}
+                    >
+                      {!isTypewriting && activeSlideIndex > 0 && (
                         <button onClick={() => setActiveSlideIndex(activeSlideIndex - 1)} className="absolute -left-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                           <ChevronLeft className="w-4 h-4" />
                         </button>
                       )}
-                      {activeSlideIndex < presentation.slides.length - 1 && (
+                      {!isTypewriting && activeSlideIndex < presentation.slides.length - 1 && (
                         <button onClick={() => setActiveSlideIndex(activeSlideIndex + 1)} className="absolute -right-10 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white/80 hover:bg-white shadow-md flex items-center justify-center text-slate-500 hover:text-slate-900 transition-all">
                           <ChevronRight className="w-4 h-4" />
                         </button>
                       )}
-                      <SlideCanvas slide={activeSlide} theme={presentation.theme} scale={scale} isEditing={true} />
+                      <SlideCanvas
+                        slide={isTypewriting && typewriterSlide ? typewriterSlide : activeSlide}
+                        theme={presentation.theme}
+                        scale={scale}
+                        isEditing={!isTypewriting}
+                      />
+                      {isTypewriting && (
+                        <div className="absolute bottom-3 right-3 z-20">
+                          <motion.div
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium"
+                            style={{ backgroundColor: 'rgba(0,0,0,0.5)', color: '#fff', backdropFilter: 'blur(8px)' }}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                          >
+                            <Sparkles className="w-3 h-3" />
+                            <span>Slide {twSlideIdx + 1}/{presentation.slides.length}</span>
+                            <span className="opacity-60">· click or ESC to skip</span>
+                          </motion.div>
+                        </div>
+                      )}
                     </div>
                   </ErrorBoundary>
                 ) : null}
