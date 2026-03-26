@@ -314,57 +314,112 @@ export default function RedesignDialog({ onClose }: Props) {
     const bodyFont = theme?.typography?.bodyFont || 'Inter';
     const textColor = theme?.palette?.text || '#1a1a1a';
 
-    // Map texts to blocks
+    // ─── Smart text-to-block mapping ───
+    // If more texts than blocks → merge/consolidate into fewer blocks
+    // If fewer texts than blocks → create new elements (with extraTexts or empty)
     const mapped: SlideElement[] = [];
-    let textIdx = 0;
-    let extraIdx = 0;
-    for (const block of allTextBlocks) {
-      if (textIdx < texts.length) {
-        const el = { ...texts[textIdx] };
-        el.x = (block.x / 100) * CANVAS_W;
-        el.y = (block.y / 100) * CANVAS_H;
-        el.width = (block.w / 100) * CANVAS_W;
-        el.height = (block.h / 100) * CANVAS_H;
-        if (block.type === 'title' && el.style) {
-          el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 28, 36), fontWeight: 'bold' };
-        } else if (block.type === 'number' && el.style) {
-          el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 40, 48), fontWeight: 'bold', textAlign: 'center' as const };
-        } else if (block.type === 'body' && el.style) {
-          el.style = { ...el.style, fontSize: Math.min(el.style.fontSize || 18, 20) };
+    const stripHtml = (s: string) => (s || '').replace(/<[^>]+>/g, '').trim();
+
+    if (texts.length > allTextBlocks.length && allTextBlocks.length > 0) {
+      // MORE texts than blocks → consolidate
+      // Title block gets the biggest text, remaining texts split evenly among body/number blocks
+      const nonTitleBlocks = [...numberBlocks, ...bodyBlocks];
+      let assignedTitle = false;
+
+      for (const block of titleBlocks) {
+        if (texts.length > 0) {
+          const el = { ...texts[0] };
+          el.x = (block.x / 100) * CANVAS_W;
+          el.y = (block.y / 100) * CANVAS_H;
+          el.width = (block.w / 100) * CANVAS_W;
+          el.height = (block.h / 100) * CANVAS_H;
+          el.style = { ...el.style, fontSize: Math.max(el.style?.fontSize || 28, 36), fontWeight: 'bold' };
+          mapped.push(el);
+          assignedTitle = true;
         }
-        mapped.push(el);
-        textIdx++;
-      } else {
-        // Create new text element for this empty block
-        const content = extraTexts?.[extraIdx] || '';
-        const fontSize = block.type === 'title' ? 36 : block.type === 'number' ? 48 : 18;
-        const font = block.type === 'title' || block.type === 'number' ? titleFont : bodyFont;
-        mapped.push({
-          id: crypto.randomUUID().slice(0, 9),
-          type: 'text',
-          content,
-          x: (block.x / 100) * CANVAS_W,
-          y: (block.y / 100) * CANVAS_H,
-          width: (block.w / 100) * CANVAS_W,
-          height: (block.h / 100) * CANVAS_H,
-          rotation: 0,
-          opacity: 1,
-          locked: false,
-          visible: true,
-          zIndex: 0,
-          style: {
+      }
+
+      // Remaining texts (after title) split evenly among body blocks
+      const remainingTexts = assignedTitle ? texts.slice(1) : texts;
+      const targetBlocks = nonTitleBlocks.length > 0 ? nonTitleBlocks : titleBlocks.slice(assignedTitle ? 1 : 0);
+
+      if (targetBlocks.length > 0 && remainingTexts.length > 0) {
+        const chunkSize = Math.ceil(remainingTexts.length / targetBlocks.length);
+
+        for (let bi = 0; bi < targetBlocks.length; bi++) {
+          const block = targetBlocks[bi];
+          const chunk = remainingTexts.slice(bi * chunkSize, (bi + 1) * chunkSize);
+          if (chunk.length === 0) continue;
+
+          // Merge chunk texts into one element with line breaks
+          const mergedContent = chunk
+            .map(t => stripHtml(t.content))
+            .filter(Boolean)
+            .join('<br/>');
+
+          const baseEl = { ...chunk[0] };
+          baseEl.content = mergedContent;
+          baseEl.x = (block.x / 100) * CANVAS_W;
+          baseEl.y = (block.y / 100) * CANVAS_H;
+          baseEl.width = (block.w / 100) * CANVAS_W;
+          // Taller to fit merged content
+          baseEl.height = Math.max((block.h / 100) * CANVAS_H, chunk.length * 45);
+          const fontSize = block.type === 'number' ? 48 : Math.min(baseEl.style?.fontSize || 18, 20);
+          baseEl.style = {
+            ...baseEl.style,
             fontSize,
-            fontFamily: font + ', sans-serif',
-            fontWeight: block.type === 'title' || block.type === 'number' ? 'bold' : '400',
-            color: textColor,
+            fontWeight: block.type === 'number' ? 'bold' : '400',
             textAlign: (block.type === 'number' ? 'center' : 'left') as any,
-          },
-        } as SlideElement);
-        extraIdx++;
+          };
+          mapped.push(baseEl);
+        }
+      }
+    } else {
+      // EQUAL or FEWER texts than blocks → 1:1 mapping + create extras
+      let textIdx = 0;
+      let extraIdx = 0;
+      for (const block of allTextBlocks) {
+        if (textIdx < texts.length) {
+          const el = { ...texts[textIdx] };
+          el.x = (block.x / 100) * CANVAS_W;
+          el.y = (block.y / 100) * CANVAS_H;
+          el.width = (block.w / 100) * CANVAS_W;
+          el.height = (block.h / 100) * CANVAS_H;
+          if (block.type === 'title' && el.style) {
+            el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 28, 36), fontWeight: 'bold' };
+          } else if (block.type === 'number' && el.style) {
+            el.style = { ...el.style, fontSize: Math.max(el.style.fontSize || 40, 48), fontWeight: 'bold', textAlign: 'center' as const };
+          } else if (block.type === 'body' && el.style) {
+            el.style = { ...el.style, fontSize: Math.min(el.style.fontSize || 18, 20) };
+          }
+          mapped.push(el);
+          textIdx++;
+        } else {
+          // Create new text element for empty block
+          const content = extraTexts?.[extraIdx] || '';
+          const fontSize = block.type === 'title' ? 36 : block.type === 'number' ? 48 : 18;
+          const font = block.type === 'title' || block.type === 'number' ? titleFont : bodyFont;
+          mapped.push({
+            id: crypto.randomUUID().slice(0, 9),
+            type: 'text',
+            content,
+            x: (block.x / 100) * CANVAS_W,
+            y: (block.y / 100) * CANVAS_H,
+            width: (block.w / 100) * CANVAS_W,
+            height: (block.h / 100) * CANVAS_H,
+            rotation: 0, opacity: 1, locked: false, visible: true, zIndex: 0,
+            style: {
+              fontSize,
+              fontFamily: font + ', sans-serif',
+              fontWeight: block.type === 'title' || block.type === 'number' ? 'bold' : '400',
+              color: textColor,
+              textAlign: (block.type === 'number' ? 'center' : 'left') as any,
+            },
+          } as SlideElement);
+          extraIdx++;
+        }
       }
     }
-    // Remaining unmapped texts keep position
-    for (let i = textIdx; i < texts.length; i++) mapped.push(texts[i]);
 
     // Map images
     let imgIdx = 0;
