@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Wand2, X, Loader2, Check, LayoutGrid, ImageIcon, Type, Columns2, BarChart3, Quote, Milestone, Users, SplitSquareHorizontal, Image as ImageLucide, Sparkles } from 'lucide-react';
+import { Wand2, X, Loader2, Check, LayoutGrid, ImageIcon, Type, Columns2, BarChart3, Quote, Milestone, Users, SplitSquareHorizontal, Image as ImageLucide, Sparkles, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
@@ -261,38 +261,42 @@ export default function RedesignDialog({ onClose }: Props) {
   const [emptyBlockCount, setEmptyBlockCount] = useState(0);
   const [fillingAI, setFillingAI] = useState(false);
   const [pendingPreset, setPendingPreset] = useState<LayoutPreset | null>(null);
+  const [applyMode, setApplyMode] = useState<'choose' | 'fill' | null>(null);
+  const [newSlideMode, setNewSlideMode] = useState(false);
 
   const { presentation, activeSlideIndex, pushSnapshot } = useEditorStore();
   const slide = presentation.slides[activeSlideIndex];
 
-  // ─── Direct layout application (no AI) ───
+  // ─── Step 1: user clicks a layout → show "Apply here" / "New slide" choice ───
   const applyPresetDirectly = (preset: LayoutPreset) => {
     if (!slide?.elements) return;
-
-    // Deep clone all elements to avoid mutating Immer-frozen objects
-    const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
-    const texts = elements.filter(e => e.type === 'text' && !e.locked);
-    const images = elements.filter(e => e.type === 'image' && !e.locked);
-
-    const titleBlocks = preset.blocks.filter(b => b.type === 'title');
-    const bodyBlocks = preset.blocks.filter(b => b.type === 'body');
-    const numberBlocks = preset.blocks.filter(b => b.type === 'number');
-    const allTextBlocks = [...titleBlocks, ...numberBlocks, ...bodyBlocks];
-
-    const emptyCount = Math.max(0, allTextBlocks.length - texts.length);
-
-    if (emptyCount > 0) {
-      // Not enough text elements — ask user what to fill
-      setEmptyBlockCount(emptyCount);
-      setPendingPreset(preset);
-      return;
-    }
-
-    // Enough elements — apply directly
-    commitLayout(preset, elements);
+    setPendingPreset(preset);
+    setApplyMode('choose');
+    setEmptyBlockCount(0);
   };
 
-  const commitLayout = (preset: LayoutPreset, elements: SlideElement[], extraTexts?: string[]) => {
+  const proceedWithApply = (asNew: boolean) => {
+    if (!pendingPreset || !slide?.elements) return;
+    setNewSlideMode(asNew);
+    const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
+    const texts = elements.filter(e => e.type === 'text' && !e.locked);
+    const allTextBlocks = [
+      ...pendingPreset.blocks.filter(b => b.type === 'title'),
+      ...pendingPreset.blocks.filter(b => b.type === 'number'),
+      ...pendingPreset.blocks.filter(b => b.type === 'body'),
+    ];
+    const emptyCount = Math.max(0, allTextBlocks.length - texts.length);
+    if (emptyCount > 0) {
+      setEmptyBlockCount(emptyCount);
+      setApplyMode('fill');
+      return;
+    }
+    commitLayout(pendingPreset, elements, undefined, asNew);
+  };
+
+  const { addSlide, setActiveSlideIndex } = useEditorStore();
+
+  const commitLayout = (preset: LayoutPreset, elements: SlideElement[], extraTexts?: string[], asNewSlide = false) => {
     pushSnapshot();
 
     const texts = elements.filter(e => e.type === 'text' && !e.locked);
@@ -438,15 +442,30 @@ export default function RedesignDialog({ onClose }: Props) {
     const final = [...locked, ...mapped, ...otherUnlocked];
     final.forEach((el, i) => { el.zIndex = i + 1; });
 
-    useEditorStore.setState(
-      produce((state: any) => {
-        state.presentation.slides[state.activeSlideIndex].elements = final;
-      }),
-    );
+    if (asNewSlide) {
+      // Duplicate current slide with new layout
+      const newSlide = {
+        id: crypto.randomUUID().slice(0, 9),
+        elements: final,
+        background: slide ? { ...slide.background } : { type: 'solid', value: '#ffffff' },
+        notes: '',
+        layout: 'content',
+      };
+      addSlide(newSlide as any, activeSlideIndex + 1);
+      setActiveSlideIndex(activeSlideIndex + 1);
+      toast.success(`New slide with "${preset.label}" layout`);
+    } else {
+      useEditorStore.setState(
+        produce((state: any) => {
+          state.presentation.slides[state.activeSlideIndex].elements = final;
+        }),
+      );
+      toast.success(`Applied "${preset.label}" layout`);
+    }
 
-    toast.success(`Applied "${preset.label}" layout`);
     setEmptyBlockCount(0);
     setPendingPreset(null);
+    setApplyMode(null);
     setFillPrompt('');
     setTimeout(onClose, 400);
   };
@@ -478,12 +497,11 @@ export default function RedesignDialog({ onClose }: Props) {
       while (texts.length < emptyBlockCount) texts.push('Add your text here');
 
       const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
-      commitLayout(pendingPreset, elements, texts);
+      commitLayout(pendingPreset, elements, texts, newSlideMode);
     } catch {
-      // Fallback: apply with placeholder text
       const placeholders = Array(emptyBlockCount).fill('Add your text here');
       const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
-      commitLayout(pendingPreset, elements, placeholders);
+      commitLayout(pendingPreset, elements, placeholders, newSlideMode);
     } finally {
       setFillingAI(false);
     }
@@ -492,7 +510,7 @@ export default function RedesignDialog({ onClose }: Props) {
   const handleApplyEmpty = () => {
     if (!pendingPreset || !slide?.elements) return;
     const elements = slide.elements.map(e => ({ ...e, style: e.style ? { ...e.style } : undefined }));
-    commitLayout(pendingPreset, elements, []);
+    commitLayout(pendingPreset, elements, [], newSlideMode);
   };
 
   const handleGenerate = async () => {
@@ -610,8 +628,27 @@ export default function RedesignDialog({ onClose }: Props) {
             ))}
           </div>
 
-          {/* Fill empty blocks prompt */}
-          {emptyBlockCount > 0 && pendingPreset && (
+          {/* Step 2: "Apply here" or "New slide" choice */}
+          {applyMode === 'choose' && pendingPreset && (
+            <div className="mb-4 p-4 rounded-xl border-2 border-[#4F46E5]/30 bg-indigo-50/50">
+              <p className="text-sm text-slate-700 mb-3">
+                Apply <span className="font-semibold text-[#4F46E5]">{pendingPreset.label}</span> layout:
+              </p>
+              <div className="flex gap-2">
+                <Button onClick={() => proceedWithApply(false)} size="sm"
+                  className="flex-1 bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-lg">
+                  Apply to this slide
+                </Button>
+                <Button onClick={() => proceedWithApply(true)} size="sm" variant="outline"
+                  className="flex-1 border-[#4F46E5] text-[#4F46E5] hover:bg-indigo-50 rounded-lg">
+                  <Plus className="w-3.5 h-3.5 mr-1" />New slide
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Fill empty blocks (if layout needs more texts) */}
+          {applyMode === 'fill' && emptyBlockCount > 0 && pendingPreset && (
             <div className="mb-4 p-4 rounded-xl border-2 border-[#4F46E5]/30 bg-indigo-50/50">
               <p className="text-sm text-slate-700 mb-2">
                 This layout needs <span className="font-bold text-[#4F46E5]">{emptyBlockCount} more text block{emptyBlockCount > 1 ? 's' : ''}</span>.
@@ -628,19 +665,12 @@ export default function RedesignDialog({ onClose }: Props) {
                   autoFocus
                   disabled={fillingAI}
                 />
-                <Button
-                  onClick={handleFillWithAI}
-                  disabled={fillingAI}
-                  size="sm"
-                  className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-lg shrink-0"
-                >
+                <Button onClick={handleFillWithAI} disabled={fillingAI} size="sm"
+                  className="bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white px-4 rounded-lg shrink-0">
                   {fillingAI ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Sparkles className="w-3.5 h-3.5 mr-1" />Fill with AI</>}
                 </Button>
               </div>
-              <button
-                onClick={handleApplyEmpty}
-                className="text-xs text-slate-400 hover:text-slate-600 underline"
-              >
+              <button onClick={handleApplyEmpty} className="text-xs text-slate-400 hover:text-slate-600 underline">
                 Apply without filling (leave empty)
               </button>
             </div>
