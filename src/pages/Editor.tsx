@@ -708,12 +708,14 @@ export default function EditorPage() {
               {/* ── SEPARATOR ── */}
               <div className="w-px h-8 bg-slate-200/80" />
 
-              {/* ── GROUP 2: AI (visible, not hidden in dropdown) ── */}
+              {/* ── GROUP 2: AI (visible buttons) ── */}
               <div className="flex items-center gap-1 px-2 py-2">
                 <ToolBtn icon={<Sparkles className="w-4 h-4" />} label="Rewrite" highlight onClick={() => setShowAIRewrite(true)} />
                 <ToolBtn icon={<Wand2 className="w-4 h-4" />} label="Layout" highlight onClick={() => setShowRedesign(true)} />
+                <ToolBtn icon={<LayoutGrid className="w-4 h-4" />} label="Infographic" highlight onClick={() => setShowAIInfographic(true)} />
+                <ToolBtn icon={<Palette className="w-4 h-4" />} label="Brand Kit" highlight onClick={() => setShowBrandKit(true)} />
                 <DropdownMenu>
-                  <DropdownMenuTrigger asChild><ToolBtn icon={<Lightbulb className="w-4 h-4" />} label="More AI" highlight /></DropdownMenuTrigger>
+                  <DropdownMenuTrigger asChild><ToolBtn icon={<Lightbulb className="w-4 h-4" />} label="More" highlight /></DropdownMenuTrigger>
                   <DropdownMenuContent side="top" className="mb-2 w-52">
                     {singleSelected?.type === 'image' && (
                       <>
@@ -721,10 +723,7 @@ export default function EditorPage() {
                         <DropdownMenuSeparator />
                       </>
                     )}
-                    <DropdownMenuItem onClick={() => setShowAIInfographic(true)}><LayoutGrid className="w-4 h-4 mr-2" />AI Infographic</DropdownMenuItem>
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setShowTranslate(true)}><Languages className="w-4 h-4 mr-2" />Translate</DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => setShowBrandKit(true)}><Palette className="w-4 h-4 mr-2" />Brand Kit</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setShowCoach(true)}><GraduationCap className="w-4 h-4 mr-2" />Analyze</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
