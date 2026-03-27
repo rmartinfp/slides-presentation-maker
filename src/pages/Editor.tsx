@@ -943,6 +943,14 @@ export default function EditorPage() {
               </div>
             </CanvasContextMenu>
 
+            {/* Speaker Notes — below canvas */}
+            {activeSlide && !isGenerating && !isTypewriting && (
+              <SpeakerNotes
+                notes={activeSlide.notes || ''}
+                onChange={updateSlideNotes}
+              />
+            )}
+
             {/* Hidden file input for image upload */}
             <input ref={imgInputRef} type="file" accept="image/*" className="hidden" onChange={async (e) => {
               const file = e.target.files?.[0]; if (!file) return;

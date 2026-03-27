@@ -68,6 +68,11 @@ RULES:
 6. Respect the character/word limits of each layout
 7. Write in the same language as the user's prompt
 8. Adapt the narrative structure to the topic (don't force a fixed structure)
+9. EVERY slide MUST include useful "notes" (2-4 bullet points as speaker notes):
+   - Key talking points the presenter should mention
+   - Extra context or data not shown on the slide
+   - Transition cues to the next slide
+   Never write just "Speaker notes" — write real, actionable content.
 
 RESPOND ONLY WITH VALID JSON:
 {
@@ -77,7 +82,7 @@ RESPOND ONLY WITH VALID JSON:
       "layout": "cover-centered",
       "title": "Main Title",
       "subtitle": "Tagline",
-      "notes": "Speaker notes"
+      "notes": "• Welcome everyone and set the context\\n• Mention why this topic is relevant right now\\n• Preview the 3 main sections we'll cover"
     },
     {
       "layout": "stats-three-cards",
@@ -87,38 +92,38 @@ RESPOND ONLY WITH VALID JSON:
         { "value": "$4.2B", "label": "Market size" },
         { "value": "3x", "label": "Growth rate" }
       ],
-      "notes": "Speaker notes"
+      "notes": "• Emphasize the 85% satisfaction rate — this is 20 points above industry average\\n• The $4.2B market figure comes from Gartner 2025 report\\n• Transition: these numbers show why our approach matters"
     },
     {
       "layout": "content-title-body",
       "title": "Our Approach",
       "body": "Paragraph explaining the approach...",
-      "notes": "Speaker notes"
+      "notes": "• Walk through each step of the methodology\\n• Share a quick anecdote about how this was developed\\n• Pause for questions before moving to features"
     },
     {
       "layout": "list-bullets",
       "title": "Key Features",
       "bullets": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5"],
-      "notes": "Speaker notes"
+      "notes": "• Spend ~30 seconds on each feature\\n• Feature 3 is the most requested by customers — emphasize it\\n• If short on time, skip features 4-5"
     },
     {
       "layout": "comparison-two-columns",
       "title": "Before vs After",
       "subtitle": ["Before", "After"],
       "body": ["Description of before state...", "Description of after state..."],
-      "notes": "Speaker notes"
+      "notes": "• Use a real customer example to illustrate the transformation\\n• The 'after' column should feel aspirational\\n• Transition: now let's hear from someone who experienced this"
     },
     {
       "layout": "quote-centered",
       "quote": "Innovation distinguishes between a leader and a follower.",
       "quoteAuthor": "Steve Jobs",
-      "notes": "Speaker notes"
+      "notes": "• Let the quote sit for a moment before speaking\\n• Connect this back to the company's own innovation journey\\n• Transition to the closing call-to-action"
     },
     {
       "layout": "closing-cta",
       "title": "Let's Build Together",
       "body": "Contact us at hello@company.com",
-      "notes": "Speaker notes"
+      "notes": "• Summarize the 3 key takeaways from the presentation\\n• Share contact details and next steps\\n• Open the floor for Q&A"
     }
   ]
 }`;
@@ -167,6 +172,11 @@ RULES:
 7. Do NOT include any text for "number" role slots — they are handled by the template.
 8. Cover slide = first. Closing/thank-you slide = last. Follow the brief order exactly.
 9. Count your characters carefully. If maxChars is 20, your text must be 20 characters or fewer including spaces.
+10. EVERY slide MUST include a "notes" field with useful speaker notes (2-4 bullet points). Notes should contain:
+    - Key talking points the presenter should mention
+    - Extra context or data not shown on the slide
+    - Transition cues to the next slide
+    Write notes in the same language as the prompt. Never leave notes empty or write "Speaker notes".
 
 RESPOND ONLY WITH VALID JSON:
 {
@@ -178,7 +188,7 @@ RESPOND ONLY WITH VALID JSON:
         { "content": "Main Title Here" },
         { "content": "A compelling subtitle" }
       ],
-      "notes": "Optional speaker notes"
+      "notes": "• Welcome the audience and introduce the topic\\n• Mention why this matters today\\n• Preview the key sections"
     }
   ]
 }`;
