@@ -30,62 +30,10 @@ serve(async (req) => {
       );
     }
 
-    // ─── Gemini generateContent models (Nano Banana Pro → Flash fallbacks) ───
-    const geminiModels = [
-      "gemini-3-pro-image-preview",   // Nano Banana Pro — best quality
-      "gemini-3.1-flash-image-preview", // Nano Banana 2 — fast
-      "gemini-2.5-flash-image",        // Nano Banana — efficient
-    ];
+    const errors: string[] = [];
 
-    for (const model of geminiModels) {
-      try {
-        const geminiRes = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: prompt }] }],
-              generationConfig: {
-                responseModalities: ["IMAGE"],
-                aspectRatio,
-              },
-            }),
-          },
-        );
-
-        if (!geminiRes.ok) {
-          console.log(`${model} failed:`, (await geminiRes.text()).substring(0, 200));
-          continue;
-        }
-
-        const geminiData = await geminiRes.json();
-        const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
-          (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
-        );
-
-        if (!imagePart?.inlineData?.data) {
-          console.log(`${model} returned no image data`);
-          continue;
-        }
-
-        const imageBytes = Uint8Array.from(
-          atob(imagePart.inlineData.data),
-          (c) => c.charCodeAt(0),
-        );
-
-        const url = await uploadToStorage(imageBytes, imagePart.inlineData.mimeType || "image/png");
-        return new Response(
-          JSON.stringify({ url }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-        );
-      } catch (e) {
-        console.log(`${model} error:`, e.message);
-      }
-    }
-
-    // ─── Fallback: Imagen models (predict endpoint) ───
-    const imagenModels = ["imagen-4.0-fast-generate-001", "imagen-3.0-generate-002"];
+    // ─── Strategy 1: Imagen models (predict endpoint) — best quality ───
+    const imagenModels = ["imagen-4.0-generate-001", "imagen-4.0-fast-generate-001", "imagen-3.0-generate-001"];
     for (const imagenModel of imagenModels) {
       try {
         const imagenRes = await fetch(
@@ -111,14 +59,74 @@ serve(async (req) => {
               { headers: { ...corsHeaders, "Content-Type": "application/json" } },
             );
           }
+          errors.push(`${imagenModel}: no predictions in response`);
+        } else {
+          const errText = (await imagenRes.text()).substring(0, 300);
+          errors.push(`${imagenModel}: ${imagenRes.status} ${errText}`);
         }
         console.log(`${imagenModel} failed, trying next...`);
       } catch (e) {
+        errors.push(`${imagenModel}: ${e.message}`);
         console.log(`${imagenModel} error:`, e.message);
       }
     }
 
-    throw new Error("Image generation failed with all available models");
+    // ─── Strategy 2: Gemini generateContent with image output ───
+    const geminiModels = [
+      "gemini-2.0-flash-preview-image-generation",
+    ];
+
+    for (const model of geminiModels) {
+      try {
+        const geminiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: `Generate a ${aspectRatio} image: ${prompt}` }] }],
+              generationConfig: {
+                responseModalities: ["IMAGE", "TEXT"],
+              },
+            }),
+          },
+        );
+
+        if (!geminiRes.ok) {
+          const errText = (await geminiRes.text()).substring(0, 300);
+          errors.push(`${model}: ${geminiRes.status} ${errText}`);
+          console.log(`${model} failed:`, errText);
+          continue;
+        }
+
+        const geminiData = await geminiRes.json();
+        const imagePart = geminiData.candidates?.[0]?.content?.parts?.find(
+          (p: any) => p.inlineData?.mimeType?.startsWith("image/"),
+        );
+
+        if (!imagePart?.inlineData?.data) {
+          errors.push(`${model}: no image data in response`);
+          console.log(`${model} returned no image data`);
+          continue;
+        }
+
+        const imageBytes = Uint8Array.from(
+          atob(imagePart.inlineData.data),
+          (c) => c.charCodeAt(0),
+        );
+
+        const url = await uploadToStorage(imageBytes, imagePart.inlineData.mimeType || "image/png");
+        return new Response(
+          JSON.stringify({ url }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      } catch (e) {
+        errors.push(`${model}: ${e.message}`);
+        console.log(`${model} error:`, e.message);
+      }
+    }
+
+    throw new Error(`All models failed: ${errors.join(' | ')}`);
   } catch (error) {
     console.error("Error:", error);
     return new Response(
