@@ -20,7 +20,7 @@ export async function exportToPptx(presentation: Presentation): Promise<void> {
   const videoCache = new Map<string, string>();
   for (const slide of presentation.slides) {
     const videoUrls: string[] = [];
-    if (slide.videoBackground?.url && slide.videoBackground.type === 'mp4') {
+    if (slide.videoBackground?.url) {
       videoUrls.push(slide.videoBackground.url);
     }
     for (const el of slide.elements || []) {
@@ -249,7 +249,7 @@ function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme, video
   }
 
   // ── Video Background (as full-slide media element — PPTX doesn't support native video bg) ──
-  if (slide.videoBackground?.url && slide.videoBackground.type === 'mp4') {
+  if (slide.videoBackground?.url) {
     try {
       const vbData = videoCache.get(slide.videoBackground.url);
       if (vbData) {
