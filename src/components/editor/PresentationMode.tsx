@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Slide, PresentationTheme, SlideElement, ChartData } from '@/types/presentation';
@@ -16,27 +16,29 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
   const [direction, setDirection] = useState(0);
   const { palette } = theme.tokens;
   const slide = slides[currentIndex];
+  const indexRef = useRef(currentIndex);
+  indexRef.current = currentIndex;
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onExit();
-      else if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+      if (e.key === 'Escape') { onExit(); return; }
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
         e.preventDefault();
-        if (currentIndex < slides.length - 1) {
+        if (indexRef.current < slides.length - 1) {
           setDirection(1);
-          setCurrentIndex(prev => prev + 1);
+          setCurrentIndex(indexRef.current + 1);
         }
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        if (currentIndex > 0) {
+        if (indexRef.current > 0) {
           setDirection(-1);
-          setCurrentIndex(prev => prev - 1);
+          setCurrentIndex(indexRef.current - 1);
         }
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [currentIndex, slides.length, onExit]);
+  }, [slides.length, onExit]);
 
   // Enter fullscreen — exit presentation when user leaves fullscreen (single Escape)
   useEffect(() => {
@@ -265,11 +267,10 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
   const sortedElements = [...(slide.elements || [])].sort((a, b) => a.zIndex - b.zIndex);
 
   const handleClick = (e: React.MouseEvent) => {
-    // Ignore clicks on the exit button
     if ((e.target as HTMLElement).closest('button')) return;
-    if (currentIndex < slides.length - 1) {
+    if (indexRef.current < slides.length - 1) {
       setDirection(1);
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex(indexRef.current + 1);
     }
   };
 
