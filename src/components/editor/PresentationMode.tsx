@@ -264,8 +264,17 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
 
   const sortedElements = [...(slide.elements || [])].sort((a, b) => a.zIndex - b.zIndex);
 
+  const handleClick = (e: React.MouseEvent) => {
+    // Ignore clicks on the exit button
+    if ((e.target as HTMLElement).closest('button')) return;
+    if (currentIndex < slides.length - 1) {
+      setDirection(1);
+      setCurrentIndex(prev => prev + 1);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-[9999] bg-black">
+    <div className="fixed inset-0 z-[9999] bg-black cursor-pointer" onClick={handleClick}>
       {/* Exit button */}
       <button
         onClick={onExit}

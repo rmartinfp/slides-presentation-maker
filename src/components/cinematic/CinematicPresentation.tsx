@@ -579,10 +579,16 @@ export default function CinematicPresentation({
   // Use AnimatePresence mode based on transition type
   const apMode = ['fade-cross', 'cross-blur'].includes(transition.type) ? 'sync' as const : 'wait' as const;
 
+  const handleClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    goTo(currentIndex + 1);
+  };
+
   return (
     <div
       className="fixed inset-0 z-[9999] overflow-hidden cursor-none"
       style={{ backgroundColor: preset.backgroundColor, fontFamily: bodyFont }}
+      onClick={handleClick}
     >
       {/* Fullscreen toast */}
       <AnimatePresence>
