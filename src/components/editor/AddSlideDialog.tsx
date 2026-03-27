@@ -199,9 +199,8 @@ export default function AddSlideDialog({ onClose }: Props) {
       toast.success('Slide added!');
       onClose();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to generate slide');
-    } finally {
       setLoading(false);
+      throw err; // Re-throw so layout fallback can catch it
     }
   };
 
@@ -210,13 +209,72 @@ export default function AddSlideDialog({ onClose }: Props) {
     onClose();
   };
 
+  // Build slide elements locally from layout blocks (fallback when AI fails)
+  const buildLocalSlide = (layout: typeof LAYOUTS[number]) => {
+    const elements: any[] = [];
+    for (const block of layout.blocks) {
+      if (block.type === 'divider' || block.type === 'accent') {
+        elements.push({
+          id: uid(), type: 'shape', content: '',
+          x: Math.round(block.x / 100 * 1920), y: Math.round(block.y / 100 * 1080),
+          width: Math.round(block.w / 100 * 1920), height: Math.round(block.h / 100 * 1080),
+          rotation: 0, opacity: 1, locked: false, visible: true, zIndex: 0,
+          style: { shapeType: 'rectangle', shapeFill: theme.palette.primary, borderRadius: block.rounded ?? 2 },
+        });
+      } else if (block.type === 'image') {
+        elements.push({
+          id: uid(), type: 'shape', content: '',
+          x: Math.round(block.x / 100 * 1920), y: Math.round(block.y / 100 * 1080),
+          width: Math.round(block.w / 100 * 1920), height: Math.round(block.h / 100 * 1080),
+          rotation: 0, opacity: 0.15, locked: false, visible: true, zIndex: 0,
+          style: { shapeType: 'rectangle', shapeFill: theme.palette.text, borderRadius: block.rounded ?? 8 },
+        });
+      } else if (block.text) {
+        const isTitle = block.type === 'title' || block.type === 'number';
+        elements.push({
+          id: uid(), type: 'text', content: `<p>${block.text}</p>`,
+          x: Math.round(block.x / 100 * 1920), y: Math.round(block.y / 100 * 1080),
+          width: Math.round(block.w / 100 * 1920), height: Math.max(Math.round(block.h / 100 * 1080), 60),
+          rotation: 0, opacity: 1, locked: false, visible: true, zIndex: 0,
+          style: {
+            fontSize: isTitle ? theme.typography.titleSize : theme.typography.bodySize,
+            fontFamily: isTitle ? theme.typography.titleFont : theme.typography.bodyFont,
+            fontWeight: block.bold ? 'bold' : 'normal',
+            color: theme.palette.text,
+            textAlign: block.align || 'left',
+          },
+        });
+      }
+    }
+    return elements;
+  };
+
   const handleLayoutClick = (layout: typeof LAYOUTS[number]) => {
     if (layout.id === 'blank') {
       handleBlank();
       return;
     }
     setSelectedLayout(layout.id);
-    handleGenerate(layout.prompt);
+    handleGenerate(layout.prompt).catch(() => {
+      // AI failed — use local layout as fallback
+      const elements = buildLocalSlide(layout);
+      const decorations = (currentSlide?.elements || [])
+        .filter(e => e.locked)
+        .map(e => ({ ...e, id: uid() }));
+      const newSlide = {
+        id: uid(),
+        elements: [...decorations, ...elements],
+        background: currentSlide?.background || { type: 'solid' as const, value: theme.palette.bg },
+        videoBackground: currentSlide?.videoBackground,
+      };
+      useEditorStore.setState((state: any) => {
+        const slides = [...state.presentation.slides];
+        slides.splice(activeSlideIndex + 1, 0, newSlide);
+        return { presentation: { ...state.presentation, slides }, activeSlideIndex: activeSlideIndex + 1 };
+      });
+      toast.success('Slide added with template layout');
+      onClose();
+    });
   };
 
   // Preview colors from theme
