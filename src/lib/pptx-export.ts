@@ -15,14 +15,46 @@ export async function exportToPptx(presentation: Presentation): Promise<void> {
   pptx.title = presentation.title;
   pptx.layout = 'LAYOUT_WIDE';
 
+  // Pre-download all video URLs as base64 so they embed inside the PPTX file
+  const videoCache = new Map<string, string>();
   for (const slide of presentation.slides) {
-    addSlide(pptx, slide, theme);
+    const videoUrls: string[] = [];
+    if (slide.videoBackground?.url && slide.videoBackground.type === 'mp4') {
+      videoUrls.push(slide.videoBackground.url);
+    }
+    for (const el of slide.elements || []) {
+      if (el.type === 'video' && el.content) videoUrls.push(el.content);
+    }
+    for (const url of videoUrls) {
+      if (videoCache.has(url)) continue;
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const base64 = await blobToBase64(blob);
+        videoCache.set(url, base64);
+      } catch (e) {
+        console.warn('Failed to download video for PPTX embed:', url, e);
+      }
+    }
+  }
+
+  for (const slide of presentation.slides) {
+    addSlide(pptx, slide, theme, videoCache);
   }
 
   await pptx.writeFile({ fileName: `${sanitizeFilename(presentation.title)}.pptx` });
 }
 
-function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void {
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme, videoCache: Map<string, string>): void {
   const { palette } = theme.tokens;
   const s = pptx.addSlide();
 
@@ -55,11 +87,12 @@ function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void
   // ── Video Background (as full-slide media element — PPTX doesn't support native video bg) ──
   if (slide.videoBackground?.url && slide.videoBackground.type === 'mp4') {
     try {
-      s.addMedia({
-        type: 'video',
-        path: slide.videoBackground.url,
-        x: 0, y: 0, w: '100%', h: '100%',
-      });
+      const vbData = videoCache.get(slide.videoBackground.url);
+      if (vbData) {
+        s.addMedia({ type: 'video', data: vbData, x: 0, y: 0, w: '100%', h: '100%' });
+      } else {
+        s.addMedia({ type: 'video', path: slide.videoBackground.url, x: 0, y: 0, w: '100%', h: '100%' });
+      }
     } catch (e) {
       console.warn('Failed to add video to PPTX slide:', e);
     }
@@ -75,14 +108,14 @@ function addSlide(pptx: PptxGenJS, slide: Slide, theme: PresentationTheme): void
 
   for (const element of sortedElements) {
     try {
-      addElement(s, element, theme);
+      addElement(s, element, theme, videoCache);
     } catch (err) {
       console.warn(`PPTX export: failed to export element ${element.id} (${element.type}):`, err);
     }
   }
 }
 
-function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationTheme): void {
+function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationTheme, videoCache: Map<string, string>): void {
   const x = el.x * PX_TO_INCH;
   const y = el.y * PX_TO_INCH_Y;
   const w = el.width * PX_TO_INCH;
@@ -187,13 +220,13 @@ function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationThe
     case 'video': {
       if (!el.content) break;
       try {
-        s.addMedia({
-          type: 'video',
-          path: el.content,
-          x, y, w, h,
-        });
+        const vidData = videoCache.get(el.content);
+        if (vidData) {
+          s.addMedia({ type: 'video', data: vidData, x, y, w, h });
+        } else {
+          s.addMedia({ type: 'video', path: el.content, x, y, w, h });
+        }
       } catch {
-        // Fallback: add a placeholder image with a play icon overlay
         console.warn('Failed to add video to PPTX, skipping element');
       }
       break;
