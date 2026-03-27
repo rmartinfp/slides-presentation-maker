@@ -1,6 +1,6 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Palette, X, Loader2, Check, Paintbrush, Upload, Image, Save, RotateCcw, ChevronDown, Search, Type } from 'lucide-react';
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Palette, X, Loader2, Check, Upload, Image, Save, RotateCcw, ChevronDown, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { useAssetUpload } from '@/hooks/useAssetUpload';
@@ -60,12 +60,10 @@ function loadGoogleFont(fontName: string) {
   document.head.appendChild(link);
 }
 
-// Preload all popular fonts for preview rendering
 let _fontsPreloaded = false;
 function preloadPopularFonts() {
   if (_fontsPreloaded) return;
   _fontsPreloaded = true;
-  // Load in batches to avoid too many parallel requests
   const families = POPULAR_FONTS.map(f => `family=${encodeURIComponent(f)}:wght@400;700`).join('&');
   const link = document.createElement('link');
   link.rel = 'stylesheet';
@@ -83,26 +81,28 @@ const paletteLabels: { key: keyof BrandKit['palette']; label: string }[] = [
 
 export default function BrandKitDialog({ onClose }: Props) {
   const presentation = useEditorStore((s) => s.presentation);
-  const setTheme = useEditorStore((s) => s.setTheme);
   const [brandKit, setBrandKit] = useState<BrandKit | null>(null);
   const [loading, setLoading] = useState(true);
   const [applied, setApplied] = useState(false);
   const [savedKit, setSavedKit] = useState(false);
   const [activeFontPicker, setActiveFontPicker] = useState<'title' | 'body' | null>(null);
 
+  // Store the original palette at mount so we can map old→new colors live
+  const originalPaletteRef = useRef<BrandKit['palette'] | null>(null);
+
   useEffect(() => {
-    // Check localStorage first
     const saved = localStorage.getItem(BRAND_KIT_KEY);
     if (saved) {
       try {
-        setBrandKit(JSON.parse(saved));
+        const kit = JSON.parse(saved) as BrandKit;
+        setBrandKit(kit);
+        originalPaletteRef.current = { ...kit.palette };
         setLoading(false);
         setSavedKit(true);
         return;
-      } catch { /* fall through to extract */ }
+      } catch { /* fall through */ }
     }
 
-    // Only extract if no saved kit — send only style data, not full slide content
     const extract = async () => {
       try {
         const lightSlides = presentation.slides.map(s => ({
@@ -122,13 +122,12 @@ export default function BrandKitDialog({ onClose }: Props) {
           })),
         }));
         const { data, error } = await supabase.functions.invoke('extract-brand', {
-          body: {
-            slides: lightSlides,
-            currentTheme: presentation.theme.tokens,
-          },
+          body: { slides: lightSlides, currentTheme: presentation.theme.tokens },
         });
         if (error) throw error;
-        setBrandKit(data as BrandKit);
+        const kit = data as BrandKit;
+        setBrandKit(kit);
+        originalPaletteRef.current = { ...kit.palette };
       } catch (err) {
         console.error(err);
         toast.error('Failed to extract brand kit');
@@ -140,10 +139,84 @@ export default function BrandKitDialog({ onClose }: Props) {
     extract();
   }, []);
 
-  // Preload popular fonts when dialog opens with brand kit
   useEffect(() => {
     if (brandKit) preloadPopularFonts();
   }, [brandKit]);
+
+  // ── Live color application ──
+  const applyColorToPresentation = useCallback((paletteKey: keyof BrandKit['palette'], newColor: string) => {
+    if (!originalPaletteRef.current) return;
+    const oldColor = originalPaletteRef.current[paletteKey]?.toLowerCase();
+    if (!oldColor) return;
+    const newLower = newColor.toLowerCase();
+    if (oldColor === newLower) return;
+
+    useEditorStore.setState(produce((state: any) => {
+      for (const slide of state.presentation.slides) {
+        // Background
+        if (slide.background?.type === 'solid') {
+          const val = (slide.background.value || '').toLowerCase();
+          if (val === oldColor) slide.background.value = newColor;
+        }
+        // Elements
+        for (const el of slide.elements) {
+          if (el.type === 'text' && el.style?.color) {
+            if (el.style.color.toLowerCase() === oldColor) el.style.color = newColor;
+          }
+          if (el.style?.backgroundColor) {
+            if (el.style.backgroundColor.toLowerCase() === oldColor) el.style.backgroundColor = newColor;
+          }
+          if (el.style?.shapeFill) {
+            if (el.style.shapeFill.toLowerCase() === oldColor) el.style.shapeFill = newColor;
+          }
+          if (el.style?.shapeStroke) {
+            if (el.style.shapeStroke.toLowerCase() === oldColor) el.style.shapeStroke = newColor;
+          }
+        }
+      }
+    }));
+    // Update the "original" to the new color so chaining works
+    originalPaletteRef.current[paletteKey] = newColor;
+  }, []);
+
+  const handleColorChange = useCallback((key: keyof BrandKit['palette'], value: string) => {
+    setBrandKit(prev => prev ? { ...prev, palette: { ...prev.palette, [key]: value } } : prev);
+    applyColorToPresentation(key, value);
+  }, [applyColorToPresentation]);
+
+  // ── Live font application ──
+  const applyFontToPresentation = useCallback((fontName: string, isTitle: boolean) => {
+    loadGoogleFont(fontName);
+    useEditorStore.setState(produce((state: any) => {
+      for (const slide of state.presentation.slides) {
+        for (const el of slide.elements) {
+          if (el.type !== 'text') continue;
+          const fontSize = el.style?.fontSize || 12;
+          if (isTitle && fontSize >= 24) {
+            el.style.fontFamily = `${fontName}, sans-serif`;
+          } else if (!isTitle && fontSize < 24) {
+            el.style.fontFamily = `${fontName}, sans-serif`;
+          }
+        }
+      }
+    }));
+  }, []);
+
+  const handleFontSelect = useCallback((fontName: string, isTitle: boolean) => {
+    applyFontToPresentation(fontName, isTitle);
+    setBrandKit(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        typography: {
+          ...prev.typography,
+          [isTitle ? 'titleFont' : 'bodyFont']: fontName,
+        },
+      };
+    });
+    setActiveFontPicker(null);
+    toast.success(`${isTitle ? 'Title' : 'Body'} font updated`);
+  }, [applyFontToPresentation]);
 
   const handleSave = () => {
     if (!brandKit) return;
@@ -175,13 +248,12 @@ export default function BrandKitDialog({ onClose }: Props) {
         })),
       }));
       const { data, error } = await supabase.functions.invoke('extract-brand', {
-        body: {
-          slides: lightSlides,
-          currentTheme: presentation.theme.tokens,
-        },
+        body: { slides: lightSlides, currentTheme: presentation.theme.tokens },
       });
       if (error) throw error;
-      setBrandKit(data as BrandKit);
+      const kit = data as BrandKit;
+      setBrandKit(kit);
+      originalPaletteRef.current = { ...kit.palette };
     } catch (err) {
       console.error(err);
       toast.error('Failed to extract brand kit');
@@ -189,39 +261,6 @@ export default function BrandKitDialog({ onClose }: Props) {
       setLoading(false);
     }
   };
-
-  const applyFontToPresentation = useCallback((fontName: string, isTitle: boolean) => {
-    loadGoogleFont(fontName);
-    useEditorStore.setState(produce((state: any) => {
-      for (const slide of state.presentation.slides) {
-        for (const el of slide.elements) {
-          if (el.type !== 'text') continue;
-          const fontSize = el.style?.fontSize || 12;
-          if (isTitle && fontSize >= 24) {
-            el.style.fontFamily = `${fontName}, sans-serif`;
-          } else if (!isTitle && fontSize < 24) {
-            el.style.fontFamily = `${fontName}, sans-serif`;
-          }
-        }
-      }
-    }));
-  }, []);
-
-  const handleFontSelect = useCallback((fontName: string, isTitle: boolean) => {
-    applyFontToPresentation(fontName, isTitle);
-    setBrandKit(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        typography: {
-          ...prev.typography,
-          [isTitle ? 'titleFont' : 'bodyFont']: fontName,
-        },
-      };
-    });
-    setActiveFontPicker(null);
-    toast.success(`${isTitle ? 'Title' : 'Body'} font changed to ${fontName}`);
-  }, [applyFontToPresentation]);
 
   const handleApply = () => {
     if (!brandKit) return;
@@ -243,46 +282,8 @@ export default function BrandKitDialog({ onClose }: Props) {
       ],
     };
 
-    const oldPalette = presentation.theme.tokens.palette;
-    const newPalette = brandKit.palette;
-    const colorMap = new Map<string, string>();
-    for (const key of ['primary', 'secondary', 'accent', 'bg', 'text'] as const) {
-      const oldColor = (oldPalette[key] || '').toLowerCase();
-      const newColor = newPalette[key];
-      if (oldColor && newColor && oldColor !== newColor.toLowerCase()) {
-        colorMap.set(oldColor, newColor);
-      }
-    }
-
     useEditorStore.getState().pushSnapshot();
-
     useEditorStore.setState(produce((state: any) => {
-      if (colorMap.size > 0) {
-        for (const slide of state.presentation.slides) {
-          if (slide.background?.type === 'solid') {
-            const val = (slide.background.value || '').toLowerCase();
-            if (colorMap.has(val)) slide.background.value = colorMap.get(val);
-          }
-          for (const el of slide.elements) {
-            if (el.type === 'text' && el.style?.color) {
-              const c = el.style.color.toLowerCase();
-              if (colorMap.has(c)) el.style.color = colorMap.get(c);
-            }
-            if (el.style?.backgroundColor) {
-              const c = el.style.backgroundColor.toLowerCase();
-              if (colorMap.has(c)) el.style.backgroundColor = colorMap.get(c);
-            }
-            if (el.style?.shapeFill) {
-              const c = el.style.shapeFill.toLowerCase();
-              if (colorMap.has(c)) el.style.shapeFill = colorMap.get(c);
-            }
-            if (el.style?.shapeStroke) {
-              const c = el.style.shapeStroke.toLowerCase();
-              if (colorMap.has(c)) el.style.shapeStroke = colorMap.get(c);
-            }
-          }
-        }
-      }
       state.presentation.theme = theme;
       state.presentation.updatedAt = new Date().toISOString();
     }));
@@ -305,87 +306,89 @@ export default function BrandKitDialog({ onClose }: Props) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-4xl bg-white rounded-2xl shadow-2xl overflow-hidden"
+        className="w-full max-w-[920px] bg-white rounded-2xl shadow-2xl overflow-hidden"
       >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center">
-              <Palette className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center shadow-lg shadow-indigo-200">
+              <Palette className="w-4.5 h-4.5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-slate-800">Brand Kit</h3>
+                <h3 className="font-semibold text-slate-800 text-[15px]">Brand Kit</h3>
                 {savedKit && (
-                  <span className="px-1.5 py-0.5 rounded bg-emerald-100 text-[9px] font-semibold text-emerald-700 uppercase tracking-wide">Saved</span>
+                  <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 text-[9px] font-semibold text-emerald-600 uppercase tracking-wide border border-emerald-100">Saved</span>
                 )}
               </div>
               <p className="text-xs text-slate-400">{savedKit ? 'Loaded from saved kit' : 'Extracted from your slides'}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center"
-          >
-            <X className="w-4 h-4 text-slate-500" />
+          <button onClick={onClose} className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center transition-colors">
+            <X className="w-4 h-4 text-slate-400" />
           </button>
         </div>
 
-        {/* Body — two columns: Brand Kit left, Logo right */}
-        <div className="max-h-[75vh] overflow-y-auto">
+        {/* Body */}
+        <div className="max-h-[72vh] overflow-y-auto">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-3">
-              <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
-              <p className="text-sm text-slate-500">Analyzing your presentation...</p>
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <Loader2 className="w-7 h-7 animate-spin text-indigo-400" />
+              <p className="text-sm text-slate-400">Analyzing your presentation...</p>
             </div>
           ) : (
-            <div className="flex">
-              {/* ── LEFT COLUMN: Brand Kit ── */}
-              <div className="flex-1 px-6 py-5 border-r border-slate-200 space-y-4">
+            <div className="flex divide-x divide-slate-100">
+              {/* ── LEFT: Brand Kit ── */}
+              <div className="flex-1 p-6 space-y-6">
                 {brandKit ? (
                   <>
                     {/* Brand Name */}
                     <div>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">Brand</p>
-                      <p className="text-base font-semibold text-slate-800">{brandKit.brandName}</p>
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Brand</p>
+                      <p className="text-lg font-bold text-slate-800">{brandKit.brandName}</p>
                     </div>
 
-                    {/* Colors — editable */}
+                    {/* Colors */}
                     <div>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-1">Colors</p>
-                      <p className="text-[9px] text-slate-400 mb-2">Click to change</p>
-                      <div className="flex items-center gap-2.5">
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Colors</p>
+                      <div className="flex items-start gap-4">
                         {paletteLabels.map(({ key, label }) => (
-                          <div key={key} className="flex flex-col items-center gap-1">
+                          <div key={key} className="flex flex-col items-center gap-1.5">
                             <label className="relative cursor-pointer group">
-                              <div className="w-9 h-9 rounded-full border-2 border-white shadow-md group-hover:ring-2 group-hover:ring-[#4F46E5] transition-all"
-                                style={{ backgroundColor: brandKit.palette[key] }} />
-                              <input type="color" value={brandKit.palette[key]}
-                                onChange={e => setBrandKit(prev => prev ? { ...prev, palette: { ...prev.palette, [key]: e.target.value } } : prev)}
-                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" />
+                              <div
+                                className="w-10 h-10 rounded-xl border-2 border-white shadow-md ring-1 ring-slate-200/60 group-hover:ring-2 group-hover:ring-indigo-400 transition-all"
+                                style={{ backgroundColor: brandKit.palette[key] }}
+                              />
+                              <input
+                                type="color"
+                                value={brandKit.palette[key]}
+                                onChange={e => handleColorChange(key, e.target.value)}
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              />
                             </label>
-                            <span className="text-[8px] text-slate-400">{label}</span>
+                            <span className="text-[9px] font-medium text-slate-400">{label}</span>
                           </div>
                         ))}
                       </div>
+                      <p className="text-[9px] text-slate-300 mt-2">Click any swatch to change — updates live</p>
                     </div>
 
                     {/* Typography */}
                     <div>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Typography</p>
-                      <div className="space-y-1.5">
+                      <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-3">Typography</p>
+                      <div className="space-y-2">
                         <div className="relative">
                           <button
                             onClick={() => setActiveFontPicker(activeFontPicker === 'title' ? null : 'title')}
-                            className="w-full flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer border border-slate-100"
                           >
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-semibold text-slate-700" style={{ fontFamily: `"${brandKit.typography.titleFont}", sans-serif` }}>
                                 {brandKit.typography.titleFont}
                               </span>
-                              <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform', activeFontPicker === 'title' && 'rotate-180')} />
+                              <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 transition-transform', activeFontPicker === 'title' && 'rotate-180')} />
                             </div>
-                            <span className="text-[10px] text-slate-400">{brandKit.typography.titleSize}pt &middot; Titles</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{brandKit.typography.titleSize}pt · Titles</span>
                           </button>
                           {activeFontPicker === 'title' && (
                             <FontPickerDropdown
@@ -398,15 +401,15 @@ export default function BrandKitDialog({ onClose }: Props) {
                         <div className="relative">
                           <button
                             onClick={() => setActiveFontPicker(activeFontPicker === 'body' ? null : 'body')}
-                            className="w-full flex items-baseline justify-between px-3 py-1.5 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+                            className="w-full flex items-center justify-between px-3.5 py-2.5 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer border border-slate-100"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="text-xs text-slate-700" style={{ fontFamily: `"${brandKit.typography.bodyFont}", sans-serif` }}>
+                              <span className="text-sm text-slate-700" style={{ fontFamily: `"${brandKit.typography.bodyFont}", sans-serif` }}>
                                 {brandKit.typography.bodyFont}
                               </span>
-                              <ChevronDown className={cn('w-3 h-3 text-slate-400 transition-transform', activeFontPicker === 'body' && 'rotate-180')} />
+                              <ChevronDown className={cn('w-3.5 h-3.5 text-slate-400 transition-transform', activeFontPicker === 'body' && 'rotate-180')} />
                             </div>
-                            <span className="text-[10px] text-slate-400">{brandKit.typography.bodySize}pt &middot; Body</span>
+                            <span className="text-[10px] text-slate-400 font-medium">{brandKit.typography.bodySize}pt · Body</span>
                           </button>
                           {activeFontPicker === 'body' && (
                             <FontPickerDropdown
@@ -417,35 +420,44 @@ export default function BrandKitDialog({ onClose }: Props) {
                           )}
                         </div>
                       </div>
-                      <p className="text-[9px] text-slate-400 mt-1">Click a font to change it across all slides</p>
+                      <p className="text-[9px] text-slate-300 mt-2">Click a font to change it across all slides</p>
                     </div>
 
-                    {/* Action buttons */}
-                    <div className="space-y-2">
-                      <Button onClick={handleApply} disabled={applied}
-                        className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] text-white rounded-xl h-9 text-xs">
+                    {/* Actions — clean row */}
+                    <div className="pt-2 border-t border-slate-100 space-y-2.5">
+                      <Button
+                        onClick={handleApply}
+                        disabled={applied}
+                        className="w-full bg-gradient-to-r from-[#4F46E5] to-[#9333EA] hover:from-[#4338CA] hover:to-[#7E22CE] text-white rounded-xl h-10 text-sm font-medium shadow-md shadow-indigo-200/50"
+                      >
                         {applied
-                          ? <><Check className="w-3.5 h-3.5 mr-1.5" />Applied</>
-                          : <><Palette className="w-3.5 h-3.5 mr-1.5" />Apply as Theme</>}
+                          ? <><Check className="w-4 h-4 mr-2" />Applied</>
+                          : <><Palette className="w-4 h-4 mr-2" />Apply as Theme</>}
                       </Button>
                       <div className="flex gap-2">
-                        <Button onClick={handleSave} variant="outline"
-                          className="flex-1 rounded-xl h-8 text-xs border-slate-200">
-                          <Save className="w-3 h-3 mr-1.5" />Save Brand Kit
+                        <Button
+                          onClick={handleSave}
+                          variant="outline"
+                          className="flex-1 rounded-xl h-9 text-xs font-medium border-slate-200 hover:bg-slate-50"
+                        >
+                          <Save className="w-3.5 h-3.5 mr-1.5" />Save Kit
                         </Button>
-                        <Button onClick={handleReset} variant="ghost"
-                          className="rounded-xl h-8 text-xs text-slate-500 hover:text-slate-700">
-                          <RotateCcw className="w-3 h-3 mr-1.5" />Reset
+                        <Button
+                          onClick={handleReset}
+                          variant="ghost"
+                          className="rounded-xl h-9 text-xs font-medium text-slate-400 hover:text-slate-600"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5 mr-1.5" />Reset
                         </Button>
                       </div>
                     </div>
                   </>
                 ) : (
-                  <p className="text-sm text-slate-400 py-8 text-center">No brand kit extracted yet</p>
+                  <p className="text-sm text-slate-400 py-12 text-center">No brand kit extracted yet</p>
                 )}
               </div>
 
-              {/* ── RIGHT COLUMN: Logo ── */}
+              {/* ── RIGHT: Logo ── */}
               <div className="w-[320px] shrink-0">
                 <LogoSection onClose={onClose} />
               </div>
@@ -457,7 +469,7 @@ export default function BrandKitDialog({ onClose }: Props) {
   );
 }
 
-// ─── Font Picker Dropdown (with full Google Fonts catalog) ───
+// ─── Font Picker Dropdown ───
 let _gfCache: string[] | null = null;
 let _gfLoading = false;
 async function fetchAllGoogleFonts(): Promise<string[]> {
@@ -491,7 +503,6 @@ function FontPickerDropdown({
   const [allFonts, setAllFonts] = useState<string[]>(POPULAR_FONTS);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Load full catalog on mount
   useEffect(() => {
     fetchAllGoogleFonts().then(setAllFonts);
   }, []);
@@ -500,23 +511,16 @@ function FontPickerDropdown({
     ? allFonts.filter(f => f.toLowerCase().includes(search.toLowerCase())).slice(0, 60)
     : allFonts.slice(0, 80);
 
-  // Close on click outside
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        onClose();
-      }
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) onClose();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
   return (
-    <div
-      ref={dropdownRef}
-      className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden"
-    >
-      {/* Search */}
+    <div ref={dropdownRef} className="absolute left-0 right-0 top-full mt-1 z-50 bg-white rounded-xl border border-slate-200 shadow-xl overflow-hidden">
       <div className="px-2 py-1.5 border-b border-slate-100">
         <div className="flex items-center gap-1.5 px-2 py-1.5 bg-slate-50 rounded-lg">
           <Search className="w-3 h-3 text-slate-400 shrink-0" />
@@ -530,7 +534,6 @@ function FontPickerDropdown({
           />
         </div>
       </div>
-      {/* Font list */}
       <div className="max-h-[280px] overflow-y-auto">
         {filtered.length === 0 && search ? (
           <button onClick={() => { loadGoogleFont(search); onSelect(search); }}
@@ -558,7 +561,7 @@ function FontPickerDropdown({
   );
 }
 
-// ─── Logo Section — two-column layout with live preview ───
+// ─── Logo Section ───
 type Corner = 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
 function LogoSection({ onClose }: { onClose: () => void }) {
@@ -571,7 +574,6 @@ function LogoSection({ onClose }: { onClose: () => void }) {
   const { upload: uploadAsset } = useAssetUpload();
   const { presentation, activeSlideIndex } = useEditorStore();
 
-  // Count existing logos across slides
   const existingLogos = presentation.slides.reduce((acc, s) => {
     return acc + s.elements.filter(e => e.type === 'image' && e.zIndex >= 100 && e.width <= 250 && e.locked).length;
   }, 0);
@@ -623,21 +625,20 @@ function LogoSection({ onClose }: { onClose: () => void }) {
     toast.success('Logos removed from all slides');
   };
 
-  // Preview: mini slide with logo positioned
   const previewX = corner.includes('right') ? 85 : 5;
   const previewY = corner.includes('bottom') ? 70 : 5;
   const previewW = Math.round(logoSize / 1920 * 100);
 
   return (
-    <div className="px-6 py-5 border-t border-slate-200">
-      <div className="flex items-center justify-between mb-4">
+    <div className="p-6 space-y-5">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Image className="w-4 h-4 text-[#4F46E5]" />
+          <Image className="w-4 h-4 text-indigo-500" />
           <span className="text-sm font-semibold text-slate-800">Logo</span>
         </div>
         {existingLogos > 0 && (
-          <button onClick={handleRemoveLogos} className="text-[10px] text-red-500 hover:text-red-700 hover:underline">
-            Remove all logos ({existingLogos})
+          <button onClick={handleRemoveLogos} className="text-[10px] text-red-400 hover:text-red-600 hover:underline transition-colors">
+            Remove all ({existingLogos})
           </button>
         )}
       </div>
@@ -645,87 +646,81 @@ function LogoSection({ onClose }: { onClose: () => void }) {
       <input ref={fileRef} type="file" accept="image/*" className="hidden"
         onChange={e => { const f = e.target.files?.[0]; if (f) handleUpload(f); e.target.value = ''; }} />
 
-      {/* Two-column: controls left, preview right */}
-      <div className="flex gap-4">
-        {/* Left: controls */}
-        <div className="flex-1 min-w-0 space-y-3">
-          {/* Upload */}
-          {logoUrl ? (
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-8 rounded-lg border border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                <img src={logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
-              </div>
-              <button onClick={() => fileRef.current?.click()} className="text-[11px] text-[#4F46E5] hover:underline">Change</button>
-              <button onClick={() => setLogoUrl('')} className="text-[11px] text-slate-400 hover:text-red-500">Remove</button>
-            </div>
-          ) : (
-            <button onClick={() => fileRef.current?.click()}
-              className="w-full py-3 rounded-xl border-2 border-dashed border-slate-300 hover:border-[#4F46E5] text-center transition-colors">
-              {uploading
-                ? <span className="text-[11px] text-slate-500">Uploading...</span>
-                : <><Upload className="w-3.5 h-3.5 mx-auto mb-1 text-slate-400" /><span className="text-[11px] text-slate-500 block">Upload logo</span></>}
-            </button>
-          )}
-
-          {/* Position */}
-          <div>
-            <span className="text-[10px] text-slate-500 font-medium block mb-1.5">Position</span>
-            <div className="grid grid-cols-4 gap-1">
-              {([['top-left','↖ TL'], ['top-right','↗ TR'], ['bottom-left','↙ BL'], ['bottom-right','↘ BR']] as [Corner, string][]).map(([id, label]) => (
-                <button key={id} onClick={() => setCorner(id)}
-                  className={cn('py-1 rounded text-[10px] font-medium transition-all', corner === id ? 'bg-[#4F46E5] text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
-                  {label}
-                </button>
-              ))}
-            </div>
+      {/* Upload area */}
+      {logoUrl ? (
+        <div className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl border border-slate-100">
+          <div className="w-12 h-9 rounded-lg border border-slate-200 bg-white flex items-center justify-center overflow-hidden shrink-0">
+            <img src={logoUrl} alt="Logo" className="max-w-full max-h-full object-contain" />
           </div>
-
-          {/* Size */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] text-slate-500 font-medium">Size</span>
-              <span className="text-[10px] text-slate-400 font-mono">{logoSize}px</span>
-            </div>
-            <input type="range" min="40" max="250" step="10" value={logoSize} onChange={e => setLogoSize(parseInt(e.target.value))} className="w-full accent-[#4F46E5]" />
-          </div>
-
-          {/* Apply to */}
-          <div className="flex gap-1.5">
-            <button onClick={() => setApplyTo('all')} className={cn('flex-1 py-1.5 rounded text-[10px] font-medium transition-all', applyTo === 'all' ? 'bg-[#4F46E5] text-white' : 'bg-slate-100 text-slate-500')}>
-              All slides ({presentation.slides.length})
-            </button>
-            <button onClick={() => setApplyTo('current')} className={cn('flex-1 py-1.5 rounded text-[10px] font-medium transition-all', applyTo === 'current' ? 'bg-[#4F46E5] text-white' : 'bg-slate-100 text-slate-500')}>
-              Current only
-            </button>
+          <div className="flex gap-2 text-[11px]">
+            <button onClick={() => fileRef.current?.click()} className="text-indigo-500 hover:underline">Change</button>
+            <button onClick={() => setLogoUrl('')} className="text-slate-400 hover:text-red-500">Remove</button>
           </div>
         </div>
+      ) : (
+        <button onClick={() => fileRef.current?.click()}
+          className="w-full py-5 rounded-xl border-2 border-dashed border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/30 text-center transition-all">
+          {uploading
+            ? <span className="text-[11px] text-slate-400">Uploading...</span>
+            : <><Upload className="w-4 h-4 mx-auto mb-1.5 text-slate-300" /><span className="text-[11px] text-slate-400 block">Upload logo</span></>}
+        </button>
+      )}
 
-        {/* Right: live preview */}
-        <div className="w-28 shrink-0">
-          <span className="text-[10px] text-slate-500 font-medium block mb-1.5">Preview</span>
-          <div className="w-full aspect-[16/9] bg-slate-800 rounded-lg relative overflow-hidden border border-slate-700">
-            {/* Fake slide content lines */}
-            <div className="absolute top-[15%] left-[10%] w-[50%] h-[3px] bg-white/20 rounded" />
-            <div className="absolute top-[25%] left-[10%] w-[35%] h-[2px] bg-white/10 rounded" />
-            <div className="absolute top-[40%] left-[10%] w-[40%] h-[2px] bg-white/10 rounded" />
-            {/* Logo preview */}
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="absolute object-contain" style={{
-                left: `${previewX}%`, top: `${previewY}%`,
-                width: `${Math.max(8, previewW)}%`, height: 'auto', maxHeight: '20%',
-              }} />
-            ) : (
-              <div className="absolute bg-white/20 rounded-sm" style={{
-                left: `${previewX}%`, top: `${previewY}%`,
-                width: `${Math.max(8, previewW)}%`, height: '12%',
-              }} />
-            )}
-          </div>
+      {/* Preview */}
+      <div>
+        <span className="text-[10px] text-slate-400 font-medium block mb-2">Preview</span>
+        <div className="w-full aspect-[16/9] bg-slate-800 rounded-xl relative overflow-hidden border border-slate-700/50">
+          <div className="absolute top-[15%] left-[10%] w-[50%] h-[3px] bg-white/15 rounded" />
+          <div className="absolute top-[25%] left-[10%] w-[35%] h-[2px] bg-white/10 rounded" />
+          <div className="absolute top-[40%] left-[10%] w-[40%] h-[2px] bg-white/10 rounded" />
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="absolute object-contain" style={{
+              left: `${previewX}%`, top: `${previewY}%`,
+              width: `${Math.max(8, previewW)}%`, height: 'auto', maxHeight: '20%',
+            }} />
+          ) : (
+            <div className="absolute bg-white/15 rounded-sm" style={{
+              left: `${previewX}%`, top: `${previewY}%`,
+              width: `${Math.max(8, previewW)}%`, height: '12%',
+            }} />
+          )}
         </div>
       </div>
 
+      {/* Position */}
+      <div>
+        <span className="text-[10px] text-slate-400 font-medium block mb-2">Position</span>
+        <div className="grid grid-cols-4 gap-1.5">
+          {([['top-left', 'TL'], ['top-right', 'TR'], ['bottom-left', 'BL'], ['bottom-right', 'BR']] as [Corner, string][]).map(([id, label]) => (
+            <button key={id} onClick={() => setCorner(id)}
+              className={cn('py-1.5 rounded-lg text-[10px] font-medium transition-all', corner === id ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Size */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] text-slate-400 font-medium">Size</span>
+          <span className="text-[10px] text-slate-400 font-mono">{logoSize}px</span>
+        </div>
+        <input type="range" min="40" max="250" step="10" value={logoSize} onChange={e => setLogoSize(parseInt(e.target.value))} className="w-full accent-indigo-500" />
+      </div>
+
+      {/* Apply to */}
+      <div className="flex gap-1.5">
+        <button onClick={() => setApplyTo('all')} className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all', applyTo === 'all' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500')}>
+          All slides ({presentation.slides.length})
+        </button>
+        <button onClick={() => setApplyTo('current')} className={cn('flex-1 py-1.5 rounded-lg text-[10px] font-medium transition-all', applyTo === 'current' ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500')}>
+          Current only
+        </button>
+      </div>
+
       {/* Apply button */}
-      <Button onClick={handleApplyLogo} disabled={!logoUrl} className="w-full mt-4 bg-slate-900 text-white rounded-xl h-9 text-xs disabled:opacity-40">
+      <Button onClick={handleApplyLogo} disabled={!logoUrl} className="w-full bg-slate-800 hover:bg-slate-900 text-white rounded-xl h-10 text-xs font-medium disabled:opacity-30">
         <Image className="w-3.5 h-3.5 mr-1.5" />Add Logo
       </Button>
     </div>
