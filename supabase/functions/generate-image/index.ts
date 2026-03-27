@@ -30,49 +30,14 @@ serve(async (req) => {
       );
     }
 
-    const enhancedPrompt = `Professional presentation graphic: ${prompt}. Clean, modern, high quality, suitable for a business presentation slide.`;
-
-    // Try Imagen 4 Fast first (then Imagen 3 as fallback)
-    const imagenModels = ["imagen-4.0-fast-generate-001", "imagen-3.0-generate-002"];
-    for (const imagenModel of imagenModels) {
-    try {
-      const imagenRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${imagenModel}:predict?key=${apiKey}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            instances: [{ prompt: enhancedPrompt }],
-            parameters: { sampleCount: 1, aspectRatio },
-          }),
-        },
-      );
-
-      if (imagenRes.ok) {
-        const data = await imagenRes.json();
-        const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
-        if (imageBase64) {
-          const imageBytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
-          const url = await uploadToStorage(imageBytes, "image/png");
-          return new Response(
-            JSON.stringify({ url }),
-            { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-          );
-        }
-      }
-      console.log(`${imagenModel} failed, trying next...`);
-    } catch (e) {
-      console.log(`${imagenModel} error:`, e.message);
-    }
-    } // end imagenModels loop
-
-    // Fallback: Gemini 2.5 Flash Image (supports image generation)
-    const imageModels = [
-      "gemini-2.5-flash-image",
-      "gemini-2.0-flash",
+    // ─── Gemini generateContent models (Nano Banana Pro → Flash fallbacks) ───
+    const geminiModels = [
+      "gemini-3-pro-image-preview",   // Nano Banana Pro — best quality
+      "gemini-3.1-flash-image-preview", // Nano Banana 2 — fast
+      "gemini-2.5-flash-image",        // Nano Banana — efficient
     ];
 
-    for (const model of imageModels) {
+    for (const model of geminiModels) {
       try {
         const geminiRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
@@ -80,14 +45,17 @@ serve(async (req) => {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: `Generate an image: ${enhancedPrompt}` }] }],
-              generationConfig: { responseModalities: ["IMAGE", "TEXT"] },
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: {
+                responseModalities: ["IMAGE"],
+                aspectRatio,
+              },
             }),
           },
         );
 
         if (!geminiRes.ok) {
-          console.log(`${model} failed:`, (await geminiRes.text()).substring(0, 100));
+          console.log(`${model} failed:`, (await geminiRes.text()).substring(0, 200));
           continue;
         }
 
@@ -113,6 +81,40 @@ serve(async (req) => {
         );
       } catch (e) {
         console.log(`${model} error:`, e.message);
+      }
+    }
+
+    // ─── Fallback: Imagen models (predict endpoint) ───
+    const imagenModels = ["imagen-4.0-fast-generate-001", "imagen-3.0-generate-002"];
+    for (const imagenModel of imagenModels) {
+      try {
+        const imagenRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${imagenModel}:predict?key=${apiKey}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              instances: [{ prompt }],
+              parameters: { sampleCount: 1, aspectRatio },
+            }),
+          },
+        );
+
+        if (imagenRes.ok) {
+          const data = await imagenRes.json();
+          const imageBase64 = data.predictions?.[0]?.bytesBase64Encoded;
+          if (imageBase64) {
+            const imageBytes = Uint8Array.from(atob(imageBase64), (c) => c.charCodeAt(0));
+            const url = await uploadToStorage(imageBytes, "image/png");
+            return new Response(
+              JSON.stringify({ url }),
+              { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            );
+          }
+        }
+        console.log(`${imagenModel} failed, trying next...`);
+      } catch (e) {
+        console.log(`${imagenModel} error:`, e.message);
       }
     }
 

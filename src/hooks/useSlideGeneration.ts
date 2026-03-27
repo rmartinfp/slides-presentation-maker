@@ -105,28 +105,26 @@ function buildSlideImagePrompt(
   };
 
   return [
-    `You are a world-class art director creating visuals for a premium presentation deck.`,
+    `A real photograph for a premium presentation slide.`,
     ``,
-    `PRESENTATION TOPIC: "${userPrompt}"`,
+    `TOPIC: "${userPrompt}"`,
     context ? `SLIDE CONTEXT: "${context}"` : '',
-    `SLIDE ROLE: ${position.toUpperCase()} (slide ${slideIndex + 1} of ${totalSlides})`,
+    `ROLE: ${position.toUpperCase()} (slide ${slideIndex + 1} of ${totalSlides})`,
     ``,
     positionDirective[position],
     ``,
-    `VISUAL DIRECTION:`,
-    `— Photorealistic, editorial-quality imagery with cinematic lighting and color grading`,
-    `— Modern, sophisticated aesthetic (think Apple keynote, TED talk, Forbes feature)`,
-    `— Rich, intentional color palette that feels cohesive and premium`,
-    `— Thoughtful depth of field: sharp subject, soft bokeh background`,
-    `— Clean composition with visual breathing room — never cluttered`,
-    `— Favor abstract, conceptual, or atmospheric interpretations over literal/obvious depictions`,
-    `— Evoke emotion and professionalism simultaneously`,
+    `STYLE: Real photography — NOT illustration, NOT 3D render, NOT digital art.`,
+    `Shot on a professional DSLR camera. Cinematic lighting, shallow depth of field.`,
+    `The image MUST fill the ENTIRE frame edge-to-edge with NO empty space, NO borders,`,
+    `NO letterboxing, and NO black/white bars on any side.`,
+    `Compose so the subject fills the frame naturally for the given aspect ratio.`,
     ``,
     `ABSOLUTE RESTRICTIONS:`,
-    `— ZERO text, words, letters, numbers, or typography of any kind`,
-    `— ZERO watermarks, logos, brand marks, or UI elements`,
-    `— ZERO people's faces (use silhouettes, hands, or back views if humans are needed)`,
-    `— ZERO clichéd stock photo aesthetics (no handshakes, no people pointing at screens)`,
+    `— ZERO text, words, letters, numbers, typography, captions, or watermarks`,
+    `— ZERO logos, brand marks, UI elements, or overlays`,
+    `— ZERO people's faces (silhouettes, hands, or back views only if humans are needed)`,
+    `— ZERO stock-photo clichés (no handshakes, no pointing at screens)`,
+    `— ZERO borders, frames, vignettes, or any non-photographic elements`,
   ].filter(Boolean).join('\n');
 }
 
@@ -134,12 +132,17 @@ function getClosestAspectRatio(width: number, height: number): string {
   const ratio = width / height;
   const options = [
     { label: '1:1', value: 1 },
-    { label: '3:4', value: 3 / 4 },
+    { label: '5:4', value: 5 / 4 },
     { label: '4:3', value: 4 / 3 },
-    { label: '9:16', value: 9 / 16 },
+    { label: '3:2', value: 3 / 2 },
     { label: '16:9', value: 16 / 9 },
+    { label: '21:9', value: 21 / 9 },
+    { label: '4:5', value: 4 / 5 },
+    { label: '3:4', value: 3 / 4 },
+    { label: '2:3', value: 2 / 3 },
+    { label: '9:16', value: 9 / 16 },
   ];
-  let closest = options[4];
+  let closest = options[4]; // default 16:9
   let minDiff = Infinity;
   for (const opt of options) {
     const diff = Math.abs(ratio - opt.value);
