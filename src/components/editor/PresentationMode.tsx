@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Slide, PresentationTheme, SlideElement, ChartData } from '@/types/presentation';
@@ -16,53 +16,74 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
   const [direction, setDirection] = useState(0);
   const { palette } = theme.tokens;
   const slide = slides[currentIndex];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const onExitRef = useRef(onExit);
+  onExitRef.current = onExit;
   const indexRef = useRef(currentIndex);
   indexRef.current = currentIndex;
 
+  const goNext = useCallback(() => {
+    if (indexRef.current < slides.length - 1) {
+      setDirection(1);
+      setCurrentIndex(indexRef.current + 1);
+    }
+  }, [slides.length]);
+
+  const goPrev = useCallback(() => {
+    if (indexRef.current > 0) {
+      setDirection(-1);
+      setCurrentIndex(indexRef.current - 1);
+    }
+  }, []);
+
+  // Keyboard navigation — single listener, refs for latest values
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { onExit(); return; }
+      if (e.key === 'Escape') { onExitRef.current(); return; }
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
         e.preventDefault();
-        if (indexRef.current < slides.length - 1) {
-          setDirection(1);
-          setCurrentIndex(indexRef.current + 1);
-        }
+        goNext();
       } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
         e.preventDefault();
-        if (indexRef.current > 0) {
-          setDirection(-1);
-          setCurrentIndex(indexRef.current - 1);
-        }
+        goPrev();
       }
     };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [slides.length, onExit]);
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, [goNext, goPrev]);
 
-  // Enter fullscreen — exit presentation when user leaves fullscreen (single Escape)
+  // Fullscreen on the container element — real fullscreen (not browser-internal)
   useEffect(() => {
-    let listening = false;
+    const el = containerRef.current;
+    if (!el) return;
 
+    let listening = false;
     const handleFullscreenChange = () => {
-      if (listening && !document.fullscreenElement) onExit();
+      if (listening && !document.fullscreenElement) onExitRef.current();
     };
 
-    document.documentElement.requestFullscreen?.()
+    el.requestFullscreen?.()
       .then(() => {
-        // Only start listening AFTER fullscreen is active
         listening = true;
         document.addEventListener('fullscreenchange', handleFullscreenChange);
+        // Focus the container so keyboard events reach it
+        el.focus();
       })
       .catch(() => {
-        // Fullscreen denied — still work without it, use Escape key handler
+        // Fullscreen denied — still works, Escape key handler covers exit
       });
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
       if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     };
-  }, [onExit]);
+  }, []);
+
+  // Click to advance
+  const handleClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('button')) return;
+    goNext();
+  };
 
   // Compute background style
   const bgStyle: React.CSSProperties = {};
@@ -86,9 +107,8 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
 
   const renderElement = (element: SlideElement) => {
     const s = element.style;
-    // Scale from 1920x1080 to viewport using vw/vh
-    const scaleX = 100 / 1920; // vw per px
-    const scaleY = 100 / 1080; // vh per px
+    const scaleX = 100 / 1920;
+    const scaleY = 100 / 1080;
 
     const wrapperStyle: React.CSSProperties = {
       position: 'absolute',
@@ -266,16 +286,13 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
 
   const sortedElements = [...(slide.elements || [])].sort((a, b) => a.zIndex - b.zIndex);
 
-  const handleClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return;
-    if (indexRef.current < slides.length - 1) {
-      setDirection(1);
-      setCurrentIndex(indexRef.current + 1);
-    }
-  };
-
   return (
-    <div className="fixed inset-0 z-[9999] bg-black cursor-pointer" onClick={handleClick}>
+    <div
+      ref={containerRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[9999] bg-black cursor-pointer outline-none"
+      onClick={handleClick}
+    >
       {/* Exit button */}
       <button
         onClick={onExit}
