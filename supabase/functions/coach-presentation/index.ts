@@ -16,7 +16,7 @@ Deno.serve(async (req) => {
   try {
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not configured");
 
-    const { slides, title, language } = await req.json();
+    const { slides, title, language, preBuilt } = await req.json();
 
     if (!slides || slides.length === 0) {
       return new Response(
@@ -25,8 +25,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Build a summary of the presentation for analysis
-    const slideSummaries = slides.map((slide: any, i: number) => {
+    // If preBuilt=true, slides are already lightweight summaries from the client
+    const slideSummaries = preBuilt ? slides : slides.map((slide: any, i: number) => {
       const elements = slide.elements || [];
       const textEls = elements.filter((e: any) => e.type === "text");
       const imageEls = elements.filter((e: any) => e.type === "image");
