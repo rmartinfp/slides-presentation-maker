@@ -1,4 +1,5 @@
 import PptxGenJS from 'pptxgenjs';
+import JSZip from 'jszip';
 import { Presentation, Slide, SlideElement, PresentationTheme, ChartData, TableData } from '@/types/presentation';
 
 // Conversion constants: 1920px canvas → LAYOUT_WIDE (13.33" × 7.5")
@@ -38,11 +39,174 @@ export async function exportToPptx(presentation: Presentation): Promise<void> {
     }
   }
 
+  // Collect all unique font families used in the presentation
+  const usedFonts = new Set<string>();
+  for (const slide of presentation.slides) {
+    for (const el of slide.elements || []) {
+      if (el.type === 'text' && el.style?.fontFamily) {
+        const fontName = el.style.fontFamily.split(',')[0].trim().replace(/["']/g, '');
+        if (fontName && fontName !== 'Arial' && fontName !== 'sans-serif') {
+          usedFonts.add(fontName);
+        }
+      }
+    }
+  }
+  // Also add theme fonts
+  const { titleFont, bodyFont } = theme.tokens.typography;
+  if (titleFont && titleFont !== 'Arial') usedFonts.add(titleFont.split(',')[0].trim());
+  if (bodyFont && bodyFont !== 'Arial') usedFonts.add(bodyFont.split(',')[0].trim());
+
   for (const slide of presentation.slides) {
     addSlide(pptx, slide, theme, videoCache);
   }
 
-  await pptx.writeFile({ fileName: `${sanitizeFilename(presentation.title)}.pptx` });
+  // Generate PPTX as blob, then post-process to embed fonts
+  const pptxBlob = await pptx.write({ outputType: 'blob' }) as Blob;
+  const finalBlob = await embedFontsInPptx(pptxBlob, usedFonts);
+
+  // Download
+  const url = URL.createObjectURL(finalBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${sanitizeFilename(presentation.title)}.pptx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// ── Font embedding into PPTX ZIP ──
+
+interface FontVariant {
+  style: 'regular' | 'bold' | 'italic' | 'boldItalic';
+  data: ArrayBuffer;
+}
+
+async function downloadGoogleFont(fontName: string): Promise<FontVariant[]> {
+  const variants: FontVariant[] = [];
+  const weights: Array<{ weight: string; style: 'regular' | 'bold' }> = [
+    { weight: '400', style: 'regular' },
+    { weight: '700', style: 'bold' },
+  ];
+
+  for (const { weight, style } of weights) {
+    try {
+      // Google Fonts CSS2 API returns @font-face with TTF URL
+      const cssUrl = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@${weight}&display=swap`;
+      const cssRes = await fetch(cssUrl, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      });
+      if (!cssRes.ok) continue;
+      const css = await cssRes.text();
+      // Extract TTF URL from css
+      const urlMatch = css.match(/src:\s*url\(([^)]+\.ttf)\)/);
+      if (!urlMatch) continue;
+      const ttfRes = await fetch(urlMatch[1]);
+      if (!ttfRes.ok) continue;
+      const data = await ttfRes.arrayBuffer();
+      variants.push({ style, data });
+    } catch {
+      // Skip failed variants
+    }
+  }
+
+  return variants;
+}
+
+async function embedFontsInPptx(pptxBlob: Blob, fontNames: Set<string>): Promise<Blob> {
+  if (fontNames.size === 0) return pptxBlob;
+
+  // Download all font TTF files
+  const fontMap = new Map<string, FontVariant[]>();
+  const downloads = Array.from(fontNames).map(async (name) => {
+    const variants = await downloadGoogleFont(name);
+    if (variants.length > 0) fontMap.set(name, variants);
+  });
+  await Promise.all(downloads);
+
+  if (fontMap.size === 0) return pptxBlob;
+
+  // Open PPTX as ZIP
+  const zip = await JSZip.loadAsync(pptxBlob);
+
+  // 1. Add font files to ppt/fonts/
+  const fontRels: Array<{ fontName: string; style: string; rId: string; path: string }> = [];
+  let rIdCounter = 200; // Start high to avoid collisions with existing rIds
+
+  for (const [fontName, variants] of fontMap) {
+    const safeName = fontName.replace(/\s+/g, '');
+    for (const variant of variants) {
+      const fileName = `${safeName}-${variant.style}.fntdata`;
+      const filePath = `ppt/fonts/${fileName}`;
+      zip.file(filePath, variant.data);
+      const rId = `rId${rIdCounter++}`;
+      fontRels.push({ fontName, style: variant.style, rId, path: `fonts/${fileName}` });
+    }
+  }
+
+  // 2. Update [Content_Types].xml — add fntdata extension
+  const contentTypesXml = await zip.file('[Content_Types].xml')?.async('string');
+  if (contentTypesXml && !contentTypesXml.includes('fntdata')) {
+    const updated = contentTypesXml.replace(
+      '<Types ',
+      '<Types '
+    ).replace(
+      /<\/Types>/,
+      '<Default ContentType="application/x-fontdata" Extension="fntdata"/></Types>'
+    );
+    zip.file('[Content_Types].xml', updated);
+  }
+
+  // 3. Update ppt/_rels/presentation.xml.rels — add font relationships
+  const presRelsPath = 'ppt/_rels/presentation.xml.rels';
+  let presRels = await zip.file(presRelsPath)?.async('string') || '';
+  if (presRels) {
+    const newRels = fontRels.map(f =>
+      `<Relationship Id="${f.rId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="${f.path}"/>`
+    ).join('');
+    presRels = presRels.replace('</Relationships>', newRels + '</Relationships>');
+    zip.file(presRelsPath, presRels);
+  }
+
+  // 4. Update ppt/presentation.xml — add embeddedFontLst + enable embedding
+  let presXml = await zip.file('ppt/presentation.xml')?.async('string') || '';
+  if (presXml) {
+    // Enable font embedding attributes
+    presXml = presXml.replace(
+      /<p:presentation /,
+      '<p:presentation embedTrueTypeFonts="1" saveSubsetFonts="1" '
+    );
+
+    // Build embeddedFontLst XML
+    const fontEntries: string[] = [];
+    const groupedByFont = new Map<string, typeof fontRels>();
+    for (const rel of fontRels) {
+      if (!groupedByFont.has(rel.fontName)) groupedByFont.set(rel.fontName, []);
+      groupedByFont.get(rel.fontName)!.push(rel);
+    }
+
+    for (const [fontName, rels] of groupedByFont) {
+      let entry = `<p:embeddedFont><p:font typeface="${fontName}"/>`;
+      for (const rel of rels) {
+        entry += `<p:${rel.style} r:id="${rel.rId}"/>`;
+      }
+      entry += '</p:embeddedFont>';
+      fontEntries.push(entry);
+    }
+
+    const embeddedFontLst = `<p:embeddedFontLst>${fontEntries.join('')}</p:embeddedFontLst>`;
+
+    // Insert after <p:sldSz.../> or before </p:presentation>
+    if (presXml.includes('</p:sldSz>')) {
+      presXml = presXml.replace('</p:sldSz>', '</p:sldSz>' + embeddedFontLst);
+    } else {
+      presXml = presXml.replace('</p:presentation>', embeddedFontLst + '</p:presentation>');
+    }
+
+    zip.file('ppt/presentation.xml', presXml);
+  }
+
+  return await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
 }
 
 function blobToBase64(blob: Blob): Promise<string> {
