@@ -161,10 +161,7 @@ export default function Entry() {
             <span className="text-base font-headline font-extrabold text-slate-900">SlideAI</span>
           </div>
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate('/template-studio')} className="hidden sm:block px-3 py-1.5 text-xs font-medium text-slate-500 hover:text-slate-900 rounded-full hover:bg-white/50 transition-all">
-              Template Studio
-            </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center cursor-pointer">
+<div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#4F46E5] to-[#9333EA] flex items-center justify-center cursor-pointer">
               <User className="w-3.5 h-3.5 text-white" />
             </div>
           </div>
