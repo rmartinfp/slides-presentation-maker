@@ -1047,48 +1047,36 @@ const POPULAR_FONTS = [
   'Mulish', 'Urbanist', 'Sora', 'Figtree', 'Geist',
 ];
 
-// Google Fonts — fetched once, cached in module scope
-let _cachedGoogleFonts: string[] | null = null;
-let _fetchPromise: Promise<string[]> | null = null;
-
-function fetchGoogleFonts(): Promise<string[]> {
-  if (_cachedGoogleFonts) return Promise.resolve(_cachedGoogleFonts);
-  if (_fetchPromise) return _fetchPromise;
-  const key = import.meta.env?.VITE_GOOGLE_FONTS_API_KEY;
-  if (!key) return Promise.resolve(POPULAR_FONTS);
-  _fetchPromise = fetch(`https://www.googleapis.com/webfonts/v1/webfonts?key=${key}&sort=popularity`)
-    .then(r => {
-      if (!r.ok) throw new Error(`Google Fonts API returned ${r.status}`);
-      return r.json();
-    })
-    .then(data => {
-      const items = (data.items || []).map((f: any) => f.family as string);
-      if (items.length > 100) {
-        _cachedGoogleFonts = items;
-        return items;
-      }
-      return POPULAR_FONTS;
-    })
-    .catch((err) => {
-      console.warn('Google Fonts fetch failed:', err);
-      _fetchPromise = null; // allow retry on next open
-      return POPULAR_FONTS;
-    });
-  return _fetchPromise;
-}
-
-/** Hook that returns the full Google Fonts list, fetching on first call */
-function useGoogleFonts(): string[] {
-  const [fonts, setFonts] = React.useState<string[]>(_cachedGoogleFonts || POPULAR_FONTS);
-  React.useEffect(() => {
-    let cancelled = false;
-    fetchGoogleFonts().then(result => {
-      if (!cancelled) setFonts(result);
-    });
-    return () => { cancelled = true; };
-  }, []);
-  return fonts;
-}
+// Top 300 Google Fonts by popularity — hardcoded to avoid runtime API dependency
+const ALL_FONTS = [
+  'Roboto', 'Open Sans', 'Inter', 'Montserrat', 'Poppins', 'Lato', 'Raleway',
+  'Roboto Condensed', 'Roboto Mono', 'Noto Sans', 'Oswald', 'Nunito',
+  'Nunito Sans', 'DM Sans', 'Playfair Display', 'Rubik', 'Ubuntu', 'Roboto Slab', 'Merriweather',
+  'Work Sans', 'PT Sans', 'Kanit', 'Manrope', 'Lora', 'Mulish', 'Outfit', 'Quicksand', 'Figtree',
+  'Inconsolata', 'Barlow', 'Fira Sans', 'IBM Plex Sans', 'Bebas Neue', 'Titillium Web', 'Heebo',
+  'Karla', 'Archivo', 'Jost', 'Plus Jakarta Sans', 'Noto Serif', 'Source Sans 3', 'PT Serif',
+  'Source Code Pro', 'Libre Baskerville', 'Dancing Script', 'Cairo',
+  'Josefin Sans', 'Libre Franklin', 'EB Garamond', 'Public Sans', 'Barlow Condensed', 'Anton',
+  'Dosis', 'Bitter', 'Cabin', 'Space Grotesk', 'Bricolage Grotesque', 'Lexend', 'Assistant',
+  'Cormorant Garamond', 'Red Hat Display', 'Inter Tight', 'Hind', 'Pacifico', 'Instrument Serif', 'Exo 2',
+  'Sora', 'Oxygen', 'Lobster', 'Urbanist', 'Caveat', 'Rajdhani', 'Arvo', 'Crimson Text',
+  'DM Serif Display', 'Comfortaa', 'Overpass', 'PT Sans Narrow', 'Merriweather Sans', 'JetBrains Mono',
+  'Abel', 'Mukta', 'Source Serif 4', 'Teko', 'Fredoka', 'Barlow Semi Condensed', 'Orbitron',
+  'IBM Plex Mono', 'Lexend Deca', 'Satisfy', 'Geist', 'Asap', 'Cinzel', 'Maven Pro',
+  'DM Mono', 'Shadows Into Light', 'Play', 'Lilita One', 'Chakra Petch', 'Bodoni Moda', 'Varela Round',
+  'Indie Flower', 'IBM Plex Serif', 'Exo', 'Abril Fatface', 'Zilla Slab', 'Kalam', 'Instrument Sans',
+  'Albert Sans', 'Archivo Narrow', 'ABeeZee', 'Be Vietnam Pro', 'Onest', 'Space Mono', 'Geist Mono',
+  'Great Vibes', 'Spectral', 'Permanent Marker', 'League Spartan', 'Signika', 'Encode Sans', 'Epilogue',
+  'Sofia Sans', 'Yanone Kaffeesatz', 'Fraunces', 'Newsreader', 'Vollkorn', 'Syne', 'Catamaran',
+  'Alegreya', 'Montserrat Alternates', 'Bree Serif', 'Alegreya Sans', 'Hanken Grotesk', 'Rethink Sans',
+  'Righteous', 'Acme', 'Literata', 'Cardo', 'Atkinson Hyperlegible', 'Baskervville', 'DM Serif Text',
+  'Comic Neue', 'Bangers', 'Chivo', 'Libre Caslon Text', 'Hammersmith One', 'Amatic SC', 'Paytone One',
+  'Crimson Pro', 'Russo One', 'Prata', 'Advent Pro', 'Kumbh Sans', 'Courgette', 'Press Start 2P',
+  'Courier Prime', 'Red Hat Text', 'Patua One', 'Staatliches', 'Cantarell', 'Tenor Sans',
+  'Patrick Hand', 'Fira Code', 'League Gothic', 'Passion One', 'Crete Round', 'Allura',
+  'Aleo', 'Kaushan Script', 'Old Standard TT', 'Playfair', 'Sacramento', 'Special Elite',
+  'Philosopher', 'Commissioner', 'Rokkitt', 'Corben', 'Manjari', 'Funnel Sans', 'Xanh Mono',
+];
 
 const FONT_SIZES_PT = [6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 28, 32, 36, 42, 48, 54, 60, 72, 96];
 
@@ -1106,10 +1094,9 @@ function TextPropsSection({ el, updateElement, updateStyle }: {
   const currentWeight = el.style?.fontWeight || '400';
   const currentAlign = el.style?.textAlign || 'left';
 
-  const allFonts = useGoogleFonts();
   const filteredFonts = fontSearch
-    ? allFonts.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase())).slice(0, 100)
-    : allFonts.slice(0, 100);
+    ? ALL_FONTS.filter(f => f.toLowerCase().includes(fontSearch.toLowerCase()))
+    : ALL_FONTS;
 
   const handleFontChange = (font: string) => {
     // Load the font dynamically
