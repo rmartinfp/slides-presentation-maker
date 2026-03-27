@@ -503,19 +503,25 @@ export default function CinematicPresentation({
 
   // Fullscreen — exit presentation when user leaves fullscreen (single Escape)
   useEffect(() => {
-    document.documentElement.requestFullscreen?.().catch(() => {
-      setFullscreenToast('Press F11 for fullscreen');
-      setTimeout(() => setFullscreenToast(null), 3000);
-    });
+    let listening = false;
 
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) onExit();
+      if (listening && !document.fullscreenElement) onExit();
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    document.documentElement.requestFullscreen?.()
+      .then(() => {
+        listening = true;
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+      })
+      .catch(() => {
+        setFullscreenToast('Press F11 for fullscreen');
+        setTimeout(() => setFullscreenToast(null), 3000);
+      });
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.exitFullscreen?.().catch(() => {});
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     };
   }, [onExit]);
 

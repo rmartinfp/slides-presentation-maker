@@ -40,16 +40,25 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
 
   // Enter fullscreen — exit presentation when user leaves fullscreen (single Escape)
   useEffect(() => {
-    document.documentElement.requestFullscreen?.().catch(() => {});
+    let listening = false;
 
     const handleFullscreenChange = () => {
-      if (!document.fullscreenElement) onExit();
+      if (listening && !document.fullscreenElement) onExit();
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    document.documentElement.requestFullscreen?.()
+      .then(() => {
+        // Only start listening AFTER fullscreen is active
+        listening = true;
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+      })
+      .catch(() => {
+        // Fullscreen denied — still work without it, use Escape key handler
+      });
 
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
-      document.exitFullscreen?.().catch(() => {});
+      if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
     };
   }, [onExit]);
 
