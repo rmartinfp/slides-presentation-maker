@@ -102,12 +102,28 @@ export default function BrandKitDialog({ onClose }: Props) {
       } catch { /* fall through to extract */ }
     }
 
-    // Only extract if no saved kit
+    // Only extract if no saved kit — send only style data, not full slide content
     const extract = async () => {
       try {
+        const lightSlides = presentation.slides.map(s => ({
+          background: s.background,
+          elements: (s.elements || []).map(el => ({
+            type: el.type,
+            style: el.type === 'text' ? {
+              fontFamily: el.style?.fontFamily,
+              fontSize: el.style?.fontSize,
+              color: el.style?.color,
+              backgroundColor: el.style?.backgroundColor,
+              shapeFill: el.style?.shapeFill,
+            } : {
+              backgroundColor: el.style?.backgroundColor,
+              shapeFill: el.style?.shapeFill,
+            },
+          })),
+        }));
         const { data, error } = await supabase.functions.invoke('extract-brand', {
           body: {
-            slides: presentation.slides,
+            slides: lightSlides,
             currentTheme: presentation.theme.tokens,
           },
         });
@@ -142,9 +158,25 @@ export default function BrandKitDialog({ onClose }: Props) {
     setLoading(true);
     setBrandKit(null);
     try {
+      const lightSlides = presentation.slides.map(s => ({
+        background: s.background,
+        elements: (s.elements || []).map(el => ({
+          type: el.type,
+          style: el.type === 'text' ? {
+            fontFamily: el.style?.fontFamily,
+            fontSize: el.style?.fontSize,
+            color: el.style?.color,
+            backgroundColor: el.style?.backgroundColor,
+            shapeFill: el.style?.shapeFill,
+          } : {
+            backgroundColor: el.style?.backgroundColor,
+            shapeFill: el.style?.shapeFill,
+          },
+        })),
+      }));
       const { data, error } = await supabase.functions.invoke('extract-brand', {
         body: {
-          slides: presentation.slides,
+          slides: lightSlides,
           currentTheme: presentation.theme.tokens,
         },
       });
