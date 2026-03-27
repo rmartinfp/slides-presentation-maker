@@ -211,7 +211,50 @@ export default function BrandKitDialog({ onClose }: Props) {
       ],
     };
 
-    setTheme(theme);
+    const oldPalette = presentation.theme.tokens.palette;
+    const newPalette = brandKit.palette;
+    const colorMap = new Map<string, string>();
+    for (const key of ['primary', 'secondary', 'accent', 'bg', 'text'] as const) {
+      const oldColor = (oldPalette[key] || '').toLowerCase();
+      const newColor = newPalette[key];
+      if (oldColor && newColor && oldColor !== newColor.toLowerCase()) {
+        colorMap.set(oldColor, newColor);
+      }
+    }
+
+    useEditorStore.getState().pushSnapshot();
+
+    useEditorStore.setState(produce((state: any) => {
+      if (colorMap.size > 0) {
+        for (const slide of state.presentation.slides) {
+          if (slide.background?.type === 'solid') {
+            const val = (slide.background.value || '').toLowerCase();
+            if (colorMap.has(val)) slide.background.value = colorMap.get(val);
+          }
+          for (const el of slide.elements) {
+            if (el.type === 'text' && el.style?.color) {
+              const c = el.style.color.toLowerCase();
+              if (colorMap.has(c)) el.style.color = colorMap.get(c);
+            }
+            if (el.style?.backgroundColor) {
+              const c = el.style.backgroundColor.toLowerCase();
+              if (colorMap.has(c)) el.style.backgroundColor = colorMap.get(c);
+            }
+            if (el.style?.shapeFill) {
+              const c = el.style.shapeFill.toLowerCase();
+              if (colorMap.has(c)) el.style.shapeFill = colorMap.get(c);
+            }
+            if (el.style?.shapeStroke) {
+              const c = el.style.shapeStroke.toLowerCase();
+              if (colorMap.has(c)) el.style.shapeStroke = colorMap.get(c);
+            }
+          }
+        }
+      }
+      state.presentation.theme = theme;
+      state.presentation.updatedAt = new Date().toISOString();
+    }));
+
     setApplied(true);
     toast.success('Brand theme applied!');
     setTimeout(onClose, 600);
@@ -343,16 +386,6 @@ export default function BrandKitDialog({ onClose }: Props) {
                         </div>
                       </div>
                       <p className="text-[9px] text-slate-400 mt-1">Click a font to change it across all slides</p>
-                    </div>
-
-                    {/* Style */}
-                    <div>
-                      <p className="text-[10px] font-medium text-slate-400 uppercase tracking-wider mb-2">Style</p>
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-[10px] text-indigo-700 font-medium">{brandKit.style?.mood}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600">Radii: {brandKit.style?.radii}</span>
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600">Shadows: {brandKit.style?.shadows}</span>
-                      </div>
                     </div>
 
                     {/* Action buttons */}

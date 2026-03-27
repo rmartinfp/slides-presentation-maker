@@ -40,6 +40,7 @@ function toHtml(content: string): string {
 export default function RichTextEditor({ element, scale, onBlur, readOnly = false }: Props) {
   const updateElement = useEditorStore(s => s.updateElement);
   const [shrinkScale, setShrinkScale] = useState(1);
+  const lastContentRef = useRef(element.content);
 
   const editor = useEditor({
     extensions: [
@@ -69,10 +70,20 @@ export default function RichTextEditor({ element, scale, onBlur, readOnly = fals
     onUpdate: ({ editor: ed }) => {
       if (readOnly) return;
       const html = ed.getHTML();
+      lastContentRef.current = html;
       updateElement(element.id, { content: html });
     },
     autofocus: readOnly ? false : 'end',
   });
+
+  // Sync content when changed externally (e.g., AI rewrite, translation)
+  useEffect(() => {
+    if (!editor) return;
+    if (element.content !== lastContentRef.current) {
+      lastContentRef.current = element.content;
+      editor.commands.setContent(toHtml(element.content), false);
+    }
+  }, [editor, element.content]);
 
   // CRITICAL: Sync editable state when readOnly prop changes.
   // Tiptap's useEditor does NOT update editable after initial creation.
