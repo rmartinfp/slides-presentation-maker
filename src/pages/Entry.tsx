@@ -158,9 +158,12 @@ export default function Entry() {
 
         {/* Prompt Section */}
         <div className="max-w-3xl mx-auto mb-10">
-          <h1 className="font-headline font-extrabold text-3xl sm:text-4xl headline-tight text-slate-900 text-center mb-6">
-            Describe it. We design it.
+          <h1 className="font-headline font-extrabold text-3xl sm:text-4xl headline-tight text-slate-900 text-center mb-2">
+            Pick your style. Describe your idea. We design it.
           </h1>
+          <p className="text-center text-sm text-slate-500 mb-6">
+            Select a design and tell us what you need. The more detail, the better content.
+          </p>
           <div className="rounded-2xl border border-slate-200/80 bg-white/70 backdrop-blur-sm shadow-sm focus-within:ring-2 focus-within:ring-[#4F46E5]/20 focus-within:border-[#4F46E5]/30">
             {/* Selected template thumbnail */}
             {selectedId && (() => {
@@ -195,7 +198,7 @@ export default function Entry() {
             <textarea
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
-              placeholder="Describe your presentation... e.g. 'A pitch deck for our AI startup, focusing on market opportunity, product features, and team'"
+              placeholder="Describe your presentation with maximum detail. Example: 'Pitch deck for an AI startup, focusing on market opportunity, product features, and team'. The more specific, the better we create."
               rows={3}
               className={cn("w-full px-5 pb-2 bg-transparent text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none resize-none", selectedId ? "pt-2" : "pt-4")}
             />
