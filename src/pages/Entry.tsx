@@ -49,7 +49,6 @@ export default function Entry() {
   });
 
   // Preview GIF fallback — used until thumbnail_url is set in the DB.
-  // To self-host: upload GIFs to Supabase Storage and run scripts/upload-preview-gifs.ts
   const PREVIEW_GIFS: Record<string, string> = {
     'viktory':      'https://motionsites.ai/assets/hero-web3-eos-poster-DF0_WdVS.png',
     'lumina':        'https://motionsites.ai/assets/hero-digitwist-preview-s2pJetjQ.gif',
@@ -63,12 +62,17 @@ export default function Entry() {
     'grow':          'https://motionsites.ai/assets/hero-apex-saas-preview-CbnBKSPv.gif',
   };
 
+  const PREVIEW_VIDEOS: Record<string, string> = {
+    'nexora':   'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260319_015952_e1deeb12-8fb7-4071-a42a-60779fc64ab6.mp4',
+    'mindloop': 'https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260325_120549_0cd82c36-56b3-4dd9-b190-069cfc3a623f.mp4',
+  };
+
   // Build both lists then interleave them
   const cinematicList = (cinematicTemplates || []).map((t: any) => ({
     id: t.id, name: t.name, category: t.category, type: 'cinematic' as const,
     thumbnailUrl: t.thumbnail_url || PREVIEW_GIFS[t.slug] || null,
-    videoUrl: null,
-    videoOpacity: 0,
+    videoUrl: PREVIEW_VIDEOS[t.slug] || null,
+    videoOpacity: 1,
     bgColor: t.slides?.[0]?.background?.value || t.theme?.tokens?.palette?.bg || '#000',
     tags: (t.tags || []).join(' '),
     raw: t,
@@ -192,6 +196,7 @@ export default function Entry() {
                     ) : (
                       <div className="h-16 w-28 rounded-lg relative overflow-hidden flex items-center justify-center" style={{ backgroundColor: tmpl.bgColor }}>
                         {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />}
+                        {tmpl.videoUrl && <video src={tmpl.videoUrl} autoPlay muted loop playsInline className="absolute inset-0 w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
                         <div className="relative z-10 flex items-center gap-1.5">
                           <Play className="w-3.5 h-3.5 text-white/80" />
                           <span className="text-[10px] font-medium text-white/80 truncate max-w-[70px]">{tmpl.name}</span>
@@ -527,6 +532,17 @@ function TemplateCard({ tmpl, index, isSelected, onSelect, onPreview }: {
         ) : (
           <>
             {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />}
+            {tmpl.videoUrl && (
+              <video
+                src={tmpl.videoUrl}
+                autoPlay
+                muted
+                loop
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ opacity: tmpl.videoOpacity }}
+              />
+            )}
           </>
         )}
         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
@@ -628,6 +644,17 @@ function EntryPreviewModal({ tmpl, isSelected, onSelect, onClose }: {
             ) : (
               <>
                 {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="w-full h-full object-cover" />}
+                {tmpl.videoUrl && (
+                  <video
+                    src={tmpl.videoUrl}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                    style={{ opacity: tmpl.videoOpacity }}
+                  />
+                )}
               </>
             )}
 
