@@ -16,6 +16,7 @@ import { CinematicPreset } from '@/types/cinematic';
 import PresenterView from '@/components/editor/PresenterView';
 import AIRewriteDialog from '@/components/editor/AIRewriteDialog';
 import AIImageDialog from '@/components/editor/AIImageDialog';
+import AIVideoDialog from '@/components/editor/AIVideoDialog';
 import TranslateDialog from '@/components/editor/TranslateDialog';
 import CoachDialog from '@/components/editor/CoachDialog';
 import RedesignDialog from '@/components/editor/RedesignDialog';
@@ -463,6 +464,7 @@ export default function EditorPage() {
   const [isEditingTitle, setIsEditingTitle] = React.useState(false);
   const [showRightPanel, setShowRightPanel] = React.useState(false);
   const [showAIImage, setShowAIImage] = React.useState(false);
+  const [showAIVideo, setShowAIVideo] = React.useState(false);
   const [showTranslate, setShowTranslate] = React.useState(false);
   const [showCoach, setShowCoach] = React.useState(false);
   const [showRedesign, setShowRedesign] = React.useState(false);
@@ -1039,7 +1041,7 @@ export default function EditorPage() {
                     <DropdownMenuItem onClick={() => vidInputRef.current?.click()}><Upload className="w-4 h-4 mr-2" />Upload from PC</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => { const url = prompt('Video URL (MP4 or HLS):'); if (url) addElement({ type: 'video', content: url, x: 300, y: 200, width: 800, height: 450, rotation: 0, opacity: 1, locked: false, visible: true, style: { objectFit: 'cover', borderRadius: 16 } }); }}><Video className="w-4 h-4 mr-2" />Insert from URL</DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => { toast.info('AI video generation coming soon'); }}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setShowAIVideo(true)}><Sparkles className="w-4 h-4 mr-2" />Generate with AI</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
                 <ToolBtn icon={<Grid3X3 className="w-4 h-4" />} label="Table" onClick={() => { const rows = Array.from({length:3},(_,ri)=>Array.from({length:3},(_,ci)=>({text:ri===0?`Header ${ci+1}`:`Cell ${ri},${ci+1}`}))); addElement({ type: 'table', content: JSON.stringify({rows,headerRow:true,borderColor:'#e2e8f0'}), x: 400, y: 300, width: 700, height: 300, rotation: 0, opacity: 1, locked: false, visible: true, style: { borderRadius: 8 } }); }} />
@@ -1142,6 +1144,7 @@ export default function EditorPage() {
             replaceElementId={singleSelected?.type === 'image' ? singleSelected.id : undefined}
           />
         )}
+        {showAIVideo && <AIVideoDialog onClose={() => setShowAIVideo(false)} />}
         {showTranslate && <TranslateDialog onClose={() => setShowTranslate(false)} />}
         {showCoach && <CoachDialog onClose={() => setShowCoach(false)} />}
         {showRedesign && <RedesignDialog onClose={() => setShowRedesign(false)} />}
