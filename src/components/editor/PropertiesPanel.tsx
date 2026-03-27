@@ -546,7 +546,7 @@ const SOLID_PRESETS = [
 
 // ── Slide Properties (no element selected) ──
 function SlidePropertiesPanel({ slide }: { slide: Slide | undefined }) {
-  const { setSlideVideoBackground, setSlideBackground } = useEditorStore();
+  const { setSlideVideoBackground, setSlideBackground, updateElement } = useEditorStore();
   const { upload, uploading } = useAssetUpload();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -559,6 +559,14 @@ function SlidePropertiesPanel({ slide }: { slide: Slide | undefined }) {
   const video = slide?.videoBackground;
   const currentBg = slide?.background;
   const hasBackgroundImage = currentBg?.type === 'image';
+
+  // Detect locked full-canvas background image elements (from PPTX imports)
+  const lockedBgImage = useMemo(() => {
+    if (!slide?.elements) return null;
+    return slide.elements.find(el =>
+      el.type === 'image' && el.content && el.locked && el.width >= 1900 && el.height >= 1060
+    ) || null;
+  }, [slide?.elements]);
 
   const categories = [...new Set(VIDEO_POOL.map(v => v.category))];
 
@@ -603,23 +611,65 @@ function SlidePropertiesPanel({ slide }: { slide: Slide | undefined }) {
 
   const handleAiApply = () => {
     if (!aiPreview) return;
-    setSlideBackground({ type: 'image', value: aiPreview });
+    if (lockedBgImage && !hasBackgroundImage) {
+      updateElement(lockedBgImage.id, { content: aiPreview });
+    } else {
+      setSlideBackground({ type: 'image', value: aiPreview });
+    }
     setAiPreview(null);
     setAiPrompt('');
     toast.success('Background image applied');
   };
 
+  // The background image to display: either slide.background or a locked full-canvas element
+  const displayBgUrl = hasBackgroundImage ? currentBg.value : lockedBgImage?.content || null;
+
+  const handleRemoveBgImage = useCallback(() => {
+    if (hasBackgroundImage) {
+      setSlideBackground({ type: 'solid', value: '#FFFFFF' });
+    } else if (lockedBgImage) {
+      updateElement(lockedBgImage.id, { visible: false });
+    }
+  }, [hasBackgroundImage, lockedBgImage, setSlideBackground, updateElement]);
+
+  const handleReplaceBgImage = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const result = await upload(file);
+    if (result) {
+      if (lockedBgImage && !hasBackgroundImage) {
+        updateElement(lockedBgImage.id, { content: result.url });
+      } else {
+        setSlideBackground({ type: 'image', value: result.url });
+      }
+    }
+    e.target.value = '';
+  }, [upload, lockedBgImage, hasBackgroundImage, updateElement, setSlideBackground]);
+
+  const bgReplaceInputRef = useRef<HTMLInputElement>(null);
+
   const mediaSection = (
     <Section icon={<ImageIcon className="w-3 h-3" />} title="Background Media">
-      {hasBackgroundImage && (
+      {displayBgUrl && (
         <div className="relative rounded-lg overflow-hidden border border-slate-200 aspect-video mb-2 group">
-          <img src={currentBg.value} alt="" className="w-full h-full object-cover" />
-          <button
-            onClick={() => setSlideBackground({ type: 'solid', value: '#FFFFFF' })}
-            className="absolute top-1.5 right-1.5 w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full items-center justify-center hidden group-hover:flex"
-          >
-            <X className="w-3 h-3 text-white" />
-          </button>
+          <img src={displayBgUrl} alt="" className="w-full h-full object-cover" />
+          <div className="absolute top-1.5 right-1.5 flex gap-1 hidden group-hover:flex">
+            <button
+              onClick={() => bgReplaceInputRef.current?.click()}
+              className="w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+              title="Replace background image"
+            >
+              <ImageIcon className="w-2.5 h-2.5 text-white" />
+            </button>
+            <button
+              onClick={handleRemoveBgImage}
+              className="w-5 h-5 bg-black/60 hover:bg-black/80 rounded-full flex items-center justify-center"
+              title="Remove background image"
+            >
+              <X className="w-3 h-3 text-white" />
+            </button>
+          </div>
+          <input ref={bgReplaceInputRef} type="file" accept="image/*" className="hidden" onChange={handleReplaceBgImage} />
         </div>
       )}
 
