@@ -5,6 +5,15 @@ import { Button } from '@/components/ui/button';
 import { useEditorStore } from '@/stores/editor-store';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
+
+const ASPECT_RATIOS = [
+  { label: '16:9', ratio: '16:9', w: 800, h: 450 },
+  { label: '9:16', ratio: '9:16', w: 400, h: 712 },
+  { label: '1:1', ratio: '1:1', w: 600, h: 600 },
+  { label: '4:3', ratio: '4:3', w: 800, h: 600 },
+  { label: '3:4', ratio: '3:4', w: 500, h: 667 },
+] as const;
 
 interface Props {
   onClose: () => void;
@@ -17,6 +26,7 @@ export default function AIVideoDialog({ onClose }: Props) {
   const [status, setStatus] = useState<Status>('idle');
   const [preview, setPreview] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [selectedRatio, setSelectedRatio] = useState(0);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { addElement } = useEditorStore();
 
@@ -33,7 +43,7 @@ export default function AIVideoDialog({ onClose }: Props) {
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-video', {
-        body: { action: 'generate', prompt: prompt.trim(), aspectRatio: '16:9' },
+        body: { action: 'generate', prompt: prompt.trim(), aspectRatio: ASPECT_RATIOS[selectedRatio].ratio },
       });
       if (error) throw new Error(error.message);
       if (data?.error) throw new Error(data.error);
@@ -79,8 +89,8 @@ export default function AIVideoDialog({ onClose }: Props) {
       content: preview,
       x: 300,
       y: 200,
-      width: 800,
-      height: 450,
+      width: ASPECT_RATIOS[selectedRatio].w,
+      height: ASPECT_RATIOS[selectedRatio].h,
       rotation: 0,
       opacity: 1,
       locked: false,
@@ -124,6 +134,28 @@ export default function AIVideoDialog({ onClose }: Props) {
         </div>
 
         <div className="p-6 space-y-4">
+          {/* Aspect Ratio */}
+          <div>
+            <label className="text-xs text-slate-500 mb-2 block">Aspect Ratio</label>
+            <div className="flex gap-2">
+              {ASPECT_RATIOS.map((ar, i) => (
+                <button
+                  key={ar.label}
+                  onClick={() => setSelectedRatio(i)}
+                  disabled={isLoading}
+                  className={cn(
+                    'flex-1 py-2 rounded-lg text-xs font-medium transition-colors',
+                    i === selectedRatio
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  )}
+                >
+                  {ar.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Preview */}
           {preview && (
             <div className="rounded-xl overflow-hidden border border-slate-200">
