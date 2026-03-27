@@ -165,14 +165,17 @@ async function replaceSlideImagesWithAI(
       .filter(Boolean);
 
     for (const el of slide.elements || []) {
-      if (el.type === 'image' && el.content) {
-        jobs.push({
-          slideIdx: si,
-          elementId: el.id,
-          prompt: buildSlideImagePrompt(userPrompt, slideTexts, si, slides.length),
-          aspectRatio: getClosestAspectRatio(el.width, el.height),
-        });
-      }
+      if (el.type !== 'image' || !el.content) continue;
+      // Skip locked / decorative images (background images that cover the full canvas)
+      const isEffectivelyLocked = el.locked || (el.width >= 1900 && el.height >= 1060);
+      if (isEffectivelyLocked) continue;
+
+      jobs.push({
+        slideIdx: si,
+        elementId: el.id,
+        prompt: buildSlideImagePrompt(userPrompt, slideTexts, si, slides.length),
+        aspectRatio: getClosestAspectRatio(el.width, el.height),
+      });
     }
   }
 
