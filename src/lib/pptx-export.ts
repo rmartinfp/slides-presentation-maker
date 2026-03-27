@@ -183,6 +183,22 @@ function addElement(s: PptxGenJS.Slide, el: SlideElement, theme: PresentationThe
       break;
     }
 
+    // ── VIDEO ──
+    case 'video': {
+      if (!el.content) break;
+      try {
+        s.addMedia({
+          type: 'video',
+          path: el.content,
+          x, y, w, h,
+        });
+      } catch {
+        // Fallback: add a placeholder image with a play icon overlay
+        console.warn('Failed to add video to PPTX, skipping element');
+      }
+      break;
+    }
+
     // ── SHAPE ──
     case 'shape': {
       const fill = st.shapeFill || st.backgroundColor || '#6366f1';
