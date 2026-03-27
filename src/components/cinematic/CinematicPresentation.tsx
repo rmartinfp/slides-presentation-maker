@@ -501,14 +501,23 @@ export default function CinematicPresentation({
     loadGoogleFont(preset.fontBody);
   }, [preset]);
 
-  // Fullscreen
+  // Fullscreen — exit presentation when user leaves fullscreen (single Escape)
   useEffect(() => {
     document.documentElement.requestFullscreen?.().catch(() => {
       setFullscreenToast('Press F11 for fullscreen');
       setTimeout(() => setFullscreenToast(null), 3000);
     });
-    return () => { document.exitFullscreen?.().catch(() => {}); };
-  }, []);
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) onExit();
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.exitFullscreen?.().catch(() => {});
+    };
+  }, [onExit]);
 
   const goTo = useCallback((index: number) => {
     if (index < 0 || index >= slides.length || index === currentIndex) return;

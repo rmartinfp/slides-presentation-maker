@@ -38,13 +38,20 @@ export default function PresentationMode({ slides, theme, startIndex = 0, onExit
     return () => window.removeEventListener('keydown', handler);
   }, [currentIndex, slides.length, onExit]);
 
-  // Enter fullscreen
+  // Enter fullscreen — exit presentation when user leaves fullscreen (single Escape)
   useEffect(() => {
     document.documentElement.requestFullscreen?.().catch(() => {});
+
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) onExit();
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
     return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
       document.exitFullscreen?.().catch(() => {});
     };
-  }, []);
+  }, [onExit]);
 
   // Compute background style
   const bgStyle: React.CSSProperties = {};

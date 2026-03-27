@@ -671,19 +671,9 @@ export default function EditorPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => { if (cinematicPreset) setCinematicPreset(null); setIsPresentationMode(true); }}>
-                  <Play className="w-4 h-4 mr-2" />Classic
+                <DropdownMenuItem onClick={() => setIsPresentationMode(true)}>
+                  <Play className="w-4 h-4 mr-2" />Present
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {
-                  if (!cinematicPreset) {
-                    const fallback = getPresetById('midnight');
-                    if (fallback) setCinematicPreset(fallback);
-                  }
-                  setIsPresentationMode(true);
-                }}>
-                  <Star className="w-4 h-4 mr-2" />Cinematic
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setIsPresenterView(true)}>
                   <Monitor className="w-4 h-4 mr-2" />Presenter View
                 </DropdownMenuItem>
