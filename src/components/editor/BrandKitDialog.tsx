@@ -691,7 +691,7 @@ function LogoSection({ onClose }: { onClose: () => void }) {
       <div>
         <span className="text-[10px] text-slate-400 font-medium block mb-2">Position</span>
         <div className="grid grid-cols-4 gap-1.5">
-          {([['top-left', 'TL'], ['top-right', 'TR'], ['bottom-left', 'BL'], ['bottom-right', 'BR']] as [Corner, string][]).map(([id, label]) => (
+          {([['top-left', '↖ TL'], ['top-right', '↗ TR'], ['bottom-left', '↙ BL'], ['bottom-right', '↘ BR']] as [Corner, string][]).map(([id, label]) => (
             <button key={id} onClick={() => setCorner(id)}
               className={cn('py-1.5 rounded-lg text-[10px] font-medium transition-all', corner === id ? 'bg-indigo-500 text-white shadow-sm' : 'bg-slate-100 text-slate-500 hover:bg-slate-200')}>
               {label}
