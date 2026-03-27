@@ -8,7 +8,6 @@ import { useQuery } from '@tanstack/react-query';
 import { getPresetById } from '@/lib/cinematic-presets';
 import { CinematicPreset } from '@/types/cinematic';
 import StepIndicator from './StepIndicator';
-import HlsVideo from '@/components/ui/HlsVideo';
 import { useNavigate } from 'react-router-dom';
 
 // Unified template type
@@ -457,13 +456,26 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
               </div>
             )}
 
-            {!loadingCinematic && cinematicTemplates && (
+            {!loadingCinematic && cinematicTemplates && (() => {
+              // Fallback GIFs until thumbnail_url is set in DB
+              const PREVIEW_GIFS: Record<string, string> = {
+                'viktory':      'https://motionsites.ai/assets/hero-web3-eos-poster-DF0_WdVS.png',
+                'lumina':        'https://motionsites.ai/assets/hero-digitwist-preview-s2pJetjQ.gif',
+                'velorah':       'https://motionsites.ai/assets/hero-mindloop-preview-BR8xW6xW.gif',
+                'velorah-navy':  'https://motionsites.ai/assets/hero-velorah-preview-CJNTtbpd.gif',
+                'bloom':         'https://motionsites.ai/assets/hero-bloom-ai-preview-g6RcYLTl.gif',
+                'logoisum':      'https://motionsites.ai/assets/hero-logoisum-preview-yhpSc7Yy.gif',
+                'fortune':       'https://motionsites.ai/assets/hero-buzzentic-preview-CbopM29R.gif',
+                'taskly':        'https://motionsites.ai/assets/hero-taskly-preview-Dq2MKaI0.gif',
+                'apex':          'https://motionsites.ai/assets/hero-new-era-preview-CocuDUm9.gif',
+                'grow':          'https://motionsites.ai/assets/hero-apex-saas-preview-CbnBKSPv.gif',
+              };
+              return (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {cinematicTemplates.map((tmpl: any) => {
                   const preset = getPresetById(tmpl.preset_id);
                   const isSelected = selectedCinematicId === tmpl.id;
-                  const slides = tmpl.slides || [];
-                  const firstSlide = slides[0];
+                  const previewUrl = tmpl.thumbnail_url || PREVIEW_GIFS[tmpl.slug] || null;
 
                   return (
                     <motion.div
@@ -477,16 +489,15 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                           : 'hover:ring-1 hover:ring-slate-300 shadow-sm'
                       )}
                     >
-                      {/* Video cover — NO overlays, NO text, pure video */}
                       <div
                         className="aspect-video relative overflow-hidden"
                         style={{ backgroundColor: preset?.backgroundColor || '#0a0a0f' }}
                       >
-                        {(firstSlide?.videoBackground?.url || firstSlide?.videoUrl) && (
-                          <HlsVideo
-                            src={firstSlide.videoBackground?.url || firstSlide.videoUrl}
+                        {previewUrl && (
+                          <img
+                            src={previewUrl}
+                            alt={tmpl.name}
                             className="absolute inset-0 w-full h-full object-cover"
-                            style={{ opacity: firstSlide.videoBackground?.opacity || firstSlide.videoOpacity || 0.3, filter: firstSlide.videoBackground?.filter || undefined }}
                           />
                         )}
 
@@ -511,7 +522,8 @@ export default function TemplateGallery({ onSelect, onSelectCinematic, selectedT
                   );
                 })}
               </div>
-            )}
+              );
+            })()}
 
             {!loadingCinematic && (!cinematicTemplates || cinematicTemplates.length === 0) && (
               <div className="text-center py-16">

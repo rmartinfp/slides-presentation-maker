@@ -1393,6 +1393,9 @@ function growTheme() {
   return { id: 'nexus', name: 'Grow', category: 'Cinematic', tokens: { palette: { primary: '#7C3AED', secondary: '#9CA0AE', accent: '#7C3AED', bg: '#0a0512', text: '#F2F0EB' }, typography: { titleFont: 'General Sans', bodyFont: 'Geist Sans', titleSize: 56, bodySize: 17 }, radii: '12px', shadows: 'lg' }, previewColors: ['#7C3AED', '#3A7BBF', '#0a0512'] };
 }
 
+// Preview GIF base URL — uploaded to Supabase Storage via scripts/upload-preview-gifs.ts
+const PREVIEW_BASE = `${SUPABASE_URL}/storage/v1/object/public/presentation-assets/cinematic-previews`;
+
 const TEMPLATES = [
   // Nexus removed — was not from a user prompt
   // Prysma removed — was not from a user prompt
@@ -1405,6 +1408,7 @@ const TEMPLATES = [
     slides: buildViktory(),
     theme: viktoryTheme(),
     tags: ['investor', 'pitch', 'startup', 'ai', 'enterprise'],
+    thumbnail_url: `${PREVIEW_BASE}/viktory.png`,
     sort_order: 3,
   },
   {
@@ -1416,6 +1420,7 @@ const TEMPLATES = [
     slides: buildLumina(),
     theme: luminaTheme(),
     tags: ['ai', 'saas', 'product', 'builder', 'landing'],
+    thumbnail_url: `${PREVIEW_BASE}/lumina.gif`,
     sort_order: 4,
   },
   {
@@ -1427,6 +1432,7 @@ const TEMPLATES = [
     slides: buildVelorah(),
     theme: velorahTheme(),
     tags: ['creative', 'brand', 'elegant', 'serif', 'minimal'],
+    thumbnail_url: `${PREVIEW_BASE}/velorah.gif`,
     sort_order: 5,
   },
   {
@@ -1438,6 +1444,7 @@ const TEMPLATES = [
     slides: buildBloom(),
     theme: bloomTheme(),
     tags: ['design', 'ai', 'creative', 'floral', 'modern'],
+    thumbnail_url: `${PREVIEW_BASE}/bloom.gif`,
     sort_order: 6,
   },
   {
@@ -1449,6 +1456,7 @@ const TEMPLATES = [
     slides: buildLogoisum(),
     theme: logoisumTheme(),
     tags: ['agency', 'video', 'production', 'creative', 'reels'],
+    thumbnail_url: `${PREVIEW_BASE}/logoisum.gif`,
     sort_order: 7,
   },
   {
@@ -1460,6 +1468,7 @@ const TEMPLATES = [
     slides: buildFortune(),
     theme: fortuneTheme(),
     tags: ['agency', 'corporate', 'fortune', 'featured', 'premium'],
+    thumbnail_url: `${PREVIEW_BASE}/fortune.gif`,
     sort_order: 8,
   },
   {
@@ -1471,6 +1480,7 @@ const TEMPLATES = [
     slides: buildTaskly(),
     theme: tasklyTheme(),
     tags: ['saas', 'product', 'light', 'clean', 'task', 'ai'],
+    thumbnail_url: `${PREVIEW_BASE}/taskly.gif`,
     sort_order: 9,
   },
   // Aura removed — Cloudflare video URL returns 404
@@ -1483,6 +1493,7 @@ const TEMPLATES = [
     slides: buildApex(),
     theme: apexTheme(),
     tags: ['bold', 'creative', 'uppercase', 'brutalist', 'design'],
+    thumbnail_url: `${PREVIEW_BASE}/apex.gif`,
     sort_order: 11,
   },
   {
@@ -1505,6 +1516,7 @@ const TEMPLATES = [
     slides: buildVelorahNavy(),
     theme: velorahNavyTheme(),
     tags: ['creative', 'dark', 'navy', 'serif', 'cinematic', 'elegant'],
+    thumbnail_url: `${PREVIEW_BASE}/velorah-navy.gif`,
     sort_order: 13,
   },
   {
@@ -1527,6 +1539,7 @@ const TEMPLATES = [
     slides: buildGrow(),
     theme: growTheme(),
     tags: ['saas', 'purple', 'gradient', 'dark', 'geist', 'talent'],
+    thumbnail_url: `${PREVIEW_BASE}/grow.gif`,
     sort_order: 15,
   },
 ];
@@ -1552,6 +1565,7 @@ async function main() {
       tags: tmpl.tags,
       is_active: true,
       sort_order: tmpl.sort_order,
+      thumbnail_url: (tmpl as any).thumbnail_url || null,
     });
 
     if (error) {

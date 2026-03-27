@@ -153,12 +153,13 @@ export async function generateSlide(options: {
 }
 
 /**
- * Generate an image with AI (DALL-E 3).
+ * Generate an image with AI (Google Imagen / Gemini).
  */
 export async function generateImage(options: {
   prompt: string;
   size?: '1024x1024' | '1792x1024' | '1024x1792';
   quality?: 'standard' | 'hd';
+  aspectRatio?: string;
 }) {
   const { data, error } = await supabase.functions.invoke('generate-image', {
     body: options,

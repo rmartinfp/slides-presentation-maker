@@ -5,7 +5,6 @@ import { ArrowRight, Sparkles, Play, Check, User, Search, Paperclip, Mic, MicOff
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { useQuery } from '@tanstack/react-query';
-import HlsVideo from '@/components/ui/HlsVideo';
 import { cn } from '@/lib/utils';
 import { getPresetById } from '@/lib/cinematic-presets';
 import { toast } from 'sonner';
@@ -49,12 +48,27 @@ export default function Entry() {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Preview GIF fallback — used until thumbnail_url is set in the DB.
+  // To self-host: upload GIFs to Supabase Storage and run scripts/upload-preview-gifs.ts
+  const PREVIEW_GIFS: Record<string, string> = {
+    'viktory':      'https://motionsites.ai/assets/hero-web3-eos-poster-DF0_WdVS.png',
+    'lumina':        'https://motionsites.ai/assets/hero-digitwist-preview-s2pJetjQ.gif',
+    'velorah':       'https://motionsites.ai/assets/hero-mindloop-preview-BR8xW6xW.gif',
+    'velorah-navy':  'https://motionsites.ai/assets/hero-velorah-preview-CJNTtbpd.gif',
+    'bloom':         'https://motionsites.ai/assets/hero-bloom-ai-preview-g6RcYLTl.gif',
+    'logoisum':      'https://motionsites.ai/assets/hero-logoisum-preview-yhpSc7Yy.gif',
+    'fortune':       'https://motionsites.ai/assets/hero-buzzentic-preview-CbopM29R.gif',
+    'taskly':        'https://motionsites.ai/assets/hero-taskly-preview-Dq2MKaI0.gif',
+    'apex':          'https://motionsites.ai/assets/hero-new-era-preview-CocuDUm9.gif',
+    'grow':          'https://motionsites.ai/assets/hero-apex-saas-preview-CbnBKSPv.gif',
+  };
+
   // Build both lists then interleave them
   const cinematicList = (cinematicTemplates || []).map((t: any) => ({
     id: t.id, name: t.name, category: t.category, type: 'cinematic' as const,
-    thumbnailUrl: null,
-    videoUrl: t.slides?.[0]?.videoBackground?.url,
-    videoOpacity: t.slides?.[0]?.videoBackground?.opacity || 0.5,
+    thumbnailUrl: t.thumbnail_url || PREVIEW_GIFS[t.slug] || null,
+    videoUrl: null,
+    videoOpacity: 0,
     bgColor: t.slides?.[0]?.background?.value || t.theme?.tokens?.palette?.bg || '#000',
     tags: (t.tags || []).join(' '),
     raw: t,
@@ -158,7 +172,7 @@ export default function Entry() {
 
         {/* Prompt Section */}
         <div className="max-w-3xl mx-auto mb-10">
-          <h1 className="font-headline font-extrabold text-3xl sm:text-4xl headline-tight text-slate-900 text-center mb-2">
+          <h1 className="font-headline font-extrabold headline-tight text-slate-900 text-center mb-2" style={{ fontSize: '30px' }}>
             Pick your style. Describe your idea. We design it.
           </h1>
           <p className="text-center text-sm text-slate-500 mb-6">
@@ -177,7 +191,7 @@ export default function Entry() {
                       <img src={thumb} alt={tmpl.name || 'Template'} className="h-16 w-auto object-cover rounded-lg" />
                     ) : (
                       <div className="h-16 w-28 rounded-lg relative overflow-hidden flex items-center justify-center" style={{ backgroundColor: tmpl.bgColor }}>
-                        {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
+                        {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />}
                         <div className="relative z-10 flex items-center gap-1.5">
                           <Play className="w-3.5 h-3.5 text-white/80" />
                           <span className="text-[10px] font-medium text-white/80 truncate max-w-[70px]">{tmpl.name}</span>
@@ -513,7 +527,6 @@ function TemplateCard({ tmpl, index, isSelected, onSelect, onPreview }: {
         ) : (
           <>
             {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="absolute inset-0 w-full h-full object-cover" />}
-            {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="absolute inset-0 w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
           </>
         )}
         <div className="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/50 to-transparent">
@@ -615,7 +628,6 @@ function EntryPreviewModal({ tmpl, isSelected, onSelect, onClose }: {
             ) : (
               <>
                 {tmpl.thumbnailUrl && <img src={tmpl.thumbnailUrl} alt={tmpl.name} className="w-full h-full object-cover" />}
-                {tmpl.videoUrl && <HlsVideo src={tmpl.videoUrl} className="w-full h-full object-cover" style={{ opacity: tmpl.videoOpacity }} />}
               </>
             )}
 

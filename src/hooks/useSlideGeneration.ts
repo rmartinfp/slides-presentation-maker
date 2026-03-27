@@ -2,7 +2,7 @@ import { Presentation, PresentationTheme, Slide, SlideElement } from '@/types/pr
 import { CinematicPreset } from '@/types/cinematic';
 import { getPresetById } from '@/lib/cinematic-presets';
 import { THEME_CATALOG } from '@/lib/themes';
-import { generatePresentation, TemplateBriefSlide, TemplateBriefSlot } from '@/lib/ai-generate';
+import { generatePresentation, generateImage, TemplateBriefSlide, TemplateBriefSlot } from '@/lib/ai-generate';
 import { getLayoutById } from '@/lib/layout-library';
 import { renderLayout, SlideContent } from '@/lib/layout-renderer';
 import { generateId } from '@/lib/slide-utils';
@@ -81,6 +81,115 @@ function buildTemplateBrief(slides: Slide[]): TemplateBriefSlide[] {
 
     return { slideIndex, type, textSlots };
   });
+}
+
+// ─── AI image generation for slide images ───
+
+function buildSlideImagePrompt(
+  userPrompt: string,
+  slideTexts: string[],
+  slideIndex: number,
+  totalSlides: number,
+): string {
+  const context = slideTexts.slice(0, 3).join('. ').substring(0, 300);
+
+  const position =
+    slideIndex === 0 ? 'cover'
+    : slideIndex === totalSlides - 1 ? 'closing'
+    : 'content';
+
+  const positionDirective: Record<string, string> = {
+    cover: 'This is the HERO image for the title slide — it must be bold, visually striking, and immediately convey the presentation theme. Think editorial magazine cover or keynote backdrop.',
+    closing: 'This is the CLOSING slide — the image should feel aspirational, forward-looking, and leave a lasting impression. Think sunset, horizon, open road, or symbolic achievement.',
+    content: 'This is a CONTENT slide — the image should subtly reinforce the topic being discussed without overpowering the text. Think supporting editorial photography.',
+  };
+
+  return [
+    `You are a world-class art director creating visuals for a premium presentation deck.`,
+    ``,
+    `PRESENTATION TOPIC: "${userPrompt}"`,
+    context ? `SLIDE CONTEXT: "${context}"` : '',
+    `SLIDE ROLE: ${position.toUpperCase()} (slide ${slideIndex + 1} of ${totalSlides})`,
+    ``,
+    positionDirective[position],
+    ``,
+    `VISUAL DIRECTION:`,
+    `— Photorealistic, editorial-quality imagery with cinematic lighting and color grading`,
+    `— Modern, sophisticated aesthetic (think Apple keynote, TED talk, Forbes feature)`,
+    `— Rich, intentional color palette that feels cohesive and premium`,
+    `— Thoughtful depth of field: sharp subject, soft bokeh background`,
+    `— Clean composition with visual breathing room — never cluttered`,
+    `— Favor abstract, conceptual, or atmospheric interpretations over literal/obvious depictions`,
+    `— Evoke emotion and professionalism simultaneously`,
+    ``,
+    `ABSOLUTE RESTRICTIONS:`,
+    `— ZERO text, words, letters, numbers, or typography of any kind`,
+    `— ZERO watermarks, logos, brand marks, or UI elements`,
+    `— ZERO people's faces (use silhouettes, hands, or back views if humans are needed)`,
+    `— ZERO clichéd stock photo aesthetics (no handshakes, no people pointing at screens)`,
+  ].filter(Boolean).join('\n');
+}
+
+function getClosestAspectRatio(width: number, height: number): string {
+  const ratio = width / height;
+  const options = [
+    { label: '1:1', value: 1 },
+    { label: '3:4', value: 3 / 4 },
+    { label: '4:3', value: 4 / 3 },
+    { label: '9:16', value: 9 / 16 },
+    { label: '16:9', value: 16 / 9 },
+  ];
+  let closest = options[4];
+  let minDiff = Infinity;
+  for (const opt of options) {
+    const diff = Math.abs(ratio - opt.value);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closest = opt;
+    }
+  }
+  return closest.label;
+}
+
+async function replaceSlideImagesWithAI(
+  slides: Slide[],
+  userPrompt: string,
+): Promise<void> {
+  const jobs: { slideIdx: number; elementId: string; prompt: string; aspectRatio: string }[] = [];
+
+  for (let si = 0; si < slides.length; si++) {
+    const slide = slides[si];
+    const slideTexts = (slide.elements || [])
+      .filter(el => el.type === 'text')
+      .map(el => el.content.replace(/<[^>]+>/g, '').trim())
+      .filter(Boolean);
+
+    for (const el of slide.elements || []) {
+      if (el.type === 'image' && el.content) {
+        jobs.push({
+          slideIdx: si,
+          elementId: el.id,
+          prompt: buildSlideImagePrompt(userPrompt, slideTexts, si, slides.length),
+          aspectRatio: getClosestAspectRatio(el.width, el.height),
+        });
+      }
+    }
+  }
+
+  if (jobs.length === 0) return;
+
+  const results = await Promise.allSettled(
+    jobs.map(job => generateImage({ prompt: job.prompt, aspectRatio: job.aspectRatio })),
+  );
+
+  for (let i = 0; i < results.length; i++) {
+    if (results[i].status === 'fulfilled') {
+      const { url } = (results[i] as PromiseFulfilledResult<{ url: string }>).value;
+      const job = jobs[i];
+      const el = slides[job.slideIdx].elements.find(e => e.id === job.elementId);
+      if (el) el.content = url;
+    }
+  }
 }
 
 // ─── Template resolution ───
@@ -259,6 +368,9 @@ export async function runSlideGeneration(input: GenerateInput): Promise<Presenta
 
       return newSlide;
     });
+
+    // Generate AI images for all image elements based on the user's prompt
+    await replaceSlideImagesWithAI(slides, prompt);
 
     const pres: Presentation = {
       id: Math.random().toString(36).substring(2, 11),
