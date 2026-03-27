@@ -347,12 +347,9 @@ export default function EditorPage() {
     if (idFromUrl) {
       loadFromSupabase(idFromUrl);
     } else if (presentation.slides.length === 0) {
-      const t = THEME_CATALOG[0];
-      setPresentation({
-        id: 'default', title: 'Untitled Presentation',
-        slides: migrateAllSlides(createSampleSlides() as Slide[], t.tokens),
-        theme: t, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-      });
+      // No presentation data and no generation flow — redirect to home
+      navigate('/');
+      return;
     }
   }, [idFromUrl, loadFromSupabase, setPresentation, presentation.slides.length]);
 
