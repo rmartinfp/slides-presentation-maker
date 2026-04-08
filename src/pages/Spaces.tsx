@@ -889,7 +889,7 @@ function GettingStartedCard({ title, img }: { title: string; img: string }) {
 function TemplateCard({ template, onClick }: { template: TemplateData; onClick: () => void }) {
   return (
     <div className="group cursor-pointer" onClick={onClick}>
-      <div className="relative w-full overflow-hidden rounded-2xl aspect-[16/9]">
+      <div className="relative w-full overflow-hidden rounded-2xl aspect-[4/3]">
         <img
           src={template.img}
           alt={template.title}
