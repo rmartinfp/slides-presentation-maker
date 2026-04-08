@@ -960,14 +960,17 @@ function HeroBanner() {
         </svg>
       </div>
       {/* Left content */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-center gap-0 p-12">
-        <h1 className="text-[#f0f0f0] text-[64px] font-bold leading-none tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>Spaces</h1>
-        <div className="mt-8">
-          <p className="text-[#e8e8e8] text-base font-semibold">Start from scratch</p>
-          <p className="text-[#777] text-sm mt-1">Create a new space and start collaborating</p>
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-center gap-4 p-14">
+        <div className="text-[#f0f0f0] mb-3 h-14 w-auto self-start fill-current">
+          <SpacesLogo className="h-full w-auto" />
         </div>
-        <button className="pointer-events-auto mt-5 flex items-center gap-2 self-start px-5 py-2.5 rounded-full border border-white/20 bg-white/[0.06] hover:bg-white/[0.1] text-white text-sm font-medium transition-colors">
-          <span className="text-lg leading-none">+</span> New space
+        <div className="flex flex-col">
+          <p className="text-[#f0f0f0] text-base font-semibold">Start from scratch</p>
+          <p className="text-[#888] text-xs mt-1 leading-relaxed">Create a new space and start collaborating</p>
+        </div>
+        <button className="pointer-events-auto flex items-center gap-2 self-start h-8 px-4 rounded-full bg-white/[0.08] hover:bg-white/[0.12] text-white text-xs font-medium transition-colors">
+          <svg className="w-3 h-3 fill-current" viewBox="0 0 14 14"><path d="M7 0v14M0 7h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+          <span>New space</span>
         </button>
       </div>
     </section>
