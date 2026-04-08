@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
 import { Search, Globe, FolderOpen, Sparkles, Image, Video, Mic, ChevronDown, Moon, Bell, MoreHorizontal, GraduationCap, Grid3X3, Pin, PanelLeft, Play, Zap, Maximize2, X, Upload, CheckCircle2, Eye } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
@@ -645,28 +645,88 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
   const inputIcon = (text: string) => {
     const t = text.toLowerCase();
     if (t.includes('photo') || t.includes('image') || t.includes('picture') || t.includes('portrait') || t.includes('sketch') || t.includes('selfie') || t.includes('reference') || t.includes('sheet'))
-      return <Image className="w-6 h-6" strokeWidth={1.5} />;
+      return <Image className="w-7 h-7" strokeWidth={1.5} />;
     if (t.includes('video') || t.includes('frame'))
-      return <Video className="w-6 h-6" strokeWidth={1.5} />;
-    return <Upload className="w-6 h-6" strokeWidth={1.5} />;
+      return <Video className="w-7 h-7" strokeWidth={1.5} />;
+    return <Upload className="w-7 h-7" strokeWidth={1.5} />;
   };
 
-  /* layout math for SVG curves */
-  const inputCount = template.inputs.length;
-  const autoCount = template.automations.length;
+  /* ── Measure real port positions and draw bezier curves ── */
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [curves, setCurves] = useState<{ d: string; color: string }[]>([]);
+
+  const measureAndDraw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const box = canvas.getBoundingClientRect();
+    const q = (sel: string) => Array.from(canvas.querySelectorAll(sel));
+    const pos = (el: Element) => {
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2 - box.left, y: r.top + r.height / 2 - box.top };
+    };
+
+    const inputPorts = q('[data-port="ir"]');  // input-right
+    const centerL = q('[data-port="cl"]');     // center-left
+    const centerR = q('[data-port="cr"]');     // center-right
+    const outputPort = canvas.querySelector('[data-port="ol"]'); // output-left
+
+    const paths: { d: string; color: string }[] = [];
+
+    // input → center (spread: each input connects to all center nodes, or 1:1 if same count)
+    inputPorts.forEach((ip, i) => {
+      const targets = centerL.length === inputPorts.length ? [centerL[i]] : centerL;
+      targets.forEach((tgt) => {
+        if (!tgt) return;
+        const a = pos(ip);
+        const b = pos(tgt);
+        const dx = Math.abs(b.x - a.x) * 0.45;
+        paths.push({
+          d: `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`,
+          color: 'rgba(201,162,39,0.3)',
+        });
+      });
+    });
+
+    // center → output (all center nodes connect to the single output)
+    if (outputPort) {
+      const b = pos(outputPort);
+      centerR.forEach((cp) => {
+        const a = pos(cp);
+        const dx = Math.abs(b.x - a.x) * 0.45;
+        paths.push({
+          d: `M ${a.x} ${a.y} C ${a.x + dx} ${a.y}, ${b.x - dx} ${b.y}, ${b.x} ${b.y}`,
+          color: 'rgba(52,211,153,0.3)',
+        });
+      });
+    }
+
+    setCurves(paths);
+  }, [template]);
+
+  useLayoutEffect(() => {
+    // measure after first paint
+    const id = requestAnimationFrame(measureAndDraw);
+    return () => cancelAnimationFrame(id);
+  }, [measureAndDraw]);
+
+  // also remeasure on resize
+  useEffect(() => {
+    window.addEventListener('resize', measureAndDraw);
+    return () => window.removeEventListener('resize', measureAndDraw);
+  }, [measureAndDraw]);
 
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[1320px] mx-6 my-10 rounded-[28px] bg-[#111] border border-white/[0.07] overflow-hidden shadow-2xl">
+      <div className="relative z-10 w-full max-w-[1340px] mx-6 my-8 rounded-[28px] bg-[#111] border border-white/[0.07] overflow-hidden shadow-2xl">
         {/* close */}
         <button onClick={onClose} className="absolute top-6 right-6 z-20 flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
           <X className="w-4.5 h-4.5 text-[#888]" />
         </button>
 
         {/* ── Header ── */}
-        <div className="px-14 pt-12 pb-10">
+        <div className="px-14 pt-10 pb-8">
           <div className="flex items-center gap-3 mb-3">
             <span className={`text-[11px] font-bold tracking-[0.14em] uppercase ${catColor}`}>{template.category}</span>
             {template.author && (
@@ -675,111 +735,84 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               </span>
             )}
           </div>
-          <h1 className="text-[#f0f0f0] text-[32px] font-bold leading-[1.15] pr-16 max-w-[800px]">{template.title}</h1>
-          <p className="text-[#555] text-base mt-3 max-w-[640px] leading-relaxed">{template.description}</p>
+          <h1 className="text-[#f0f0f0] text-[30px] font-bold leading-[1.2] pr-16 max-w-[800px]">{template.title}</h1>
+          <p className="text-[#555] text-[15px] mt-2.5 max-w-[640px] leading-relaxed">{template.description}</p>
         </div>
 
         {/* ══════════════════════════════════════════════════
             CANVAS: YOU PROVIDE → WORKFLOW DOES → YOU GET
            ══════════════════════════════════════════════════ */}
-        <div className="relative bg-[#0a0a0a] border-y border-white/[0.05] overflow-hidden">
-          {/* dot grid background */}
-          <div className="absolute inset-0 opacity-[0.035]" style={{
+        <div ref={canvasRef} className="relative bg-[#0a0a0a] border-y border-white/[0.05]">
+          {/* dot grid */}
+          <div className="absolute inset-0 opacity-[0.03]" style={{
             backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
             backgroundSize: '20px 20px',
           }} />
 
-          {/* SVG bezier connectors */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]" viewBox="0 0 1000 420" preserveAspectRatio="none">
-            {/* Left connectors: inputs → center automations */}
-            {template.inputs.map((_, i) => {
-              const startX = 210;
-              const startY = inputCount === 1 ? 210 : 130 + i * (160 / Math.max(inputCount - 1, 1));
-              const endX = 370;
-              const endY = autoCount <= 1 ? 210 : 100 + (i % autoCount) * (220 / Math.max(autoCount - 1, 1));
-              const cpx1 = startX + 70;
-              const cpx2 = endX - 70;
-              return (
-                <path key={`l${i}`}
-                  d={`M ${startX} ${startY} C ${cpx1} ${startY}, ${cpx2} ${endY}, ${endX} ${endY}`}
-                  stroke="rgba(201,162,39,0.3)" strokeWidth="2" fill="none" strokeLinecap="round"
-                />
-              );
-            })}
-            {/* Right connectors: center automations → output */}
-            {template.automations.map((_, i) => {
-              const startX = 640;
-              const startY = autoCount <= 1 ? 210 : 100 + i * (220 / Math.max(autoCount - 1, 1));
-              const endX = 790;
-              const endY = 210;
-              const cpx1 = startX + 70;
-              const cpx2 = endX - 70;
-              return (
-                <path key={`r${i}`}
-                  d={`M ${startX} ${startY} C ${cpx1} ${startY}, ${cpx2} ${endY}, ${endX} ${endY}`}
-                  stroke="rgba(52,211,153,0.3)" strokeWidth="2" fill="none" strokeLinecap="round"
-                />
-              );
-            })}
+          {/* SVG connector curves (measured from real DOM) */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
+            {curves.map((c, i) => (
+              <path key={i} d={c.d} stroke={c.color} strokeWidth="2" fill="none" strokeLinecap="round" />
+            ))}
           </svg>
 
-          <div className="relative z-[2] grid grid-cols-[260px_1fr_300px] min-h-[420px]">
+          <div className="relative z-[2] grid grid-cols-[300px_1fr_340px]" style={{ minHeight: 460 }}>
 
             {/* ── LEFT: You provide ── */}
-            <div className="p-10 pr-4 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-2 h-2 rounded-full bg-[#c9a227]" />
-                <span className="text-[#c9a227] text-[11px] font-bold uppercase tracking-[0.12em]">You provide</span>
+            <div className="p-10 pr-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-7">
+                <div className="w-2.5 h-2.5 rounded-full bg-[#c9a227]" />
+                <span className="text-[#c9a227] text-[12px] font-bold uppercase tracking-[0.1em]">You provide</span>
               </div>
               <div className="flex flex-col gap-5">
                 {template.inputs.map((input, i) => (
-                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#141414] border border-[#c9a227]/20 px-5 py-5">
-                    {/* port right */}
-                    <div className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-[#c9a227]/40 bg-[#0a0a0a]" />
-                    <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
+                  <div key={i} className="relative flex items-center gap-5 rounded-2xl bg-[#151515] border border-[#c9a227]/20 px-6 py-6">
+                    {/* port: right edge */}
+                    <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#0a0a0a]" />
+                    <div className="w-16 h-16 rounded-2xl bg-[#1c1c1c] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
                       {inputIcon(input)}
                     </div>
-                    <p className="text-[#bbb] text-[14px] leading-snug min-w-0">{input}</p>
+                    <p className="text-[#ccc] text-[15px] leading-snug min-w-0">{input}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── CENTER: The workflow does for you ── */}
-            <div className="py-10 px-6 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-6 justify-center">
-                <Zap className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
-                <span className="text-[#666] text-[11px] font-bold uppercase tracking-[0.12em]">The workflow does</span>
+            {/* ── CENTER: The workflow does ── */}
+            <div className="py-10 px-8 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-7 justify-center">
+                <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
+                <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The workflow does</span>
               </div>
-              <div className="flex flex-col gap-4 max-w-[380px] mx-auto">
+              <div className="flex flex-col gap-4 max-w-[420px] mx-auto w-full">
                 {template.automations.map((auto, i) => (
-                  <div key={i} className="relative flex items-center gap-3.5 rounded-2xl bg-[#141414] border border-white/[0.06] px-5 py-4">
-                    {/* port left */}
-                    <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-[#333] bg-[#0a0a0a]" />
-                    {/* port right */}
-                    <div className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-[#333] bg-[#0a0a0a]" />
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400/60" strokeWidth={2} />
+                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#151515] border border-white/[0.06] px-6 py-5">
+                    {/* port: left edge */}
+                    <div data-port="cl" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#0a0a0a]" />
+                    {/* port: right edge */}
+                    <div data-port="cr" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#0a0a0a]" />
+                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-[18px] h-[18px] text-emerald-400/60" strokeWidth={2} />
                     </div>
-                    <p className="text-[#999] text-[13px] leading-snug min-w-0">{auto}</p>
+                    <p className="text-[#999] text-[14px] leading-snug min-w-0">{auto}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* ── RIGHT: You get ── */}
-            <div className="p-10 pl-4 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="w-2 h-2 rounded-full bg-emerald-400" />
-                <span className="text-emerald-400 text-[11px] font-bold uppercase tracking-[0.12em]">You get</span>
+            <div className="p-10 pl-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-7">
+                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
               </div>
               <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20">
-                {/* port left */}
-                <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-emerald-500/40 bg-[#0a0a0a] z-10" />
+                {/* port: left edge */}
+                <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#0a0a0a] z-10" />
                 <img src={template.img} alt={template.title} className="w-full aspect-[4/3] object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-5">
-                  <p className="text-white/90 text-[13px] font-medium leading-relaxed">{template.result}</p>
+                <div className="absolute bottom-0 left-0 right-0 p-6">
+                  <p className="text-white text-[14px] font-medium leading-relaxed">{template.result}</p>
                 </div>
               </div>
             </div>
@@ -787,8 +820,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         </div>
 
         {/* ── Footer: Nodes + CTAs ── */}
-        <div className="px-14 py-8 flex items-center justify-between gap-8">
-          {/* Node pills */}
+        <div className="px-14 py-7 flex items-center justify-between gap-8">
           <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
             <span className="text-[11px] font-bold text-[#444] uppercase tracking-[0.1em] mr-1">Nodes</span>
             {template.nodes.map((node) => {
@@ -802,7 +834,6 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               );
             })}
           </div>
-          {/* CTAs */}
           <div className="flex items-center gap-3 flex-shrink-0">
             <button className="h-12 px-7 rounded-xl border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#aaa] text-sm font-medium transition-colors flex items-center gap-2.5">
               <Eye className="w-4 h-4" strokeWidth={2} />
