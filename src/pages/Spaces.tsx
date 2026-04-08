@@ -1000,48 +1000,83 @@ export default function Spaces() {
 
   return (
     <div className="flex h-screen bg-[#1a1a1a] font-['Inter',sans-serif]">
-      {/* ──── SIDEBAR (collapsed, icons only) ──── */}
-      <div className="relative z-[100] h-full w-[60px] shrink-0 bg-[#1a1a1a]">
-        <nav className="flex flex-col items-center py-4 h-full">
-          {/* Freepik logo */}
-          <div className="mb-4">
-            <svg className="w-7 h-7 fill-current text-white" viewBox="0 0 24 24">
+      {/* ──── SIDEBAR (expanded with labels) ──── */}
+      <div className="relative z-[100] h-full w-[200px] shrink-0 p-2 pr-0">
+        <nav className="rounded-2xl bg-[#252525] flex flex-col px-4 py-4 h-full overflow-hidden">
+          {/* Logo + toggle */}
+          <div className="flex items-center justify-between mb-3">
+            <svg className="w-6 h-6 fill-current text-white" viewBox="0 0 24 24">
               <path d="M20 4H4v2h16V4zm-6 6H4v2h10v-2zm6 0h-4v2h4v-2zM4 16h6v2H4v-2zm8 0h8v2h-8v-2z" />
             </svg>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06]">
+              <PanelLeft className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
+            </button>
           </div>
-          {/* Project badge */}
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
-            <span className="text-white text-[12px] font-bold">P</span>
+          {/* Project selector */}
+          <button className="flex items-center gap-2 w-full h-9 rounded-lg px-2 border border-white/[0.08] bg-[#2e2e2e] hover:bg-[#333] transition-colors mb-4">
+            <div className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
+              <span className="text-white text-[10px] font-bold">P</span>
+            </div>
+            <span className="text-[#e0e0e0] text-[13px] truncate flex-1 text-left">Personal project</span>
+            <ChevronDown className="w-3 h-3 text-[#666] flex-shrink-0" />
           </button>
           {/* Top nav */}
-          <div className="flex flex-col items-center gap-0.5">
-            <SidebarIcon icon={Search} />
-            <SidebarIcon icon={LayoutGrid} />
-            <SidebarIcon icon={Globe} />
-            <SidebarIcon icon={Clipboard} />
+          <div className="flex flex-col gap-0.5">
+            {[
+              { icon: Search, label: 'Search' },
+              { icon: LayoutGrid, label: 'Stock' },
+              { icon: Globe, label: 'Community' },
+              { icon: FolderOpen, label: 'View project' },
+            ].map(({ icon: I, label }) => (
+              <button key={label} className="flex items-center gap-3 w-full h-8 rounded-lg px-2 text-[13px] text-[#aaa] hover:bg-white/[0.05] transition-colors">
+                <I className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+                <span className="truncate">{label}</span>
+              </button>
+            ))}
           </div>
           {/* Separator */}
-          <div className="w-6 h-px bg-white/[0.08] my-3" />
+          <div className="h-px bg-white/[0.06] my-3" />
           {/* Tools */}
-          <div className="flex flex-col items-center gap-0.5">
-            <SidebarIcon icon={FolderOpen} />
-            <SidebarIcon icon={Scissors} />
-            <SidebarIcon icon={Link} />
-            <SidebarIcon icon={Mic} />
-            <SidebarIcon icon={Monitor} />
-            <SidebarIcon icon={MessageSquare} />
-            <SidebarIcon icon={FolderOpen} />
-            <SidebarIcon icon={FolderOpen} />
+          <div className="flex flex-col gap-0.5 flex-1 min-h-0 overflow-y-auto">
+            {[
+              { icon: Sparkles, label: 'Assistant' },
+              { icon: Image, label: 'Image Generator' },
+              { icon: Video, label: 'Video Generator' },
+              { icon: Zap, label: 'Spaces' },
+              { icon: Mic, label: 'Voice Generator' },
+              { icon: Maximize2, label: 'Image Upscaler' },
+              { icon: Play, label: 'Video Project Ed...' },
+              { icon: Maximize2, label: 'Video Upscaler' },
+            ].map(({ icon: I, label }) => (
+              <button key={label} className="flex items-center gap-3 w-full h-8 rounded-lg px-2 text-[13px] text-[#aaa] hover:bg-white/[0.05] transition-colors">
+                <I className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+                <span className="truncate">{label}</span>
+              </button>
+            ))}
           </div>
-          <div className="w-6 h-px bg-white/[0.08] my-3" />
-          <SidebarIcon icon={Grid3X3} />
-          {/* Spacer */}
-          <div className="flex-1" />
-          {/* Bottom */}
-          <div className="flex flex-col items-center gap-0.5">
-            <SidebarIcon icon={GraduationCap} />
-            <SidebarIcon icon={Bell} badge="16" />
-            <SidebarIcon icon={MoreHorizontal} />
+          {/* Separator */}
+          <div className="h-px bg-white/[0.06] my-3" />
+          <button className="flex items-center gap-3 w-full h-8 rounded-lg px-2 text-[13px] text-[#aaa] hover:bg-white/[0.05] transition-colors">
+            <Grid3X3 className="w-4 h-4 flex-shrink-0" strokeWidth={1.5} />
+            <span>All tools</span>
+          </button>
+          {/* Bottom icons */}
+          <div className="flex items-center justify-between mt-3 px-1">
+            <div className="flex items-center gap-1">
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06]">
+                <GraduationCap className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
+              </button>
+              <button className="relative w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06]">
+                <Bell className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
+                <div className="absolute top-0.5 right-0 w-[16px] h-[16px] rounded-full bg-emerald-500 text-white text-[8px] font-bold flex items-center justify-center">16</div>
+              </button>
+              <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06]">
+                <Moon className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
+              </button>
+            </div>
+            <button className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/[0.06]">
+              <MoreHorizontal className="w-4 h-4 text-[#888]" strokeWidth={1.5} />
+            </button>
           </div>
         </nav>
       </div>
