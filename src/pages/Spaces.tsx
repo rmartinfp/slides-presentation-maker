@@ -1090,10 +1090,22 @@ export default function Spaces() {
             {activeTab === 'templates' && (
               <>
                 <h2 className="text-[#e8e8e8] text-[15px] font-bold mb-3">Getting started</h2>
-                <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
-                  {GETTING_STARTED.map((card) => (
-                    <GettingStartedCard key={card.title} {...card} />
-                  ))}
+                <div className="relative group/scroll">
+                  <div className="flex gap-3 overflow-x-auto scrollbar-none">
+                    {GETTING_STARTED.map((card) => (
+                      <GettingStartedCard key={card.title} {...card} />
+                    ))}
+                  </div>
+                  {/* Right arrow */}
+                  <button
+                    onClick={(e) => {
+                      const container = (e.currentTarget as HTMLElement).previousElementSibling;
+                      if (container) container.scrollBy({ left: 320, behavior: 'smooth' });
+                    }}
+                    className="absolute right-0 top-0 bottom-0 w-12 flex items-center justify-center bg-gradient-to-l from-[#1a1a1a] via-[#1a1a1a]/80 to-transparent"
+                  >
+                    <ChevronDown className="w-5 h-5 text-[#999] -rotate-90" strokeWidth={2} />
+                  </button>
                 </div>
 
                 {/* Spaces templates */}
