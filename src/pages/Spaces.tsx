@@ -840,8 +840,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               <Eye className="w-4 h-4" strokeWidth={2} />
               Preview workflow
             </button>
-            <button className="h-14 px-12 rounded-2xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-all flex items-center gap-3 shadow-lg shadow-[#336aea]/25 hover:shadow-[#336aea]/40">
-              <Sparkles className="w-5 h-5" strokeWidth={2} />
+            <button className="h-14 px-12 rounded-2xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-all shadow-lg shadow-[#336aea]/25 hover:shadow-[#336aea]/40">
               Use template
             </button>
           </div>
