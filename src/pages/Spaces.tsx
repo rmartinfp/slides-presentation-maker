@@ -756,35 +756,35 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             ))}
           </svg>
 
-          <div className="relative z-[2] grid grid-cols-[300px_1fr_340px]" style={{ minHeight: 460 }}>
+          <div className="relative z-[2] grid grid-cols-[270px_1fr_440px]" style={{ minHeight: 540 }}>
 
             {/* ── LEFT: You provide ── */}
-            <div className="p-10 pr-6 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-7">
+            <div className="p-12 pr-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-8">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#c9a227]" />
                 <span className="text-[#c9a227] text-[12px] font-bold uppercase tracking-[0.1em]">You provide</span>
               </div>
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-6">
                 {template.inputs.map((input, i) => (
-                  <div key={i} className="relative flex items-center gap-5 rounded-2xl bg-[#151515] border border-[#c9a227]/20 px-6 py-6">
+                  <div key={i} className="relative flex items-center gap-5 rounded-2xl bg-[#151515] border border-[#c9a227]/20 px-5 py-5">
                     {/* port: right edge */}
                     <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#0a0a0a]" />
-                    <div className="w-16 h-16 rounded-2xl bg-[#1c1c1c] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
+                    <div className="w-14 h-14 rounded-2xl bg-[#1c1c1c] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
                       {inputIcon(input)}
                     </div>
-                    <p className="text-[#ccc] text-[15px] leading-snug min-w-0">{input}</p>
+                    <p className="text-[#ccc] text-[14px] leading-snug min-w-0">{input}</p>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* ── CENTER: The workflow does ── */}
-            <div className="py-10 px-8 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-7 justify-center">
+            <div className="py-12 px-8 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-8 justify-center">
                 <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
                 <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The workflow does</span>
               </div>
-              <div className="flex flex-col gap-4 max-w-[420px] mx-auto w-full">
+              <div className="flex flex-col gap-5 max-w-[420px] mx-auto w-full">
                 {template.automations.map((auto, i) => (
                   <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#151515] border border-white/[0.06] px-6 py-5">
                     {/* port: left edge */}
@@ -800,9 +800,9 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               </div>
             </div>
 
-            {/* ── RIGHT: You get ── */}
-            <div className="p-10 pl-6 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-7">
+            {/* ── RIGHT: You get (protagonist) ── */}
+            <div className="p-12 pl-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-8">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
               </div>
@@ -810,10 +810,10 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                 {/* port: left edge (outside overflow-hidden) */}
                 <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#0a0a0a] z-10" />
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/20">
-                  <img src={template.img} alt={template.title} className="w-full aspect-[4/3] object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-6">
-                    <p className="text-white text-[14px] font-medium leading-relaxed">{template.result}</p>
+                  <img src={template.img} alt={template.title} className="w-full aspect-[3/4] object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-7">
+                    <p className="text-white text-[15px] font-medium leading-relaxed">{template.result}</p>
                   </div>
                 </div>
               </div>
