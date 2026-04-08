@@ -806,13 +806,15 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
               </div>
-              <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20">
-                {/* port: left edge */}
+              <div className="relative">
+                {/* port: left edge (outside overflow-hidden) */}
                 <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#0a0a0a] z-10" />
-                <img src={template.img} alt={template.title} className="w-full aspect-[4/3] object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <p className="text-white text-[14px] font-medium leading-relaxed">{template.result}</p>
+                <div className="overflow-hidden rounded-2xl border border-emerald-500/20">
+                  <img src={template.img} alt={template.title} className="w-full aspect-[4/3] object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <p className="text-white text-[14px] font-medium leading-relaxed">{template.result}</p>
+                  </div>
                 </div>
               </div>
             </div>
