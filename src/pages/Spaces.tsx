@@ -857,8 +857,8 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
 function SidebarIcon({ icon: Icon, active = false, badge }: { icon: any; active?: boolean; badge?: string }) {
   return (
     <button className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${active ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'}`}>
-      <Icon className="w-[18px] h-[18px] text-[#999]" strokeWidth={1.5} />
-      {badge && <div className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-4 h-4 rounded-full bg-[#336aea] text-white text-[8px] font-bold">{badge}</div>}
+      <Icon className="w-5 h-5 text-[#999]" strokeWidth={1.5} />
+      {badge && <div className="absolute top-0.5 right-0 flex items-center justify-center w-[18px] h-[18px] rounded-full bg-emerald-500 text-white text-[9px] font-bold">{badge}</div>}
     </button>
   );
 }
@@ -889,24 +889,13 @@ function GettingStartedCard({ title, img }: { title: string; img: string }) {
 function TemplateCard({ template, onClick }: { template: TemplateData; onClick: () => void }) {
   return (
     <div className="group cursor-pointer" onClick={onClick}>
-      <div className="relative w-full overflow-hidden rounded-2xl aspect-[4/3]">
+      <div className="w-full overflow-hidden rounded-2xl aspect-[4/3]">
         <img
           src={template.img}
           alt={template.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-        {template.author && (
-          <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full pl-1 pr-3 py-1">
-            <div className="w-6 h-6 rounded-full bg-[#333] overflow-hidden">
-              <img src={template.img} alt="" className="w-full h-full object-cover" />
-            </div>
-            <div className="leading-none">
-              <p className="text-white text-[11px] font-medium">Template by {template.author}</p>
-              <p className="text-white/60 text-[10px]">AI Partners</p>
-            </div>
-          </div>
-        )}
       </div>
       <p className="text-[#e0e0e0] text-[13px] mt-2 line-clamp-1">{template.title}</p>
     </div>
@@ -1012,37 +1001,48 @@ export default function Spaces() {
   return (
     <div className="flex h-screen bg-[#1a1a1a] font-['Inter',sans-serif]">
       {/* ──── SIDEBAR (collapsed, icons only) ──── */}
-      <div className="relative z-[100] h-full w-[52px] shrink-0 bg-[#1a1a1a]">
-        <nav className="flex flex-col items-center gap-0.5 py-3 h-full">
+      <div className="relative z-[100] h-full w-[60px] shrink-0 bg-[#1a1a1a]">
+        <nav className="flex flex-col items-center py-4 h-full">
           {/* Freepik logo */}
-          <div className="mb-2 mt-1">
-            <FreepikLogo />
+          <div className="mb-4">
+            <svg className="w-7 h-7 fill-current text-white" viewBox="0 0 24 24">
+              <path d="M20 4H4v2h16V4zm-6 6H4v2h10v-2zm6 0h-4v2h4v-2zM4 16h6v2H4v-2zm8 0h8v2h-8v-2z" />
+            </svg>
           </div>
           {/* Project badge */}
-          <button className="w-9 h-9 rounded-xl flex items-center justify-center mb-2" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
-            <span className="text-white text-[11px] font-bold">P</span>
+          <button className="w-9 h-9 rounded-xl flex items-center justify-center mb-5" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
+            <span className="text-white text-[12px] font-bold">P</span>
           </button>
-          {/* Nav icons */}
-          <SidebarIcon icon={Search} />
-          <SidebarIcon icon={LayoutGrid} />
-          <SidebarIcon icon={Globe} />
-          <SidebarIcon icon={FolderOpen} />
-          <SidebarIcon icon={Clipboard} />
-          <SidebarIcon icon={Download} />
-          <SidebarIcon icon={Scissors} />
-          <SidebarIcon icon={Monitor} />
-          <SidebarIcon icon={MessageSquare} />
-          <SidebarIcon icon={Undo2} />
-          <SidebarIcon icon={Link} />
-          <SidebarIcon icon={Mic} />
-          <SidebarIcon icon={Settings} />
+          {/* Top nav */}
+          <div className="flex flex-col items-center gap-0.5">
+            <SidebarIcon icon={Search} />
+            <SidebarIcon icon={LayoutGrid} />
+            <SidebarIcon icon={Globe} />
+            <SidebarIcon icon={Clipboard} />
+          </div>
+          {/* Separator */}
+          <div className="w-6 h-px bg-white/[0.08] my-3" />
+          {/* Tools */}
+          <div className="flex flex-col items-center gap-0.5">
+            <SidebarIcon icon={FolderOpen} />
+            <SidebarIcon icon={Scissors} />
+            <SidebarIcon icon={Link} />
+            <SidebarIcon icon={Mic} />
+            <SidebarIcon icon={Monitor} />
+            <SidebarIcon icon={MessageSquare} />
+            <SidebarIcon icon={FolderOpen} />
+            <SidebarIcon icon={FolderOpen} />
+          </div>
+          <div className="w-6 h-px bg-white/[0.08] my-3" />
           <SidebarIcon icon={Grid3X3} />
           {/* Spacer */}
           <div className="flex-1" />
           {/* Bottom */}
-          <SidebarIcon icon={GraduationCap} />
-          <SidebarIcon icon={Bell} badge="16" />
-          <SidebarIcon icon={MoreHorizontal} />
+          <div className="flex flex-col items-center gap-0.5">
+            <SidebarIcon icon={GraduationCap} />
+            <SidebarIcon icon={Bell} badge="16" />
+            <SidebarIcon icon={MoreHorizontal} />
+          </div>
         </nav>
       </div>
 
