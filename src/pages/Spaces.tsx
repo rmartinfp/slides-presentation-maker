@@ -1000,6 +1000,11 @@ export default function Spaces() {
   const [activeCategory, setActiveCategory] = useState('All');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
 
+  useEffect(() => {
+    document.title = 'Spaces | Freepik AI';
+    return () => { document.title = 'SlideAI'; };
+  }, []);
+
   const filteredTemplates = activeCategory === 'All'
     ? TEMPLATES
     : TEMPLATES.filter(t => t.category.toLowerCase().includes(activeCategory.toLowerCase()));
