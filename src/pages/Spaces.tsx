@@ -689,26 +689,35 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             backgroundSize: '20px 20px',
           }} />
 
-          {/* SVG bezier connectors — drawn over the full canvas */}
-          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
-            {/* Left connectors: each input card → center column */}
+          {/* SVG bezier connectors */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]" viewBox="0 0 1000 420" preserveAspectRatio="none">
+            {/* Left connectors: inputs → center automations */}
             {template.inputs.map((_, i) => {
-              const inputY = inputCount === 1 ? 50 : 28 + i * (44 / Math.max(inputCount - 1, 1));
-              const targetY = autoCount <= 1 ? 50 : 25 + (i % autoCount) * (50 / Math.max(autoCount - 1, 1));
+              const startX = 210;
+              const startY = inputCount === 1 ? 210 : 130 + i * (160 / Math.max(inputCount - 1, 1));
+              const endX = 370;
+              const endY = autoCount <= 1 ? 210 : 100 + (i % autoCount) * (220 / Math.max(autoCount - 1, 1));
+              const cpx1 = startX + 70;
+              const cpx2 = endX - 70;
               return (
                 <path key={`l${i}`}
-                  d={`M 22.5% ${inputY}% C 30% ${inputY}%, 33% ${targetY}%, 37% ${targetY}%`}
-                  stroke="rgba(201,162,39,0.25)" strokeWidth="1.5" fill="none" strokeLinecap="round"
+                  d={`M ${startX} ${startY} C ${cpx1} ${startY}, ${cpx2} ${endY}, ${endX} ${endY}`}
+                  stroke="rgba(201,162,39,0.3)" strokeWidth="2" fill="none" strokeLinecap="round"
                 />
               );
             })}
-            {/* Right connectors: center column → output */}
+            {/* Right connectors: center automations → output */}
             {template.automations.map((_, i) => {
-              const fromY = autoCount <= 1 ? 50 : 20 + i * (60 / Math.max(autoCount - 1, 1));
+              const startX = 640;
+              const startY = autoCount <= 1 ? 210 : 100 + i * (220 / Math.max(autoCount - 1, 1));
+              const endX = 790;
+              const endY = 210;
+              const cpx1 = startX + 70;
+              const cpx2 = endX - 70;
               return (
                 <path key={`r${i}`}
-                  d={`M 64% ${fromY}% C 70% ${fromY}%, 73% 50%, 78% 50%`}
-                  stroke="rgba(52,211,153,0.25)" strokeWidth="1.5" fill="none" strokeLinecap="round"
+                  d={`M ${startX} ${startY} C ${cpx1} ${startY}, ${cpx2} ${endY}, ${endX} ${endY}`}
+                  stroke="rgba(52,211,153,0.3)" strokeWidth="2" fill="none" strokeLinecap="round"
                 />
               );
             })}
