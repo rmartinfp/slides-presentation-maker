@@ -629,27 +629,6 @@ function FreepikLogo() {
    TEMPLATE DETAIL MODAL
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Tiny Spaces-style node card ── */
-function NodeCard({ icon: Icon, label, color, hasImage, img }: { icon: any; label: string; color: string; hasImage?: boolean; img?: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5">
-      <div className={`relative w-[72px] h-[72px] rounded-2xl border overflow-hidden ${color}`}>
-        {hasImage && img ? (
-          <img src={img} alt={label} className="w-full h-full object-cover" />
-        ) : (
-          <div className="w-full h-full bg-[#1e1e1e] flex items-center justify-center">
-            <Icon className="w-5 h-5 text-[#555]" strokeWidth={1.5} />
-          </div>
-        )}
-        {/* ports */}
-        <div className="absolute -left-[5px] top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border-2 border-[#333] bg-[#1a1a1a]" />
-        <div className="absolute -right-[5px] top-1/2 -translate-y-1/2 w-[10px] h-[10px] rounded-full border-2 border-[#333] bg-[#1a1a1a]" />
-      </div>
-      <span className="text-[10px] text-[#666] font-medium text-center leading-tight max-w-[80px]">{label}</span>
-    </div>
-  );
-}
-
 function TemplateDetailModal({ template, onClose }: { template: TemplateData; onClose: () => void }) {
   useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -672,134 +651,123 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
     return <Upload className="w-6 h-6" strokeWidth={1.5} />;
   };
 
+  /* layout math for SVG curves */
+  const inputCount = template.inputs.length;
+  const autoCount = template.automations.length;
+
   return (
     <div className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[1280px] mx-6 my-10 rounded-[28px] bg-[#111] border border-white/[0.07] overflow-hidden shadow-2xl">
+      <div className="relative z-10 w-full max-w-[1320px] mx-6 my-10 rounded-[28px] bg-[#111] border border-white/[0.07] overflow-hidden shadow-2xl">
         {/* close */}
-        <button
-          onClick={onClose}
-          className="absolute top-6 right-6 z-20 flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] transition-colors"
-        >
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
           <X className="w-4.5 h-4.5 text-[#888]" />
         </button>
 
         {/* ── Header ── */}
         <div className="px-14 pt-12 pb-10">
           <div className="flex items-center gap-3 mb-3">
-            <span className={`text-[11px] font-bold tracking-[0.14em] uppercase ${catColor}`}>
-              {template.category}
-            </span>
+            <span className={`text-[11px] font-bold tracking-[0.14em] uppercase ${catColor}`}>{template.category}</span>
             {template.author && (
               <span className="text-[11px] text-[#555] bg-white/[0.04] px-3 py-1 rounded-full">
                 by <span className="text-[#999]">{template.author}</span>
               </span>
             )}
           </div>
-          <h1 className="text-[#f0f0f0] text-[32px] font-bold leading-[1.15] pr-16 max-w-[800px]">
-            {template.title}
-          </h1>
-          <p className="text-[#555] text-base mt-3 max-w-[640px] leading-relaxed">
-            {template.description}
-          </p>
+          <h1 className="text-[#f0f0f0] text-[32px] font-bold leading-[1.15] pr-16 max-w-[800px]">{template.title}</h1>
+          <p className="text-[#555] text-base mt-3 max-w-[640px] leading-relaxed">{template.description}</p>
         </div>
 
-        {/* ══════════════════════════════════════════════
-            MAIN: 3-column visual flow
-            YOU PROVIDE → WORKFLOW NODES → YOU GET
-           ══════════════════════════════════════════════ */}
-        <div className="relative bg-[#0c0c0c] border-y border-white/[0.05]">
-          {/* subtle grid dots background like a canvas */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
+        {/* ══════════════════════════════════════════════════
+            CANVAS: YOU PROVIDE → WORKFLOW DOES → YOU GET
+           ══════════════════════════════════════════════════ */}
+        <div className="relative bg-[#0a0a0a] border-y border-white/[0.05] overflow-hidden">
+          {/* dot grid background */}
+          <div className="absolute inset-0 opacity-[0.035]" style={{
             backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
+            backgroundSize: '20px 20px',
           }} />
 
-          <div className="relative grid grid-cols-[280px_1fr_320px] min-h-[380px]">
+          {/* SVG bezier connectors — drawn over the full canvas */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
+            {/* Left connectors: each input card → center column */}
+            {template.inputs.map((_, i) => {
+              const inputY = inputCount === 1 ? 50 : 28 + i * (44 / Math.max(inputCount - 1, 1));
+              const targetY = autoCount <= 1 ? 50 : 25 + (i % autoCount) * (50 / Math.max(autoCount - 1, 1));
+              return (
+                <path key={`l${i}`}
+                  d={`M 22.5% ${inputY}% C 30% ${inputY}%, 33% ${targetY}%, 37% ${targetY}%`}
+                  stroke="rgba(201,162,39,0.25)" strokeWidth="1.5" fill="none" strokeLinecap="round"
+                />
+              );
+            })}
+            {/* Right connectors: center column → output */}
+            {template.automations.map((_, i) => {
+              const fromY = autoCount <= 1 ? 50 : 20 + i * (60 / Math.max(autoCount - 1, 1));
+              return (
+                <path key={`r${i}`}
+                  d={`M 64% ${fromY}% C 70% ${fromY}%, 73% 50%, 78% 50%`}
+                  stroke="rgba(52,211,153,0.25)" strokeWidth="1.5" fill="none" strokeLinecap="round"
+                />
+              );
+            })}
+          </svg>
+
+          <div className="relative z-[2] grid grid-cols-[260px_1fr_300px] min-h-[420px]">
+
             {/* ── LEFT: You provide ── */}
-            <div className="p-8 pr-0 flex flex-col justify-center">
+            <div className="p-10 pr-4 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-6">
                 <div className="w-2 h-2 rounded-full bg-[#c9a227]" />
                 <span className="text-[#c9a227] text-[11px] font-bold uppercase tracking-[0.12em]">You provide</span>
               </div>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-5">
                 {template.inputs.map((input, i) => (
-                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#161616] border border-[#c9a227]/25 px-5 py-4">
-                    {/* gold port on right edge */}
-                    <div className="absolute -right-[6px] top-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full border-2 border-[#c9a227]/50 bg-[#0c0c0c]" />
-                    <div className="w-12 h-12 rounded-xl bg-[#1c1c1c] border border-[#c9a227]/15 flex items-center justify-center text-[#c9a227]/50 flex-shrink-0">
+                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#141414] border border-[#c9a227]/20 px-5 py-5">
+                    {/* port right */}
+                    <div className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-[#c9a227]/40 bg-[#0a0a0a]" />
+                    <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
                       {inputIcon(input)}
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-[#ccc] text-[13px] leading-snug">{input}</p>
-                    </div>
+                    <p className="text-[#bbb] text-[14px] leading-snug min-w-0">{input}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── CENTER: Workflow node graph ── */}
-            <div className="relative flex items-center justify-center py-8 px-4">
-              {/* SVG connector lines */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none">
-                {/* left connections (from inputs to first node) */}
-                <line x1="0" y1="50%" x2="28%" y2="35%" stroke="rgba(201,162,39,0.2)" strokeWidth="1.5" />
-                {template.inputs.length > 1 && (
-                  <line x1="0" y1="50%" x2="28%" y2="65%" stroke="rgba(201,162,39,0.2)" strokeWidth="1.5" />
-                )}
-                {/* connections between center nodes */}
-                {template.nodes.length > 1 && (
-                  <>
-                    <line x1="38%" y1="42%" x2="52%" y2="50%" stroke="rgba(100,100,100,0.25)" strokeWidth="1.5" />
-                    {template.nodes.length > 2 && (
-                      <line x1="62%" y1="50%" x2="73%" y2="45%" stroke="rgba(100,100,100,0.25)" strokeWidth="1.5" />
-                    )}
-                  </>
-                )}
-                {/* right connection (last node to output) */}
-                <line x1="78%" y1="50%" x2="100%" y2="50%" stroke="rgba(52,211,153,0.2)" strokeWidth="1.5" />
-              </svg>
-
-              {/* Node cards arranged */}
-              <div className="relative flex items-center gap-6 flex-wrap justify-center">
-                {template.nodes.map((node, i) => {
-                  const IconComp = NODE_ICONS[node] || Sparkles;
-                  const isFirst = i === 0;
-                  const isLast = i === template.nodes.length - 1;
-                  const borderColor = isFirst
-                    ? 'border-[#c9a227]/30 bg-[#161616]'
-                    : isLast
-                      ? 'border-emerald-500/30 bg-[#161616]'
-                      : 'border-white/[0.08] bg-[#161616]';
-                  return (
-                    <NodeCard
-                      key={node}
-                      icon={IconComp}
-                      label={node}
-                      color={borderColor}
-                      hasImage={i === template.nodes.length - 1}
-                      img={template.img}
-                    />
-                  );
-                })}
+            {/* ── CENTER: The workflow does for you ── */}
+            <div className="py-10 px-6 flex flex-col justify-center">
+              <div className="flex items-center gap-2 mb-6 justify-center">
+                <Zap className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
+                <span className="text-[#666] text-[11px] font-bold uppercase tracking-[0.12em]">The workflow does</span>
+              </div>
+              <div className="flex flex-col gap-4 max-w-[380px] mx-auto">
+                {template.automations.map((auto, i) => (
+                  <div key={i} className="relative flex items-center gap-3.5 rounded-2xl bg-[#141414] border border-white/[0.06] px-5 py-4">
+                    {/* port left */}
+                    <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-[#333] bg-[#0a0a0a]" />
+                    {/* port right */}
+                    <div className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-[#333] bg-[#0a0a0a]" />
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400/60" strokeWidth={2} />
+                    </div>
+                    <p className="text-[#999] text-[13px] leading-snug min-w-0">{auto}</p>
+                  </div>
+                ))}
               </div>
             </div>
 
             {/* ── RIGHT: You get ── */}
-            <div className="p-8 pl-0 flex flex-col justify-center">
+            <div className="p-10 pl-4 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-6">
                 <div className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[11px] font-bold uppercase tracking-[0.12em]">You get</span>
               </div>
               <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20">
-                {/* green port on left edge */}
-                <div className="absolute -left-[6px] top-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full border-2 border-emerald-500/50 bg-[#0c0c0c] z-10" />
-                <img
-                  src={template.img}
-                  alt={template.title}
-                  className="w-full aspect-[4/3] object-cover"
-                />
+                {/* port left */}
+                <div className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[13px] h-[13px] rounded-full border-2 border-emerald-500/40 bg-[#0a0a0a] z-10" />
+                <img src={template.img} alt={template.title} className="w-full aspect-[4/3] object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 right-0 p-5">
                   <p className="text-white/90 text-[13px] font-medium leading-relaxed">{template.result}</p>
@@ -809,32 +777,33 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
           </div>
         </div>
 
-        {/* ── Workflow automations strip ── */}
-        <div className="px-14 py-8 bg-[#0f0f0f]">
-          <div className="flex items-center gap-2 mb-5">
-            <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2} />
-            <span className="text-[#666] text-[11px] font-bold uppercase tracking-[0.12em]">What the workflow handles automatically</span>
+        {/* ── Footer: Nodes + CTAs ── */}
+        <div className="px-14 py-8 flex items-center justify-between gap-8">
+          {/* Node pills */}
+          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+            <span className="text-[11px] font-bold text-[#444] uppercase tracking-[0.1em] mr-1">Nodes</span>
+            {template.nodes.map((node) => {
+              const colorClass = NODE_COLORS[node] || 'bg-white/[0.06] text-[#b4b4b4] border-white/[0.08]';
+              const IconComp = NODE_ICONS[node];
+              return (
+                <span key={node} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium ${colorClass}`}>
+                  {IconComp && <IconComp className="w-3.5 h-3.5" strokeWidth={2} />}
+                  {node}
+                </span>
+              );
+            })}
           </div>
-          <div className="flex flex-wrap gap-3">
-            {template.automations.map((auto, i) => (
-              <div key={i} className="flex items-center gap-2.5 rounded-xl bg-[#161616] border border-white/[0.05] px-4 py-3">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500/50 flex-shrink-0" strokeWidth={2} />
-                <span className="text-[#888] text-[13px]">{auto}</span>
-              </div>
-            ))}
+          {/* CTAs */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <button className="h-12 px-7 rounded-xl border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#aaa] text-sm font-medium transition-colors flex items-center gap-2.5">
+              <Eye className="w-4 h-4" strokeWidth={2} />
+              Preview workflow
+            </button>
+            <button className="h-14 px-12 rounded-2xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-all flex items-center gap-3 shadow-lg shadow-[#336aea]/25 hover:shadow-[#336aea]/40">
+              <Sparkles className="w-5 h-5" strokeWidth={2} />
+              Use template
+            </button>
           </div>
-        </div>
-
-        {/* ── Footer: CTAs ── */}
-        <div className="px-14 py-8 border-t border-white/[0.05] flex items-center justify-between">
-          <button className="h-12 px-7 rounded-xl border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#aaa] text-sm font-medium transition-colors flex items-center gap-2.5">
-            <Eye className="w-4 h-4" strokeWidth={2} />
-            Preview workflow
-          </button>
-          <button className="h-14 px-12 rounded-2xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-all flex items-center gap-3 shadow-lg shadow-[#336aea]/25 hover:shadow-[#336aea]/40">
-            <Sparkles className="w-5 h-5" strokeWidth={2} />
-            Use template
-          </button>
         </div>
       </div>
     </div>
