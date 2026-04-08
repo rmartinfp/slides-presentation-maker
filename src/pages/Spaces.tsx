@@ -888,7 +888,7 @@ function GettingStartedCard({ title, img }: { title: string; img: string }) {
 
 function TemplateCard({ template, onClick }: { template: TemplateData; onClick: () => void }) {
   return (
-    <div className="group relative cursor-pointer" onClick={onClick}>
+    <div className="group cursor-pointer" onClick={onClick}>
       <div className="relative w-full overflow-hidden rounded-2xl aspect-[16/9]">
         <img
           src={template.img}
@@ -896,11 +896,19 @@ function TemplateCard({ template, onClick }: { template: TemplateData; onClick: 
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
-          <p className="text-white text-sm font-semibold line-clamp-2">{template.title}</p>
-        </div>
+        {template.author && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-2 bg-black/50 backdrop-blur-sm rounded-full pl-1 pr-3 py-1">
+            <div className="w-6 h-6 rounded-full bg-[#333] overflow-hidden">
+              <img src={template.img} alt="" className="w-full h-full object-cover" />
+            </div>
+            <div className="leading-none">
+              <p className="text-white text-[11px] font-medium">Template by {template.author}</p>
+              <p className="text-white/60 text-[10px]">AI Partners</p>
+            </div>
+          </div>
+        )}
       </div>
+      <p className="text-[#e0e0e0] text-[13px] mt-2 line-clamp-1">{template.title}</p>
     </div>
   );
 }
