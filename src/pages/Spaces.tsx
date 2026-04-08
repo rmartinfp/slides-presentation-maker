@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useLayoutEffect, useCallback } from 'react';
-import { Search, Globe, FolderOpen, Sparkles, Image, Video, Mic, ChevronDown, Moon, Bell, MoreHorizontal, GraduationCap, Grid3X3, Pin, PanelLeft, Play, Zap, Maximize2, X, Upload, CheckCircle2, Eye } from 'lucide-react';
+import { Search, Globe, FolderOpen, Sparkles, Image, Video, Mic, ChevronDown, Moon, Bell, MoreHorizontal, GraduationCap, Grid3X3, Pin, PanelLeft, Play, Zap, Maximize2, X, Upload, CheckCircle2, Eye, Users, Clipboard, Download, Scissors, Monitor, MessageSquare, Undo2, Link, Settings, Star, LayoutGrid } from 'lucide-react';
 
 /* ═══════════════════════════════════════════════════════════════
    DATA — enriched template details
@@ -865,7 +865,7 @@ function SidebarIcon({ icon: Icon, active = false, badge }: { icon: any; active?
 
 function GettingStartedCard({ title, img }: { title: string; img: string }) {
   return (
-    <div className="flex-shrink-0 group relative cursor-pointer transition-all duration-200" style={{ width: 340 }}>
+    <div className="flex-shrink-0 group relative cursor-pointer transition-all duration-200" style={{ width: 300 }}>
       <div className="relative w-full transition-transform duration-200">
         <div className="relative aspect-[3/1] w-full overflow-hidden rounded-2xl">
           <img src={img} alt={title} className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl transition-transform duration-300 group-hover:scale-150" />
@@ -994,34 +994,33 @@ export default function Spaces() {
     : TEMPLATES.filter(t => t.category.toLowerCase().includes(activeCategory.toLowerCase()));
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] gap-2 p-2 font-['Inter',sans-serif]">
+    <div className="flex h-screen bg-[#1a1a1a] font-['Inter',sans-serif]">
       {/* ──── SIDEBAR (collapsed, icons only) ──── */}
-      <div className="relative z-[100] h-full w-[52px] shrink-0">
-        <nav className="rounded-xl bg-[#1a1a1a] flex flex-col items-center gap-1 py-3 h-full overflow-hidden">
+      <div className="relative z-[100] h-full w-[52px] shrink-0 bg-[#1a1a1a]">
+        <nav className="flex flex-col items-center gap-0.5 py-3 h-full">
           {/* Freepik logo */}
-          <div className="mb-1">
+          <div className="mb-2 mt-1">
             <FreepikLogo />
           </div>
           {/* Project badge */}
-          <button className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
+          <button className="w-9 h-9 rounded-xl flex items-center justify-center mb-2" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
             <span className="text-white text-[11px] font-bold">P</span>
           </button>
           {/* Nav icons */}
           <SidebarIcon icon={Search} />
-          <SidebarIcon icon={Grid3X3} />
+          <SidebarIcon icon={LayoutGrid} />
           <SidebarIcon icon={Globe} />
           <SidebarIcon icon={FolderOpen} />
-          <SidebarIcon icon={FolderOpen} />
-          <SidebarIcon icon={FolderOpen} />
-          {/* Separator */}
-          <div className="w-6 h-px bg-white/10 my-1" />
-          {/* Tools */}
-          <SidebarIcon icon={Play} />
-          <SidebarIcon icon={Sparkles} />
-          <SidebarIcon icon={Maximize2} />
-          <SidebarIcon icon={Video} />
+          <SidebarIcon icon={Clipboard} />
+          <SidebarIcon icon={Download} />
+          <SidebarIcon icon={Scissors} />
+          <SidebarIcon icon={Monitor} />
+          <SidebarIcon icon={MessageSquare} />
+          <SidebarIcon icon={Undo2} />
+          <SidebarIcon icon={Link} />
           <SidebarIcon icon={Mic} />
-          <SidebarIcon icon={Zap} active />
+          <SidebarIcon icon={Settings} />
+          <SidebarIcon icon={Grid3X3} />
           {/* Spacer */}
           <div className="flex-1" />
           {/* Bottom */}
@@ -1032,7 +1031,7 @@ export default function Spaces() {
       </div>
 
       {/* ──── MAIN CONTENT ──── */}
-      <div className="flex-1 flex flex-col rounded-xl bg-[#1c1c1c] overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
         <header className="z-50 flex h-12 w-full min-w-0 shrink-0 items-center gap-2 px-5">
           <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -1062,27 +1061,25 @@ export default function Spaces() {
             {/* Hero */}
             <HeroBanner />
 
-            {/* Tabs (pill style) */}
-            <div className="flex items-center gap-2 mt-6 mb-6">
-              {(['my-spaces', 'shared', 'templates'] as const).map((tab) => {
-                const labels: Record<string, { icon: any; label: string }> = {
-                  'my-spaces': { icon: FolderOpen, label: 'My spaces' },
-                  'shared': { icon: Globe, label: 'Shared' },
-                  'templates': { icon: Grid3X3, label: 'Templates' },
-                };
-                const { icon: TabIcon, label } = labels[tab];
-                const isActive = activeTab === tab;
+            {/* Tabs (pill style like Spaces) */}
+            <div className="flex items-center gap-1 mt-5 mb-5">
+              {([
+                { key: 'my-spaces' as const, icon: FolderOpen, label: 'My spaces' },
+                { key: 'shared' as const, icon: Users, label: 'Shared' },
+                { key: 'templates' as const, icon: LayoutGrid, label: 'Templates' },
+              ]).map(({ key, icon: TabIcon, label }) => {
+                const isActive = activeTab === key;
                 return (
                   <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    key={key}
+                    onClick={() => setActiveTab(key)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-[13px] transition-colors ${
                       isActive
-                        ? 'bg-white/[0.1] text-white'
-                        : 'text-[#777] hover:text-[#aaa] hover:bg-white/[0.04]'
+                        ? 'bg-white/[0.08] text-white font-medium'
+                        : 'text-[#888] hover:text-[#bbb] hover:bg-white/[0.03]'
                     }`}
                   >
-                    <TabIcon className="w-4 h-4" strokeWidth={1.5} />
+                    <TabIcon className="w-[15px] h-[15px]" strokeWidth={1.5} />
                     {label}
                   </button>
                 );
@@ -1092,37 +1089,37 @@ export default function Spaces() {
             {/* Getting started */}
             {activeTab === 'templates' && (
               <>
-                <h2 className="text-[#e8e8e8] text-lg font-bold mb-4">Getting started</h2>
-                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
+                <h2 className="text-[#e8e8e8] text-[15px] font-bold mb-3">Getting started</h2>
+                <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
                   {GETTING_STARTED.map((card) => (
                     <GettingStartedCard key={card.title} {...card} />
                   ))}
                 </div>
 
                 {/* Spaces templates */}
-                <h2 className="text-[#e8e8e8] text-lg font-bold mt-8 mb-4">Spaces templates</h2>
+                <h2 className="text-[#e8e8e8] text-[15px] font-bold mt-6 mb-3">Spaces templates</h2>
 
                 {/* Category pills */}
-                <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none">
+                <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-none">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setActiveCategory(cat)}
-                      className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm transition-colors ${
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-colors ${
                         activeCategory === cat
-                          ? 'bg-white/[0.12] text-white font-medium'
-                          : 'text-[#888] hover:text-[#bbb] hover:bg-white/[0.04]'
+                          ? 'bg-white/[0.1] text-white font-medium'
+                          : 'text-[#777] hover:text-[#bbb] hover:bg-white/[0.04]'
                       }`}
                     >
-                      {cat === 'New' && <span className="mr-1">&#9889;</span>}
-                      {cat === 'Featured' && <span className="mr-1">&#9733;</span>}
+                      {cat === 'New' && <Zap className="w-3 h-3" strokeWidth={2} />}
+                      {cat === 'Featured' && <Star className="w-3 h-3" strokeWidth={2} />}
                       {cat}
                     </button>
                   ))}
                 </div>
 
                 {/* Template grid (landscape cards, 5 cols) */}
-                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 pb-8">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 pb-8">
                   {filteredTemplates.map((tmpl) => (
                     <TemplateCard
                       key={tmpl.title}
