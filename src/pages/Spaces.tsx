@@ -742,11 +742,11 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         {/* ══════════════════════════════════════════════════
             CANVAS: YOU PROVIDE → WORKFLOW DOES → YOU GET
            ══════════════════════════════════════════════════ */}
-        <div ref={canvasRef} className="relative bg-[#0a0a0a] border-y border-white/[0.05]">
-          {/* dot grid */}
-          <div className="absolute inset-0 opacity-[0.03]" style={{
-            backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)',
-            backgroundSize: '20px 20px',
+        <div ref={canvasRef} className="relative bg-[#161616] border-y border-white/[0.04]">
+          {/* Spaces-style dot grid */}
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
           }} />
 
           {/* SVG connector curves (measured from real DOM) */}
@@ -766,10 +766,10 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               </div>
               <div className="flex flex-col gap-6">
                 {template.inputs.map((input, i) => (
-                  <div key={i} className="relative flex items-center gap-5 rounded-2xl bg-[#151515] border border-[#c9a227]/20 px-5 py-5">
+                  <div key={i} className="relative flex items-center gap-5 rounded-2xl bg-[#1e1e1e] border border-[#c9a227]/20 px-5 py-5">
                     {/* port: right edge */}
-                    <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#0a0a0a]" />
-                    <div className="w-14 h-14 rounded-2xl bg-[#1c1c1c] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
+                    <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#161616]" />
+                    <div className="w-14 h-14 rounded-2xl bg-[#252525] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
                       {inputIcon(input)}
                     </div>
                     <p className="text-[#ccc] text-[14px] leading-snug min-w-0">{input}</p>
@@ -786,11 +786,11 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               </div>
               <div className="flex flex-col gap-5 max-w-[420px] mx-auto w-full">
                 {template.automations.map((auto, i) => (
-                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#151515] border border-white/[0.06] px-6 py-5">
+                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#1e1e1e] border border-white/[0.06] px-6 py-5">
                     {/* port: left edge */}
-                    <div data-port="cl" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#0a0a0a]" />
+                    <div data-port="cl" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#161616]" />
                     {/* port: right edge */}
-                    <div data-port="cr" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#0a0a0a]" />
+                    <div data-port="cr" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#161616]" />
                     <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                       <CheckCircle2 className="w-[18px] h-[18px] text-emerald-400/60" strokeWidth={2} />
                     </div>
@@ -808,7 +808,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               </div>
               <div className="relative">
                 {/* port: left edge (outside overflow-hidden) */}
-                <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#0a0a0a] z-10" />
+                <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/20">
                   <img src={template.img} alt={template.title} className="w-full aspect-[3/4] object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
