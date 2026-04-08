@@ -1109,7 +1109,7 @@ export default function Spaces() {
                 </div>
 
                 {/* Spaces templates */}
-                <h2 className="text-[#e8e8e8] text-[15px] font-bold mt-6 mb-3">Spaces templates</h2>
+                <h2 className="text-white text-[17px] font-bold mt-7 mb-4">Spaces templates</h2>
 
                 {/* Category pills */}
                 <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-none">
@@ -1117,14 +1117,14 @@ export default function Spaces() {
                     <button
                       key={cat}
                       onClick={() => setActiveCategory(cat)}
-                      className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] transition-colors ${
+                      className={`flex-shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[13px] font-semibold transition-colors ${
                         activeCategory === cat
-                          ? 'bg-white/[0.1] text-white font-medium'
-                          : 'text-[#777] hover:text-[#bbb] hover:bg-white/[0.04]'
+                          ? 'bg-white/[0.1] text-white'
+                          : 'text-[#888] hover:text-[#bbb] hover:bg-white/[0.04]'
                       }`}
                     >
-                      {cat === 'New' && <Zap className="w-3 h-3" strokeWidth={2} />}
-                      {cat === 'Featured' && <Star className="w-3 h-3" strokeWidth={2} />}
+                      {cat === 'New' && <Zap className="w-3.5 h-3.5 fill-current" />}
+                      {cat === 'Featured' && <Star className="w-3.5 h-3.5 fill-current" />}
                       {cat}
                     </button>
                   ))}
