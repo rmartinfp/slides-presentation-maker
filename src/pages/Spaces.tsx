@@ -854,16 +854,11 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
    SMALL COMPONENTS
    ═══════════════════════════════════════════════════════════════ */
 
-function SidebarItem({ icon: Icon, label, active = false }: { icon: any; label: string; active?: boolean }) {
+function SidebarIcon({ icon: Icon, active = false, badge }: { icon: any; active?: boolean; badge?: string }) {
   return (
-    <button className={`group/item flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs transition-colors duration-150 ${active ? 'bg-white/[0.06]' : 'hover:bg-white/[0.06]'}`}>
-      <span className="flex shrink-0 items-center justify-center w-3.5 h-3.5">
-        <Icon className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-      </span>
-      <span className="text-[#b4b4b4] truncate whitespace-nowrap">{label}</span>
-      <span className="ml-auto flex items-center opacity-0 group-hover/item:opacity-100 transition-opacity">
-        <Pin className="w-3.5 h-3.5 text-[#737373]" strokeWidth={1.5} />
-      </span>
+    <button className={`relative flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${active ? 'bg-white/[0.08]' : 'hover:bg-white/[0.06]'}`}>
+      <Icon className="w-[18px] h-[18px] text-[#999]" strokeWidth={1.5} />
+      {badge && <div className="absolute -top-0.5 -right-0.5 flex items-center justify-center w-4 h-4 rounded-full bg-[#336aea] text-white text-[8px] font-bold">{badge}</div>}
     </button>
   );
 }
@@ -892,24 +887,19 @@ function GettingStartedCard({ title, img }: { title: string; img: string }) {
 }
 
 function TemplateCard({ template, onClick }: { template: TemplateData; onClick: () => void }) {
-  const catColor = CATEGORY_COLORS[template.category] || 'text-[#737373]';
   return (
-    <div className="group relative cursor-pointer transition-all duration-200" onClick={onClick}>
-      <div className="relative w-full overflow-hidden rounded-xl aspect-square">
+    <div className="group relative cursor-pointer" onClick={onClick}>
+      <div className="relative w-full overflow-hidden rounded-2xl aspect-[16/9]">
         <img
           src={template.img}
           alt={template.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-        <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
-          <p className="text-white text-xs font-medium line-clamp-2">{template.title}</p>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+        <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-1 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
+          <p className="text-white text-sm font-semibold line-clamp-2">{template.title}</p>
         </div>
-      </div>
-      <div className="mt-2 px-0.5">
-        <span className={`text-[10px] font-semibold tracking-[0.05em] uppercase ${catColor}`}>{template.category}</span>
-        <p className="text-[#b4b4b4] text-xs font-medium line-clamp-2 leading-snug mt-0.5">{template.title}</p>
       </div>
     </div>
   );
@@ -923,53 +913,44 @@ function HeroBanner() {
   return (
     <section className="relative h-[350px] w-full flex-shrink-0 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0f0f1a]">
       <div className="absolute inset-0 opacity-40">
-        <div className="absolute top-[20%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#336aea]/20 blur-[100px]" />
+        <div className="absolute top-[20%] left-[20%] w-[400px] h-[400px] rounded-full bg-[#336aea]/20 blur-[100px]" />
         <div className="absolute top-[40%] right-[20%] w-[300px] h-[300px] rounded-full bg-purple-500/15 blur-[80px]" />
-        <div className="absolute bottom-0 left-[50%] w-[500px] h-[200px] rounded-full bg-emerald-500/10 blur-[80px]" />
+        <div className="absolute bottom-0 left-[40%] w-[500px] h-[200px] rounded-full bg-emerald-500/10 blur-[80px]" />
       </div>
-      <div className="absolute inset-0 overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent 0%, transparent 30%, black 52%, black 100%)' }}>
-        <svg className="absolute" style={{ left: '35%', top: '10%', width: '65%', height: '90%' }} viewBox="0 0 600 300" fill="none">
+      {/* Node graph right side */}
+      <div className="absolute inset-0 overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent 0%, transparent 35%, black 55%, black 100%)' }}>
+        <svg className="absolute" style={{ left: '38%', top: '8%', width: '62%', height: '92%' }} viewBox="0 0 600 300" fill="none">
           <path d="M 80 90 C 130 90 110 180 160 180" stroke="rgba(68, 182, 120, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 260 150 C 310 150 290 210 340 210" stroke="rgba(101, 105, 189, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 440 160 C 490 160 460 90 510 90" stroke="rgba(101, 105, 189, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 380 40 C 430 40 450 70 510 70" stroke="rgba(68, 182, 120, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <g transform="translate(10, 50)">
-            <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Prompt</text>
             <rect width="130" height="65" rx="12" fill="#1a1a2e" stroke="rgba(68, 182, 120, 0.3)" strokeWidth="1" />
             <text x="12" y="18" fill="rgba(180,180,180,0.7)" fontSize="7.5" fontFamily="Inter, sans-serif">
-              <tspan x="12" dy="0">Dreamy full-body portrait of</tspan>
-              <tspan x="12" dy="12">a silhouetted figure in motion</tspan>
-              <tspan x="12" dy="12">against a soft, cool blue</tspan>
-              <tspan x="12" dy="12">backdrop—long exposure</tspan>
+              <tspan x="12" dy="0">Dreamy full-body portrait of</tspan><tspan x="12" dy="12">a silhouetted figure in motion</tspan><tspan x="12" dy="12">against a soft, cool blue</tspan><tspan x="12" dy="12">backdrop—long exposure</tspan>
             </text>
             <circle cx="142" cy="16" r="6" fill="#1a1a1a" stroke="rgb(68, 182, 120)" strokeWidth="1.5" />
           </g>
           <g transform="translate(175, 125)">
-            <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Image Generator</text>
             <rect width="80" height="80" rx="12" fill="#1a1a2e" stroke="rgba(101, 105, 189, 0.3)" strokeWidth="1" />
             <image href="/spaces-assets/04-image.png" x="2" y="2" width="76" height="76" clipPath="inset(0 round 10px)" />
             <circle cx="-12" cy="64" r="6" fill="#1a1a1a" stroke="rgb(68, 182, 120)" strokeWidth="1.5" />
             <circle cx="92" cy="16" r="6" fill="#1a1a1a" stroke="rgb(101, 105, 189)" strokeWidth="1.5" />
           </g>
           <g transform="translate(355, 130)">
-            <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Upscaler</text>
             <rect width="80" height="80" rx="12" fill="#1a1a2e" stroke="rgba(101, 105, 189, 0.3)" strokeWidth="1" />
             <image href="/spaces-assets/04-image.png" x="2" y="2" width="76" height="76" clipPath="inset(0 round 10px)" />
             <circle cx="-12" cy="64" r="6" fill="#1a1a1a" stroke="rgb(101, 105, 189)" strokeWidth="1.5" />
             <circle cx="92" cy="16" r="6" fill="#1a1a1a" stroke="rgb(101, 105, 189)" strokeWidth="1.5" />
           </g>
           <g transform="translate(280, -5)">
-            <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Prompt</text>
             <rect width="130" height="55" rx="12" fill="#1a1a2e" stroke="rgba(68, 182, 120, 0.3)" strokeWidth="1" />
             <text x="12" y="18" fill="rgba(180,180,180,0.7)" fontSize="7.5" fontFamily="Inter, sans-serif">
-              <tspan x="12" dy="0">Slowly and cinematically</tspan>
-              <tspan x="12" dy="12">zoom out of the scene,</tspan>
-              <tspan x="12" dy="12">focusing on the subject</tspan>
+              <tspan x="12" dy="0">Slowly and cinematically</tspan><tspan x="12" dy="12">zoom out of the scene,</tspan><tspan x="12" dy="12">focusing on the subject</tspan>
             </text>
             <circle cx="142" cy="16" r="6" fill="#1a1a1a" stroke="rgb(68, 182, 120)" strokeWidth="1.5" />
           </g>
           <g transform="translate(510, 28)">
-            <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Video Generator</text>
             <rect width="80" height="80" rx="12" fill="#1a1a2e" stroke="rgba(176, 124, 198, 0.3)" strokeWidth="1" />
             <rect x="2" y="2" width="76" height="76" rx="10" fill="#2a1a3a" />
             <polygon points="35,30 35,54 52,42" fill="rgba(176, 124, 198, 0.8)" />
@@ -978,112 +959,89 @@ function HeroBanner() {
           </g>
         </svg>
       </div>
-      <div className="pointer-events-none absolute inset-0 flex flex-col justify-center gap-4 p-14">
-        <SpacesLogo className="text-[#e8e8e8] mb-3 h-14 w-auto self-start" />
-        <p className="text-[#8a8a8a] text-sm max-w-[300px]">
-          Create, connect, and collaborate on an infinite canvas
-        </p>
+      {/* Left content */}
+      <div className="pointer-events-none absolute inset-0 flex flex-col justify-center gap-0 p-12">
+        <h1 className="text-[#f0f0f0] text-[64px] font-bold leading-none tracking-tight" style={{ fontFamily: 'Georgia, serif' }}>Spaces</h1>
+        <div className="mt-8">
+          <p className="text-[#e8e8e8] text-base font-semibold">Start from scratch</p>
+          <p className="text-[#777] text-sm mt-1">Create a new space and start collaborating</p>
+        </div>
+        <button className="pointer-events-auto mt-5 flex items-center gap-2 self-start px-5 py-2.5 rounded-full border border-white/20 bg-white/[0.06] hover:bg-white/[0.1] text-white text-sm font-medium transition-colors">
+          <span className="text-lg leading-none">+</span> New space
+        </button>
       </div>
     </section>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════
+   CATEGORY FILTER PILLS
+   ═══════════════════════════════════════════════════════════════ */
+
+const CATEGORIES = ['All', 'New', 'Featured', 'Branding', 'Social media', 'Advertising', 'Filmmaking', 'AI Partners', 'Creative Production'];
+
+/* ═══════════════════════════════════════════════════════════════
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════ */
 
 export default function Spaces() {
-  const [activeTab, setActiveTab] = useState<'templates' | 'my-spaces'>('templates');
-  const [boardFilter, setBoardFilter] = useState<'all' | 'mine'>('mine');
+  const [activeTab, setActiveTab] = useState<'my-spaces' | 'shared' | 'templates'>('templates');
+  const [activeCategory, setActiveCategory] = useState('All');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
+
+  const filteredTemplates = activeCategory === 'All'
+    ? TEMPLATES
+    : TEMPLATES.filter(t => t.category.toLowerCase().includes(activeCategory.toLowerCase()));
 
   return (
     <div className="flex h-screen bg-[#0f0f0f] gap-2 p-2 font-['Inter',sans-serif]">
-      {/* ──── SIDEBAR ──── */}
-      <div className="relative z-[100] h-full w-56 shrink-0 overflow-hidden transition-all duration-200">
-        <nav className="rounded-xl bg-[#1a1a1a] flex flex-col gap-4 overflow-clip px-5 py-4 h-full">
-          <div className="flex w-full shrink-0 items-center justify-between">
-            <div className="relative flex h-8 w-full items-center">
-              <div className="flex size-8 shrink-0 items-center justify-center">
-                <FreepikLogo />
-              </div>
-              <button className="absolute right-0 top-0 flex size-8 items-center justify-center rounded-lg hover:bg-white/[0.06] transition-opacity">
-                <PanelLeft className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              </button>
-            </div>
+      {/* ──── SIDEBAR (collapsed, icons only) ──── */}
+      <div className="relative z-[100] h-full w-[52px] shrink-0">
+        <nav className="rounded-xl bg-[#1a1a1a] flex flex-col items-center gap-1 py-3 h-full overflow-hidden">
+          {/* Freepik logo */}
+          <div className="mb-1">
+            <FreepikLogo />
           </div>
-
-          <button className="flex items-center gap-2 justify-between w-full h-8 rounded px-2 border border-white/10 bg-[#252525] hover:bg-[#2a2a2a] transition-colors">
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-6 h-6 rounded bg-cover bg-center" style={{ backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
-                <span className="text-white text-xs font-semibold select-none">P</span>
-              </div>
-              <span className="text-[#e8e8e8] text-sm truncate">Personal project</span>
-            </div>
-            <ChevronDown className="w-3.5 h-3.5 text-[#737373]" strokeWidth={1.5} />
+          {/* Project badge */}
+          <button className="w-8 h-8 rounded-lg flex items-center justify-center mb-2" style={{ background: 'linear-gradient(135deg, #e87040 0%, #d44020 100%)' }}>
+            <span className="text-white text-[11px] font-bold">P</span>
           </button>
-
-          <div className="flex flex-col gap-1 shrink-0">
-            {[
-              { icon: Search, label: 'Search' },
-              { icon: Image, label: 'Stock' },
-              { icon: Globe, label: 'Community' },
-              { icon: FolderOpen, label: 'View project' },
-            ].map((item) => (
-              <button key={item.label} className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
-                <item.icon className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-                <span className="text-[#b4b4b4] text-xs">{item.label}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="h-px bg-white/10 w-full" />
-
-          <div className="flex flex-col gap-1 min-h-0 overflow-y-auto flex-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
-            {SIDEBAR_TOOLS.map((tool) => (
-              <SidebarItem key={tool.label} icon={tool.icon} label={tool.label} active={tool.active} />
-            ))}
-            <div className="h-px bg-transparent" />
-            <button className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
-              <Grid3X3 className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              <span className="text-[#b4b4b4] text-xs">All tools</span>
-            </button>
-          </div>
-
-          <div className="mt-auto flex w-full shrink-0 items-center justify-between">
-            <div className="flex items-center gap-1">
-              <button className="flex items-center justify-center size-8 rounded-lg hover:bg-white/[0.06] transition-colors">
-                <GraduationCap className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              </button>
-              <button className="relative flex items-center justify-center size-8 rounded-lg hover:bg-white/[0.06] transition-colors">
-                <Bell className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-                <div className="absolute right-0 top-0 flex size-4 items-center justify-center rounded-full bg-[#336aea] text-white text-[9px]">16</div>
-              </button>
-              <button className="flex items-center justify-center size-8 rounded-lg hover:bg-white/[0.06] transition-colors">
-                <Moon className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              </button>
-            </div>
-            <button className="flex items-center justify-center size-8 rounded-lg hover:bg-white/[0.06] transition-colors">
-              <MoreHorizontal className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-            </button>
-          </div>
+          {/* Nav icons */}
+          <SidebarIcon icon={Search} />
+          <SidebarIcon icon={Grid3X3} />
+          <SidebarIcon icon={Globe} />
+          <SidebarIcon icon={FolderOpen} />
+          <SidebarIcon icon={FolderOpen} />
+          <SidebarIcon icon={FolderOpen} />
+          {/* Separator */}
+          <div className="w-6 h-px bg-white/10 my-1" />
+          {/* Tools */}
+          <SidebarIcon icon={Play} />
+          <SidebarIcon icon={Sparkles} />
+          <SidebarIcon icon={Maximize2} />
+          <SidebarIcon icon={Video} />
+          <SidebarIcon icon={Mic} />
+          <SidebarIcon icon={Zap} active />
+          {/* Spacer */}
+          <div className="flex-1" />
+          {/* Bottom */}
+          <SidebarIcon icon={GraduationCap} />
+          <SidebarIcon icon={Bell} badge="16" />
+          <SidebarIcon icon={MoreHorizontal} />
         </nav>
       </div>
 
       {/* ──── MAIN CONTENT ──── */}
       <div className="flex-1 flex flex-col rounded-xl bg-[#1c1c1c] overflow-hidden">
-        <header className="z-50 flex h-14 w-full min-w-0 shrink-0 items-center gap-2 px-4">
+        {/* Header */}
+        <header className="z-50 flex h-12 w-full min-w-0 shrink-0 items-center gap-2 px-5">
           <div className="flex min-w-0 flex-1 items-center gap-1">
-            <a className="text-[#e8e8e8] hover:bg-white/[0.04] flex items-center gap-2.5 rounded px-2 py-1 text-xs cursor-pointer">
-              Personal project
-            </a>
-            <span className="text-[#737373] opacity-50 mx-0.5">/</span>
-            <a className="text-[#e8e8e8] hover:bg-white/[0.04] flex items-center gap-2.5 rounded px-2 py-1 text-xs cursor-pointer font-medium">
-              Spaces
-            </a>
+            <span className="text-[#999] text-xs">Personal project</span>
+            <span className="text-[#555] mx-1">/</span>
+            <span className="text-[#e8e8e8] text-xs font-medium">Spaces</span>
           </div>
           <div className="flex shrink-0 items-center gap-3">
-            <button className="text-[#737373] hover:bg-white/[0.06] hover:text-[#e8e8e8] flex items-center justify-center rounded-lg p-2 transition-colors">
+            <button className="text-[#777] hover:text-[#e8e8e8] p-1.5 transition-colors">
               <Sparkles className="w-5 h-5" strokeWidth={1.5} />
             </button>
             <div className="relative w-8 h-8">
@@ -1098,96 +1056,95 @@ export default function Spaces() {
           </div>
         </header>
 
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-y-auto rounded-xl bg-[#1a1a1a] mx-0">
-            <div className="px-6 py-0">
-              <div className="pb-2 pt-6">
-                <HeroBanner />
+        {/* Scrollable content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="px-6 pb-8">
+            {/* Hero */}
+            <HeroBanner />
 
-                <div className="mt-8">
-                  <h2 className="text-[#e8e8e8] text-lg font-semibold mb-4">Getting started</h2>
-                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
-                    {GETTING_STARTED.map((card) => (
-                      <GettingStartedCard key={card.title} {...card} />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="mt-6 border-b border-white/10">
-                  <div className="flex gap-0">
-                    <button
-                      onClick={() => setActiveTab('templates')}
-                      className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'templates'
-                          ? 'border-[#f4f4f5] text-white'
-                          : 'border-transparent text-[#737373] hover:text-[#b4b4b4]'
-                      }`}
-                    >
-                      Templates
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('my-spaces')}
-                      className={`px-3 py-3 text-sm font-medium border-b-2 transition-colors ${
-                        activeTab === 'my-spaces'
-                          ? 'border-[#f4f4f5] text-white'
-                          : 'border-transparent text-[#737373] hover:text-[#b4b4b4]'
-                      }`}
-                    >
-                      My spaces
-                    </button>
-                  </div>
-                </div>
-
-                {activeTab === 'templates' && (
-                  <div className="flex items-center gap-2 mt-4 mb-4">
-                    <button
-                      onClick={() => setBoardFilter('mine')}
-                      className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        boardFilter === 'mine'
-                          ? 'bg-[#336aea] text-white'
-                          : 'bg-white/[0.06] text-[#b4b4b4] hover:bg-white/10'
-                      }`}
-                    >
-                      For you
-                    </button>
-                    <button
-                      onClick={() => setBoardFilter('all')}
-                      className={`px-4 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                        boardFilter === 'all'
-                          ? 'bg-[#336aea] text-white'
-                          : 'bg-white/[0.06] text-[#b4b4b4] hover:bg-white/10'
-                      }`}
-                    >
-                      All templates
-                    </button>
-                  </div>
-                )}
-
-                {activeTab === 'templates' && (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 pb-8">
-                    {TEMPLATES.map((tmpl) => (
-                      <TemplateCard
-                        key={tmpl.title}
-                        template={tmpl}
-                        onClick={() => setSelectedTemplate(tmpl)}
-                      />
-                    ))}
-                  </div>
-                )}
-
-                {activeTab === 'my-spaces' && (
-                  <div className="flex flex-col items-center justify-center py-20">
-                    <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
-                      <Zap className="w-8 h-8 text-[#737373]" strokeWidth={1.5} />
-                    </div>
-                    <p className="text-[#737373] text-sm">No spaces yet. Create your first one!</p>
-                    <button className="mt-4 px-6 py-2 rounded-lg bg-[#336aea] text-white text-sm font-medium hover:bg-[#2955bb] transition-colors">
-                      Create space
-                    </button>
-                  </div>
-                )}
-              </div>
+            {/* Tabs (pill style) */}
+            <div className="flex items-center gap-2 mt-6 mb-6">
+              {(['my-spaces', 'shared', 'templates'] as const).map((tab) => {
+                const labels: Record<string, { icon: any; label: string }> = {
+                  'my-spaces': { icon: FolderOpen, label: 'My spaces' },
+                  'shared': { icon: Globe, label: 'Shared' },
+                  'templates': { icon: Grid3X3, label: 'Templates' },
+                };
+                const { icon: TabIcon, label } = labels[tab];
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-white/[0.1] text-white'
+                        : 'text-[#777] hover:text-[#aaa] hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <TabIcon className="w-4 h-4" strokeWidth={1.5} />
+                    {label}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Getting started */}
+            {activeTab === 'templates' && (
+              <>
+                <h2 className="text-[#e8e8e8] text-lg font-bold mb-4">Getting started</h2>
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
+                  {GETTING_STARTED.map((card) => (
+                    <GettingStartedCard key={card.title} {...card} />
+                  ))}
+                </div>
+
+                {/* Spaces templates */}
+                <h2 className="text-[#e8e8e8] text-lg font-bold mt-8 mb-4">Spaces templates</h2>
+
+                {/* Category pills */}
+                <div className="flex items-center gap-2 mb-6 overflow-x-auto scrollbar-none">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm transition-colors ${
+                        activeCategory === cat
+                          ? 'bg-white/[0.12] text-white font-medium'
+                          : 'text-[#888] hover:text-[#bbb] hover:bg-white/[0.04]'
+                      }`}
+                    >
+                      {cat === 'New' && <span className="mr-1">&#9889;</span>}
+                      {cat === 'Featured' && <span className="mr-1">&#9733;</span>}
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Template grid (landscape cards, 5 cols) */}
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 pb-8">
+                  {filteredTemplates.map((tmpl) => (
+                    <TemplateCard
+                      key={tmpl.title}
+                      template={tmpl}
+                      onClick={() => setSelectedTemplate(tmpl)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* My spaces / Shared (empty states) */}
+            {(activeTab === 'my-spaces' || activeTab === 'shared') && (
+              <div className="flex flex-col items-center justify-center py-24">
+                <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
+                  <Zap className="w-8 h-8 text-[#555]" strokeWidth={1.5} />
+                </div>
+                <p className="text-[#666] text-sm">
+                  {activeTab === 'my-spaces' ? 'No spaces yet' : 'No shared spaces'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
