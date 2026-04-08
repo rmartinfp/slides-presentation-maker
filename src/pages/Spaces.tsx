@@ -727,14 +727,13 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
 
         {/* ── Header ── */}
         <div className="px-14 pt-10 pb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <span className={`text-[11px] font-bold tracking-[0.14em] uppercase ${catColor}`}>{template.category}</span>
-            {template.author && (
+          {template.author && (
+            <div className="mb-3">
               <span className="text-[11px] text-[#555] bg-white/[0.04] px-3 py-1 rounded-full">
                 by <span className="text-[#999]">{template.author}</span>
               </span>
-            )}
-          </div>
+            </div>
+          )}
           <h1 className="text-[#f0f0f0] text-[30px] font-bold leading-[1.2] pr-16 max-w-[800px]">{template.title}</h1>
           <p className="text-[#555] text-[15px] mt-2.5 max-w-[640px] leading-relaxed">{template.description}</p>
         </div>
