@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
-import { Search, Globe, FolderOpen, Sparkles, Image, Video, Mic, ArrowUp, ChevronDown, Moon, Bell, MoreHorizontal, GraduationCap, Grid3X3, Pin, PanelLeft, Play, Zap, Maximize2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Globe, FolderOpen, Sparkles, Image, Video, Mic, ChevronDown, Moon, Bell, MoreHorizontal, GraduationCap, Grid3X3, Pin, PanelLeft, Play, Zap, Maximize2, X, Upload, CheckCircle2, Eye } from 'lucide-react';
 
-/* ───────── data ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   DATA — enriched template details
+   ═══════════════════════════════════════════════════════════════ */
+
+interface TemplateData {
+  title: string;
+  img: string;
+  category: string;
+  description: string;
+  result: string;
+  inputs: string[];
+  automations: string[];
+  nodes: string[];
+  author?: string;
+}
 
 const GETTING_STARTED = [
   { title: 'Discover the List Node', img: '/spaces-assets/v9Bx1uTnft9Ve6yYTYPU9lZ8FUEU7LeJZOlsDn4E.jpg' },
@@ -12,59 +26,533 @@ const GETTING_STARTED = [
   { title: 'Explore connections', img: '/spaces-assets/VCK7OfjJhQoA9L8Ck4DWjcsCq2ISGiBMuEEmUHDb.jpg' },
 ];
 
-const TEMPLATES = [
-  { title: 'Product catalog cards with Designer Node', img: '/spaces-assets/PH5HO4hKJ1vn1ETjUFjDTmUQ03pbrFxbRCgNY5tj.jpg' },
-  { title: 'Multiformat ad production with Designer Node', img: '/spaces-assets/MGPyhDmZlP9C7PglT6Nb5mE0DGfQP7siNeXk4rhA.jpg' },
-  { title: 'Create poster series with Designer Node', img: '/spaces-assets/FCs9hBnCrz9RsFMkxQjTNVXjU97aEMQEyaYcNzut.jpg' },
-  { title: 'Transitions template', img: '/spaces-assets/NvnSShxIiIRz4K8XjYddNpcK5j1gKYo3i5m6Q1hh.jpg' },
-  { title: 'Scene builder from reference sheets', img: '/spaces-assets/JcdupfHlec1MA0sMblrVd86LXDxTffKQu7bCQWnc.jpg' },
-  { title: 'High-end skin retouch & makeup', img: '/spaces-assets/7yvC0tX8G2ZEQ0nsJc3W8cmMBtQTT81DRFp0Lxx4.jpg' },
-  { title: 'Build your character', img: '/spaces-assets/K5fSl5ZOTsAf5Zh1vkkAipQ2WHehzwVgIroBvZ3I.jpg' },
-  { title: 'Product designing workflow', img: '/spaces-assets/9elvV7ZQgC4c2nXlbsx3P2mY6svMZ0gi9QcXyzdW.jpg' },
-  { title: 'Product marketing workflow', img: '/spaces-assets/VxT65cc0pP2DblHiGQt7PaIrgrPkC89XSwWDTTiV.jpg' },
-  { title: 'Digital twin', img: '/spaces-assets/T9usZmpxRmt102dxVWfqOCRrW9fzwc9wC6RQKDdG.jpg' },
-  { title: 'Create brand packaging', img: '/spaces-assets/vKj7Be2VXw8QybAIMRvMBMLUjAXGyEEQ0Och7CE7.jpg' },
-  { title: 'Product shots for e-commerce', img: '/spaces-assets/GZWMbIxxn2QnTIlnnUTgivaDVa9ZwpVlnLbi0uFK.jpg' },
-  { title: 'Luxury jewelry campaign visuals', img: '/spaces-assets/TdoYU2bGjwGdmrzZhve6hTA9tjyO7zta2QkUTzFw.jpg' },
-  { title: 'Social content studio', img: '/spaces-assets/GRXnox10C3ZiNhF1sSilocgpRJDX09219R7URZPP.jpg' },
-  { title: 'Create social thumbnails', img: '/spaces-assets/UDyfgTdGXVrrFat4aikxj0btqFQ3BcbeW5pWhdOh.jpg' },
-  { title: 'Expand your character', img: '/spaces-assets/IdFxUNM9dcy9qM9rLYRZi3VgheGi53LPQj8RgjiZ.jpg' },
-  { title: 'Y2k aesthetic portrait transformation', img: '/spaces-assets/m73yl1Tu16fDCfCe1BAQQP64wYkkkJhzDFm3y22t.jpg' },
-  { title: 'Create t-Shirt product content', img: '/spaces-assets/moNXnMPPEOYzr83Fjf3WOIHadBej1UjgS6JddC3S.jpg' },
-  { title: 'Design video thumbnails', img: '/spaces-assets/8isnijzOa6ohuAO2Bf1F0BaDAq3uT7AzwTpDKHb3.jpg' },
-  { title: 'Render multiple views', img: '/spaces-assets/7cwDfy8jGqdxKjxjS9DRhpXQ48QocjHWyWoSZwdy.jpg' },
-  { title: 'Adapt ad for global markets', img: '/spaces-assets/NZpq2Bp21bsvBu9PcwxsWGign9cQm03KuMZK5mZk.jpg' },
-  { title: 'Photoshoot to ad campaign', img: '/spaces-assets/4nT6XE9R7Qs505ZktRHf5rc2iBK1bWlXcQWueLKG.jpg' },
-  { title: 'Batch ad variation', img: '/spaces-assets/S0rMlp4E1aOkFbhP3MkSQqVc3TVJZ6PEF6kxcFWq.jpg' },
-  { title: 'Marketing campaign', img: '/spaces-assets/l2qMjkwcls3tgX5czE6cFzEuR5dNnr38KEXU4ETn.jpg' },
-  { title: 'Multiformat social media', img: '/spaces-assets/nVjSrh3xQPigCy9RymGACZkKiNoYN7FYazLGXKAV.jpg' },
-  { title: 'Multiple copy variations', img: '/spaces-assets/0Kge4GBcvBU2kWsFAvW9K3u5XTTRSScvBi5hmOTk.jpg' },
-  { title: 'Batch product photos', img: '/spaces-assets/fBZiDB5utXAwMJ10nYJdAZK6rIyHg1cof8V91ZuW.jpg' },
-  { title: 'Create product photoshoots', img: '/spaces-assets/nDnB92UHDYTNCp0xtmwWLS1SuhCqOXc5aQU2K7kf.jpg' },
-  { title: 'Create visuals for products', img: '/spaces-assets/l1wW9mA3wmsOb8RNTgAGPE7X1DF8A7p9IbNrpMmX.jpg' },
-  { title: 'Dynamic angles', img: '/spaces-assets/S6z90KmCHH7J8uWVRpmywG991xG5lnHxWNm84q5v.jpg' },
-  { title: 'Character sheet', img: '/spaces-assets/TCuGEti0eO3o7GGKEw0skk4QHB83N4IQsXkx9Zqw.jpg' },
-  { title: 'Try new materials', img: '/spaces-assets/5Ly2HIyIribW8CPqJRdOEWXLItossnybtw5bQCl5.jpg' },
-  { title: 'Design full brand book', img: '/spaces-assets/jxoyebAebd5KaTpvAnaumSx50GImjSljxZDNSzgw.jpg' },
-  { title: 'Create stationery brand identity', img: '/spaces-assets/67Py1gbk5Tvuqx0ocL7hfkmgbzpZDmxJQLB0E7qP.jpg' },
-  { title: 'Visualize outfit across scenarios', img: '/spaces-assets/gXuAQcGd64KJ2UGJSjENkYkWcbSlZlGZWInf2PTZ.jpg' },
-  { title: 'Generate product showcase video', img: '/spaces-assets/tmU56j8f06POpO1SUqCGPwRy4edYXzIBD6S6OIhw.jpg' },
-  { title: 'Animate a snapshot', img: '/spaces-assets/bQzIjq49CCyWOKAQfgEexaXjKu1NvJpb8r9R0Nzk.jpg' },
-  { title: 'Transform rooms into designs', img: '/spaces-assets/GbO63mZVRi9ahKy96k3W972e1HgQd8Ka5YKG72nd.jpg' },
-  { title: 'Design Instagram reel cover', img: '/spaces-assets/cFQzxiATeg49hrx5c3yEiGtoNqzYyeCZqhRabApI.jpg' },
-  { title: 'Customize designs for social media', img: '/spaces-assets/gkIyijY1ZNm6vkkr2Ixi3ulQANI00wH6dHIZlYui.jpg' },
-  { title: 'Create consistent sequential scenes', img: '/spaces-assets/2y7xewrqa7s7n1wgmEd6Qprw0XwU5hA5h0Hw3nTQ.jpg' },
-  { title: 'Generate hyperlapse', img: '/spaces-assets/asJaclvn32t7XwTLSfj1Rns58LumNeydSgRYHPEW.jpg' },
-  { title: 'Create storyboard from image', img: '/spaces-assets/biSejsPF2HU2h5Isz1BnifuVwsANuDUszEXKvJ2v.jpg' },
-  { title: 'Create sport brand visuals', img: '/spaces-assets/p1oJn6FB13ICx3o1nycoutQovEf3k3KRqcfNqHhH.jpg' },
-  { title: 'Generate a professional headshot', img: '/spaces-assets/gTYzLez8E07QpcJTamss2BYvCB8Q8GjRcd5cezHC.jpg' },
-  { title: 'Create winter visuals', img: '/spaces-assets/tYbraWy1yiE6ia1wgawXpMwnB3YIvMCVWFaXIS4t.jpg' },
-  { title: 'Sketch to product render', img: '/spaces-assets/dxsGK8EKyG7ou7gpcLnhF04mQikw80m8aS5DFrwU.jpg' },
-  { title: 'Modify facial expressions', img: '/spaces-assets/Sggu7Vg7G5x9LmUzknsVcpXETKtXLA1tlyvlPqjP.jpg' },
-  { title: 'Turn casual photos into studio shots', img: '/spaces-assets/hFruPYYT8rn7R0yX9X1Um0xrYHNuwKZqaV8YIDwp.jpg' },
-  { title: 'Prototyping Moodboard Product', img: '/spaces-assets/ahxSizRniQkUOnFKb491O6gWENQMVdE0IKVwfRiC.jpg' },
-  { title: 'Restore your memories', img: '/spaces-assets/ppdOXKK1kSKIgdu6G5nILgGZ7KJMoCjpTOuFCGvv.jpg' },
-  { title: 'Brand identity', img: '/spaces-assets/DfcCKtPZy9gNyqNUjmTAZ4f5LESJCfH0aziMqLvn.jpg' },
+const TEMPLATES: TemplateData[] = [
+  // ── From context file (exact data) ──
+  {
+    title: 'Product catalog cards with Designer Node',
+    img: '/spaces-assets/PH5HO4hKJ1vn1ETjUFjDTmUQ03pbrFxbRCgNY5tj.jpg',
+    category: 'BRANDING',
+    description: 'Create professional product catalog cards with custom branding and consistent layout across all items.',
+    result: 'Professional product cards in mobile/vertical format with photo, name and details.',
+    inputs: ['Photos of your products', 'Product info (name, price, description)'],
+    automations: ['Generates professional design compositions', 'Applies consistent layout to all products', 'Creates cards ready for digital or print catalog'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Multiformat ad production with Designer Node',
+    img: '/spaces-assets/MGPyhDmZlP9C7PglT6Nb5mE0DGfQP7siNeXk4rhA.jpg',
+    category: 'ADVERTISING',
+    description: 'Upload your product, write your copy, and generate a complete ad kit in multiple formats ready for campaign.',
+    result: 'Ads in Story (9:16), Banner (16:9) and Post (1:1) formats.',
+    inputs: ['Photo of your product', 'Ad copy text'],
+    automations: ['Generates product color variations', 'Removes background for clean cutout', 'Applies designs in multiple formats', 'Delivers final campaign assets'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant', 'Upscaler'],
+  },
+  {
+    title: 'Create poster series with Designer Node',
+    img: '/spaces-assets/FCs9hBnCrz9RsFMkxQjTNVXjU97aEMQEyaYcNzut.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Generate a series of posters with coherent visual style for your brand or event.',
+    result: 'Poster series with professional design and unified style.',
+    inputs: ['Base image or concept', 'Text for each poster'],
+    automations: ['Generates visual variations maintaining coherence', 'Applies professional typography and composition', 'Produces complete series ready to print or publish'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Transitions template',
+    img: '/spaces-assets/NvnSShxIiIRz4K8XjYddNpcK5j1gKYo3i5m6Q1hh.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Create transition videos with outfit and style changes for social media content.',
+    result: 'Video with dynamic transitions between different looks.',
+    inputs: ['Reference image', 'Desired styles/outfits'],
+    automations: ['Generates consistent style variations', 'Creates fluid transitions', 'Produces viral content for social media'],
+    nodes: ['Image Generator', 'Video Generator'],
+    author: '@glamseasons',
+  },
+  {
+    title: 'Scene builder from reference sheets',
+    img: '/spaces-assets/JcdupfHlec1MA0sMblrVd86LXDxTffKQu7bCQWnc.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Build complete scenes from character reference sheets and environment descriptions.',
+    result: 'Constructed scenes with coherent characters and backgrounds.',
+    inputs: ['Character reference sheets', 'Scene description'],
+    automations: ['Interprets visual references', 'Generates scenes with professional composition', 'Maintains consistency with references'],
+    nodes: ['Image Generator', 'Assistant'],
+    author: '@mrdavids1',
+  },
+  {
+    title: 'High-end skin retouch & makeup',
+    img: '/spaces-assets/7yvC0tX8G2ZEQ0nsJc3W8cmMBtQTT81DRFp0Lxx4.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Apply professional high-end skin retouching and digital makeup to portraits.',
+    result: 'Portrait with professional skin retouching and makeup.',
+    inputs: ['Portrait photo'],
+    automations: ['Applies high-end skin retouching', 'Adds professional digital makeup', 'Preserves natural skin texture'],
+    nodes: ['Image Generator', 'Upscaler'],
+    author: '@piximperfect',
+  },
+
+  // ── Remaining templates with inferred data ──
+  {
+    title: 'Build your character',
+    img: '/spaces-assets/K5fSl5ZOTsAf5Zh1vkkAipQ2WHehzwVgIroBvZ3I.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Design a consistent AI character with multiple poses, expressions and angles from a single description.',
+    result: 'Character sheet with multiple views and expressions ready for use in projects.',
+    inputs: ['Character description or reference image', 'Style preferences (anime, realistic, cartoon)'],
+    automations: ['Generates consistent character across multiple poses', 'Creates front/side/back views', 'Maintains identity across all variations'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Product designing workflow',
+    img: '/spaces-assets/9elvV7ZQgC4c2nXlbsx3P2mY6svMZ0gi9QcXyzdW.jpg',
+    category: 'BRANDING',
+    description: 'Go from concept to polished product design with automated iterations and mockup generation.',
+    result: 'Product design mockups from multiple angles with professional presentation.',
+    inputs: ['Product concept or sketch', 'Brand guidelines or color palette'],
+    automations: ['Generates product design iterations', 'Creates realistic 3D-style mockups', 'Applies brand colors and styling consistently'],
+    nodes: ['Image Generator', 'Assistant', 'Upscaler'],
+  },
+  {
+    title: 'Product marketing workflow',
+    img: '/spaces-assets/VxT65cc0pP2DblHiGQt7PaIrgrPkC89XSwWDTTiV.jpg',
+    category: 'ADVERTISING',
+    description: 'Transform product photos into a complete marketing asset kit with ads, social posts and banners.',
+    result: 'Complete marketing kit: social posts, ads and banners in multiple sizes.',
+    inputs: ['Product photo', 'Marketing copy and brand name'],
+    automations: ['Removes and replaces product backgrounds', 'Generates marketing compositions', 'Adapts to multiple ad formats and sizes'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Digital twin',
+    img: '/spaces-assets/T9usZmpxRmt102dxVWfqOCRrW9fzwc9wC6RQKDdG.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Create a digital version of yourself that can be placed in any scenario, outfit or setting.',
+    result: 'Digital twin images in various scenarios and outfits.',
+    inputs: ['Several reference photos of yourself', 'Desired scenarios or outfits'],
+    automations: ['Learns your facial features and identity', 'Places you in different scenarios', 'Maintains likeness across all generations'],
+    nodes: ['Image Generator', 'Assistant', 'Upscaler'],
+  },
+  {
+    title: 'Create brand packaging',
+    img: '/spaces-assets/vKj7Be2VXw8QybAIMRvMBMLUjAXGyEEQ0Och7CE7.jpg',
+    category: 'BRANDING',
+    description: 'Design professional product packaging with your brand identity applied consistently.',
+    result: 'Packaging designs with mockups for boxes, bags, labels and containers.',
+    inputs: ['Brand logo and colors', 'Product type and dimensions'],
+    automations: ['Generates packaging design concepts', 'Applies brand identity to all formats', 'Creates realistic 3D packaging mockups'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Product shots for e-commerce',
+    img: '/spaces-assets/GZWMbIxxn2QnTIlnnUTgivaDVa9ZwpVlnLbi0uFK.jpg',
+    category: 'ADVERTISING',
+    description: 'Turn basic product photos into professional e-commerce imagery with clean backgrounds and lifestyle scenes.',
+    result: 'Professional product photos with white background and lifestyle context shots.',
+    inputs: ['Raw product photo'],
+    automations: ['Removes original background', 'Creates clean white-background shots', 'Generates lifestyle scene compositions', 'Upscales to high resolution'],
+    nodes: ['Image Generator', 'Upscaler', 'Assistant'],
+  },
+  {
+    title: 'Luxury jewelry campaign visuals',
+    img: '/spaces-assets/TdoYU2bGjwGdmrzZhve6hTA9tjyO7zta2QkUTzFw.jpg',
+    category: 'ADVERTISING',
+    description: 'Create premium campaign visuals for jewelry with cinematic lighting and elegant compositions.',
+    result: 'High-end jewelry campaign images with professional styling.',
+    inputs: ['Jewelry product photo', 'Campaign mood or concept'],
+    automations: ['Applies cinematic lighting and reflections', 'Creates luxury staging and backgrounds', 'Generates multiple campaign angles'],
+    nodes: ['Image Generator', 'Upscaler', 'Assistant'],
+  },
+  {
+    title: 'Social content studio',
+    img: '/spaces-assets/GRXnox10C3ZiNhF1sSilocgpRJDX09219R7URZPP.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Produce a batch of social media content from a single concept, adapted for every platform.',
+    result: 'Content pack with posts, stories and banners for Instagram, TikTok and LinkedIn.',
+    inputs: ['Core concept or product image', 'Brand style and copy'],
+    automations: ['Generates visual variations for different platforms', 'Adapts aspect ratios automatically', 'Creates cohesive visual series'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Create social thumbnails',
+    img: '/spaces-assets/UDyfgTdGXVrrFat4aikxj0btqFQ3BcbeW5pWhdOh.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Generate eye-catching thumbnails for YouTube, blog posts and social media that drive clicks.',
+    result: 'Thumbnails optimized for YouTube, Instagram and blog posts.',
+    inputs: ['Topic or title', 'Reference image or face photo'],
+    automations: ['Creates attention-grabbing compositions', 'Adds text overlays with optimal readability', 'Generates multiple style variations'],
+    nodes: ['Image Generator', 'Designer Node'],
+  },
+  {
+    title: 'Expand your character',
+    img: '/spaces-assets/IdFxUNM9dcy9qM9rLYRZi3VgheGi53LPQj8RgjiZ.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Take an existing character and generate new scenes, poses and expressions maintaining consistency.',
+    result: 'New character scenes and poses that match the original design.',
+    inputs: ['Existing character image', 'New scene or pose descriptions'],
+    automations: ['Maintains character identity across new poses', 'Generates new scenes with consistent style', 'Creates expression variations'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Y2k aesthetic portrait transformation',
+    img: '/spaces-assets/m73yl1Tu16fDCfCe1BAQQP64wYkkkJhzDFm3y22t.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Transform portraits into Y2K aesthetic style with retro effects, colors and vibes.',
+    result: 'Stylized portrait with Y2K aesthetic: metallic tones, butterfly effects, early-2000s vibes.',
+    inputs: ['Portrait photo'],
+    automations: ['Applies Y2K color grading and effects', 'Adds era-specific design elements', 'Preserves facial identity while transforming style'],
+    nodes: ['Image Generator', 'Upscaler'],
+  },
+  {
+    title: 'Create t-Shirt product content',
+    img: '/spaces-assets/moNXnMPPEOYzr83Fjf3WOIHadBej1UjgS6JddC3S.jpg',
+    category: 'ADVERTISING',
+    description: 'Generate professional t-shirt mockups and product shots from your design files.',
+    result: 'T-shirt mockups on models, flat lays and lifestyle shots.',
+    inputs: ['T-shirt design or print graphic', 'Brand style preferences'],
+    automations: ['Places design on realistic t-shirt mockups', 'Generates model wearing the product', 'Creates lifestyle and flat-lay compositions'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Design video thumbnails',
+    img: '/spaces-assets/8isnijzOa6ohuAO2Bf1F0BaDAq3uT7AzwTpDKHb3.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Create scroll-stopping video thumbnails with dramatic compositions and bold text.',
+    result: 'Video thumbnails with expressive faces, bold titles and high contrast.',
+    inputs: ['Video topic or title', 'Face photo or key frame'],
+    automations: ['Creates dramatic facial expressions', 'Adds bold title text with effects', 'Optimizes composition for click-through'],
+    nodes: ['Image Generator', 'Designer Node'],
+  },
+  {
+    title: 'Render multiple views',
+    img: '/spaces-assets/7cwDfy8jGqdxKjxjS9DRhpXQ48QocjHWyWoSZwdy.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Generate multiple camera angles and views of any product or object from a single image.',
+    result: 'Product renders from front, side, top, 3/4 angle and detail views.',
+    inputs: ['Product photo or 3D concept'],
+    automations: ['Generates consistent views from multiple angles', 'Maintains material and lighting consistency', 'Creates turntable-style product views'],
+    nodes: ['Image Generator', 'Camera Angles', 'Assistant'],
+  },
+  {
+    title: 'Adapt ad for global markets',
+    img: '/spaces-assets/NZpq2Bp21bsvBu9PcwxsWGign9cQm03KuMZK5mZk.jpg',
+    category: 'ADVERTISING',
+    description: 'Take one ad and adapt it for different markets with localized models, text and cultural context.',
+    result: 'Ad variations adapted for different regional markets.',
+    inputs: ['Original ad creative', 'Target markets and languages'],
+    automations: ['Swaps models to match regional demographics', 'Translates and localizes copy', 'Adapts visual elements for cultural relevance'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Photoshoot to ad campaign',
+    img: '/spaces-assets/4nT6XE9R7Qs505ZktRHf5rc2iBK1bWlXcQWueLKG.jpg',
+    category: 'ADVERTISING',
+    description: 'Transform raw photoshoot images into polished ad campaign materials across all formats.',
+    result: 'Complete ad campaign set: hero images, banners, social posts.',
+    inputs: ['Photoshoot images', 'Campaign brief and copy'],
+    automations: ['Retouches and enhances photoshoot images', 'Creates campaign compositions and layouts', 'Adapts to all required ad formats'],
+    nodes: ['Image Generator', 'Designer Node', 'Upscaler', 'Assistant'],
+  },
+  {
+    title: 'Batch ad variation',
+    img: '/spaces-assets/S0rMlp4E1aOkFbhP3MkSQqVc3TVJZ6PEF6kxcFWq.jpg',
+    category: 'ADVERTISING',
+    description: 'Generate dozens of ad variations from a single base creative for A/B testing at scale.',
+    result: 'Multiple ad variations with different copy, colors and layouts.',
+    inputs: ['Base ad creative', 'Copy variations or brand guidelines'],
+    automations: ['Generates color and layout variations', 'Swaps copy across all variations', 'Produces batch-ready ad sets for testing'],
+    nodes: ['Image Generator', 'Designer Node', 'List Node', 'Assistant'],
+  },
+  {
+    title: 'Marketing campaign',
+    img: '/spaces-assets/l2qMjkwcls3tgX5czE6cFzEuR5dNnr38KEXU4ETn.jpg',
+    category: 'ADVERTISING',
+    description: 'Build a full marketing campaign from concept to deliverables with cohesive visual identity.',
+    result: 'Complete campaign kit: hero visual, social posts, email headers, banners.',
+    inputs: ['Campaign concept or brief', 'Brand assets (logo, colors)'],
+    automations: ['Generates hero campaign visual', 'Creates all deliverable formats', 'Maintains visual coherence across all pieces'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Multiformat social media',
+    img: '/spaces-assets/nVjSrh3xQPigCy9RymGACZkKiNoYN7FYazLGXKAV.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Create one post and automatically get it adapted for every social media platform.',
+    result: 'Post adapted for Instagram (1:1), Story (9:16), Twitter (16:9) and LinkedIn.',
+    inputs: ['Post concept or image', 'Caption and hashtags'],
+    automations: ['Adapts composition to each platform ratio', 'Repositions elements for each format', 'Maintains brand consistency across all'],
+    nodes: ['Image Generator', 'Designer Node'],
+  },
+  {
+    title: 'Multiple copy variations',
+    img: '/spaces-assets/0Kge4GBcvBU2kWsFAvW9K3u5XTTRSScvBi5hmOTk.jpg',
+    category: 'ADVERTISING',
+    description: 'Generate multiple ad copy variations on the same visual for rapid A/B testing.',
+    result: 'Same ad visual with 5-10 different copy variations.',
+    inputs: ['Base ad image', 'Core message or product benefits'],
+    automations: ['Generates multiple headline variations', 'Places copy with optimal typography', 'Creates ready-to-test ad set'],
+    nodes: ['Designer Node', 'Assistant', 'List Node'],
+  },
+  {
+    title: 'Batch product photos',
+    img: '/spaces-assets/fBZiDB5utXAwMJ10nYJdAZK6rIyHg1cof8V91ZuW.jpg',
+    category: 'ADVERTISING',
+    description: 'Process multiple product photos at once: remove backgrounds, enhance and place in professional scenes.',
+    result: 'Batch of product photos with clean backgrounds and lifestyle contexts.',
+    inputs: ['Multiple product photos'],
+    automations: ['Batch-removes all backgrounds', 'Generates consistent scene compositions', 'Upscales all images to high resolution'],
+    nodes: ['Image Generator', 'Upscaler', 'List Node'],
+  },
+  {
+    title: 'Create product photoshoots',
+    img: '/spaces-assets/nDnB92UHDYTNCp0xtmwWLS1SuhCqOXc5aQU2K7kf.jpg',
+    category: 'ADVERTISING',
+    description: 'Generate studio-quality product photoshoots without a physical studio or photographer.',
+    result: 'Professional product photography with studio lighting and styled backgrounds.',
+    inputs: ['Product photo (even casual/phone photo)', 'Desired mood or setting'],
+    automations: ['Removes original background', 'Creates professional studio lighting', 'Generates styled compositions and props'],
+    nodes: ['Image Generator', 'Upscaler', 'Assistant'],
+  },
+  {
+    title: 'Create visuals for products',
+    img: '/spaces-assets/l1wW9mA3wmsOb8RNTgAGPE7X1DF8A7p9IbNrpMmX.jpg',
+    category: 'BRANDING',
+    description: 'Generate beautiful product visuals for websites, pitch decks and marketing materials.',
+    result: 'Polished product visuals with lifestyle context and professional presentation.',
+    inputs: ['Product photo or description', 'Visual style preferences'],
+    automations: ['Creates hero product images', 'Generates contextual lifestyle shots', 'Produces presentation-ready visuals'],
+    nodes: ['Image Generator', 'Upscaler', 'Assistant'],
+  },
+  {
+    title: 'Dynamic angles',
+    img: '/spaces-assets/S6z90KmCHH7J8uWVRpmywG991xG5lnHxWNm84q5v.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Generate dramatic camera angles and perspectives from a single flat image.',
+    result: 'Same subject from multiple dynamic perspectives: low angle, bird eye, dutch tilt.',
+    inputs: ['Source image'],
+    automations: ['Generates multiple camera angle variations', 'Maintains subject consistency', 'Creates cinematic perspective effects'],
+    nodes: ['Image Generator', 'Camera Angles'],
+  },
+  {
+    title: 'Character sheet',
+    img: '/spaces-assets/TCuGEti0eO3o7GGKEw0skk4QHB83N4IQsXkx9Zqw.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Generate a complete character reference sheet with turnaround views, expressions and details.',
+    result: 'Character turnaround sheet: front, side, back, plus expression studies.',
+    inputs: ['Character description or concept art', 'Style guide (anime, realistic, etc.)'],
+    automations: ['Generates consistent character turnaround', 'Creates expression sheet', 'Maintains proportions and style across all views'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Try new materials',
+    img: '/spaces-assets/5Ly2HIyIribW8CPqJRdOEWXLItossnybtw5bQCl5.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Visualize your product design in different materials: wood, metal, fabric, glass and more.',
+    result: 'Same product rendered in 5+ different material finishes.',
+    inputs: ['Product image', 'Materials to try (or let AI suggest)'],
+    automations: ['Applies realistic material textures', 'Adjusts lighting for each material', 'Maintains product shape and proportions'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Design full brand book',
+    img: '/spaces-assets/jxoyebAebd5KaTpvAnaumSx50GImjSljxZDNSzgw.jpg',
+    category: 'BRANDING',
+    description: 'Generate a complete brand identity book with logo applications, color palettes, typography and mockups.',
+    result: 'Brand book pages: logo usage, color palette, typography, stationery mockups.',
+    inputs: ['Brand name and logo', 'Brand values and personality'],
+    automations: ['Generates color palette and typography pairings', 'Creates logo application examples', 'Produces stationery and digital mockups'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Create stationery brand identity',
+    img: '/spaces-assets/67Py1gbk5Tvuqx0ocL7hfkmgbzpZDmxJQLB0E7qP.jpg',
+    category: 'BRANDING',
+    description: 'Design a cohesive stationery set: business cards, letterhead, envelopes and more.',
+    result: 'Complete stationery set with consistent brand identity.',
+    inputs: ['Brand logo and colors', 'Contact information'],
+    automations: ['Designs business card layouts', 'Creates letterhead and envelope designs', 'Generates realistic printed mockups'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Visualize outfit across scenarios',
+    img: '/spaces-assets/gXuAQcGd64KJ2UGJSjENkYkWcbSlZlGZWInf2PTZ.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'See how an outfit looks in different scenarios: street, office, beach, night out.',
+    result: 'Same person wearing the outfit in 4+ different lifestyle scenarios.',
+    inputs: ['Photo wearing the outfit', 'Desired scenarios'],
+    automations: ['Maintains outfit and person identity', 'Places in realistic lifestyle scenarios', 'Adjusts lighting and ambiance per scene'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Generate product showcase video',
+    img: '/spaces-assets/tmU56j8f06POpO1SUqCGPwRy4edYXzIBD6S6OIhw.jpg',
+    category: 'ADVERTISING',
+    description: 'Turn a single product photo into a cinematic showcase video with motion and transitions.',
+    result: 'Short product video with cinematic camera movements and transitions.',
+    inputs: ['Product photo', 'Video style or mood'],
+    automations: ['Animates product with cinematic camera moves', 'Adds smooth transitions and effects', 'Produces ready-to-publish video'],
+    nodes: ['Image Generator', 'Video Generator', 'Assistant'],
+  },
+  {
+    title: 'Animate a snapshot',
+    img: '/spaces-assets/bQzIjq49CCyWOKAQfgEexaXjKu1NvJpb8r9R0Nzk.jpg',
+    category: 'FILMMAKING',
+    description: 'Bring a still photo to life with subtle motion: hair blowing, water flowing, clouds moving.',
+    result: 'Animated video clip from your still photo with natural motion.',
+    inputs: ['Still photo to animate'],
+    automations: ['Detects elements that should move', 'Applies natural motion animation', 'Creates seamless looping video'],
+    nodes: ['Image Generator', 'Video Generator'],
+  },
+  {
+    title: 'Transform rooms into designs',
+    img: '/spaces-assets/GbO63mZVRi9ahKy96k3W972e1HgQd8Ka5YKG72nd.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Redesign any room by uploading a photo and choosing a new interior design style.',
+    result: 'Room redesigned in your chosen style: modern, minimalist, bohemian, industrial.',
+    inputs: ['Room photo', 'Desired interior style'],
+    automations: ['Analyzes room structure and layout', 'Applies new design style while keeping room shape', 'Generates photorealistic interior renders'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Design Instagram reel cover',
+    img: '/spaces-assets/cFQzxiATeg49hrx5c3yEiGtoNqzYyeCZqhRabApI.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Create eye-catching Instagram Reel covers that match your brand aesthetic and drive views.',
+    result: 'Instagram Reel cover images optimized for your brand grid.',
+    inputs: ['Reel topic or key frame', 'Brand colors and style'],
+    automations: ['Creates on-brand cover compositions', 'Adds title text with optimal placement', 'Matches your existing Instagram grid aesthetic'],
+    nodes: ['Image Generator', 'Designer Node'],
+  },
+  {
+    title: 'Customize designs for social media',
+    img: '/spaces-assets/gkIyijY1ZNm6vkkr2Ixi3ulQANI00wH6dHIZlYui.jpg',
+    category: 'SOCIAL MEDIA',
+    description: 'Take a base design and generate customized variations for all social media platforms.',
+    result: 'Customized design set for Instagram, Facebook, Twitter, LinkedIn and TikTok.',
+    inputs: ['Base design or concept', 'Platform requirements'],
+    automations: ['Adapts design to each platform specs', 'Generates text and element variations', 'Ensures brand consistency across all'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Create consistent sequential scenes',
+    img: '/spaces-assets/2y7xewrqa7s7n1wgmEd6Qprw0XwU5hA5h0Hw3nTQ.jpg',
+    category: 'FILMMAKING',
+    description: 'Generate a sequence of scenes with consistent characters, style and narrative progression.',
+    result: 'Storyboard-style scene sequence with consistent characters and environments.',
+    inputs: ['Character description or reference', 'Scene sequence descriptions'],
+    automations: ['Maintains character identity across all scenes', 'Creates progressive narrative visuals', 'Ensures consistent lighting and style'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Generate hyperlapse',
+    img: '/spaces-assets/asJaclvn32t7XwTLSfj1Rns58LumNeydSgRYHPEW.jpg',
+    category: 'FILMMAKING',
+    description: 'Create stunning hyperlapse-style videos from a single image or concept.',
+    result: 'Hyperlapse video with smooth camera movement through a scene.',
+    inputs: ['Scene image or description'],
+    automations: ['Generates extended scene from single image', 'Creates smooth camera path animation', 'Produces cinematic hyperlapse effect'],
+    nodes: ['Image Generator', 'Video Generator'],
+  },
+  {
+    title: 'Create storyboard from image',
+    img: '/spaces-assets/biSejsPF2HU2h5Isz1BnifuVwsANuDUszEXKvJ2v.jpg',
+    category: 'FILMMAKING',
+    description: 'Turn a single key image into a full storyboard with multiple shots and camera directions.',
+    result: 'Complete storyboard with 6-12 panels showing different shots and angles.',
+    inputs: ['Key image or scene description', 'Story direction or mood'],
+    automations: ['Breaks scene into multiple shot compositions', 'Generates diverse camera angles', 'Creates professional storyboard layout'],
+    nodes: ['Image Generator', 'Camera Angles', 'Assistant'],
+  },
+  {
+    title: 'Create sport brand visuals',
+    img: '/spaces-assets/p1oJn6FB13ICx3o1nycoutQovEf3k3KRqcfNqHhH.jpg',
+    category: 'BRANDING',
+    description: 'Generate dynamic sports brand visuals with action shots, product displays and campaign materials.',
+    result: 'Sports brand visual kit: action shots, product features, campaign banners.',
+    inputs: ['Sports product images', 'Brand identity and target sport'],
+    automations: ['Generates dynamic action compositions', 'Creates product-focused hero shots', 'Produces campaign-ready brand visuals'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
+  {
+    title: 'Generate a professional headshot',
+    img: '/spaces-assets/gTYzLez8E07QpcJTamss2BYvCB8Q8GjRcd5cezHC.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Transform a casual selfie into a professional corporate headshot with studio lighting.',
+    result: 'Professional headshot with clean background and studio-quality lighting.',
+    inputs: ['Casual photo of yourself'],
+    automations: ['Enhances lighting to studio quality', 'Cleans background to professional neutral', 'Applies subtle retouching while keeping natural look'],
+    nodes: ['Image Generator', 'Upscaler'],
+  },
+  {
+    title: 'Create winter visuals',
+    img: '/spaces-assets/tYbraWy1yiE6ia1wgawXpMwnB3YIvMCVWFaXIS4t.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Generate cozy winter-themed visuals for seasonal campaigns, social media and branding.',
+    result: 'Winter-themed visual set with snow, warm lighting and seasonal atmosphere.',
+    inputs: ['Product or concept to winterize', 'Mood preferences (cozy, dramatic, festive)'],
+    automations: ['Applies winter atmosphere and snow effects', 'Creates seasonal color grading', 'Generates multiple winter scene variations'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Sketch to product render',
+    img: '/spaces-assets/dxsGK8EKyG7ou7gpcLnhF04mQikw80m8aS5DFrwU.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Turn rough product sketches into photorealistic 3D-style renders.',
+    result: 'Photorealistic product render from your sketch with materials and lighting.',
+    inputs: ['Product sketch or drawing', 'Material and finish preferences'],
+    automations: ['Interprets sketch proportions and form', 'Applies realistic materials and textures', 'Generates photorealistic lighting and renders'],
+    nodes: ['Image Generator', 'Upscaler', 'Assistant'],
+  },
+  {
+    title: 'Modify facial expressions',
+    img: '/spaces-assets/Sggu7Vg7G5x9LmUzknsVcpXETKtXLA1tlyvlPqjP.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Change the facial expression in a portrait while maintaining the person identity and photo quality.',
+    result: 'Same portrait with different expressions: smile, serious, surprised, thoughtful.',
+    inputs: ['Portrait photo'],
+    automations: ['Detects facial features accurately', 'Modifies expression while preserving identity', 'Maintains photo quality and lighting'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Turn casual photos into studio shots',
+    img: '/spaces-assets/hFruPYYT8rn7R0yX9X1Um0xrYHNuwKZqaV8YIDwp.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Upgrade casual phone photos into professional studio-quality shots with perfect lighting.',
+    result: 'Studio-quality photos with professional lighting, background and retouching.',
+    inputs: ['Casual photo (phone quality is fine)'],
+    automations: ['Enhances lighting to studio standard', 'Replaces background with professional setting', 'Applies professional color grading and retouching'],
+    nodes: ['Image Generator', 'Upscaler'],
+  },
+  {
+    title: 'Prototyping Moodboard Product',
+    img: '/spaces-assets/ahxSizRniQkUOnFKb491O6gWENQMVdE0IKVwfRiC.jpg',
+    category: 'BRANDING',
+    description: 'Create a visual moodboard for product prototyping with materials, textures and design references.',
+    result: 'Product moodboard with material swatches, color palette and design direction.',
+    inputs: ['Product concept or brief', 'Inspiration references or keywords'],
+    automations: ['Curates relevant visual references', 'Generates material and texture samples', 'Creates organized moodboard layout'],
+    nodes: ['Image Generator', 'Assistant'],
+  },
+  {
+    title: 'Restore your memories',
+    img: '/spaces-assets/ppdOXKK1kSKIgdu6G5nILgGZ7KJMoCjpTOuFCGvv.jpg',
+    category: 'CREATIVE PRODUCTION',
+    description: 'Restore and enhance old, damaged or low-quality family photos to vivid high resolution.',
+    result: 'Restored photos with enhanced clarity, repaired damage and vivid colors.',
+    inputs: ['Old or damaged photo'],
+    automations: ['Repairs scratches, tears and fading', 'Enhances resolution and sharpness', 'Restores natural colors and detail'],
+    nodes: ['Image Generator', 'Upscaler'],
+  },
+  {
+    title: 'Brand identity',
+    img: '/spaces-assets/DfcCKtPZy9gNyqNUjmTAZ4f5LESJCfH0aziMqLvn.jpg',
+    category: 'BRANDING',
+    description: 'Generate a complete brand identity system with logo concepts, colors, typography and applications.',
+    result: 'Brand identity package: logo options, color system, typography, mockups.',
+    inputs: ['Brand name and industry', 'Brand personality keywords'],
+    automations: ['Generates logo concept explorations', 'Creates complementary color palettes', 'Produces typography pairings and mockups'],
+    nodes: ['Image Generator', 'Designer Node', 'Assistant'],
+  },
 ];
 
 const SIDEBAR_TOOLS = [
@@ -78,7 +566,43 @@ const SIDEBAR_TOOLS = [
   { icon: Maximize2, label: 'Video Upscaler' },
 ];
 
-/* ───────── logo ───────── */
+/* node colors for pills */
+const NODE_COLORS: Record<string, string> = {
+  'Image Generator': 'bg-indigo-500/15 text-indigo-300 border-indigo-500/20',
+  'Video Generator': 'bg-purple-500/15 text-purple-300 border-purple-500/20',
+  'Designer Node': 'bg-amber-500/15 text-amber-300 border-amber-500/20',
+  'Assistant': 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20',
+  'Upscaler': 'bg-cyan-500/15 text-cyan-300 border-cyan-500/20',
+  'Voiceover': 'bg-rose-500/15 text-rose-300 border-rose-500/20',
+  'Sound Effects': 'bg-orange-500/15 text-orange-300 border-orange-500/20',
+  'Music Generator': 'bg-pink-500/15 text-pink-300 border-pink-500/20',
+  'Camera Angles': 'bg-sky-500/15 text-sky-300 border-sky-500/20',
+  'List Node': 'bg-teal-500/15 text-teal-300 border-teal-500/20',
+};
+
+const NODE_ICONS: Record<string, any> = {
+  'Image Generator': Image,
+  'Video Generator': Video,
+  'Designer Node': Grid3X3,
+  'Assistant': Sparkles,
+  'Upscaler': Maximize2,
+  'Voiceover': Mic,
+  'Camera Angles': Eye,
+  'List Node': Grid3X3,
+};
+
+/* category badge colors */
+const CATEGORY_COLORS: Record<string, string> = {
+  'BRANDING': 'text-amber-400',
+  'ADVERTISING': 'text-rose-400',
+  'SOCIAL MEDIA': 'text-sky-400',
+  'CREATIVE PRODUCTION': 'text-emerald-400',
+  'FILMMAKING': 'text-purple-400',
+};
+
+/* ═══════════════════════════════════════════════════════════════
+   LOGO
+   ═══════════════════════════════════════════════════════════════ */
 
 function SpacesLogo({ className }: { className?: string }) {
   return (
@@ -93,8 +617,6 @@ function SpacesLogo({ className }: { className?: string }) {
   );
 }
 
-/* ───────── Freepik logo ───────── */
-
 function FreepikLogo() {
   return (
     <svg className="w-6 h-6 fill-current text-[#e8e8e8]" viewBox="0 0 24 24">
@@ -103,7 +625,152 @@ function FreepikLogo() {
   );
 }
 
-/* ───────── components ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   TEMPLATE DETAIL MODAL
+   ═══════════════════════════════════════════════════════════════ */
+
+function TemplateDetailModal({ template, onClose }: { template: TemplateData; onClose: () => void }) {
+  // lock body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  // close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onClose]);
+
+  const catColor = CATEGORY_COLORS[template.category] || 'text-[#737373]';
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
+      {/* backdrop */}
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+
+      {/* modal */}
+      <div className="relative z-10 w-full max-w-2xl max-h-[90vh] mx-4 rounded-2xl bg-[#161616] border border-white/[0.08] overflow-hidden flex flex-col shadow-2xl">
+        {/* close button */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-20 flex items-center justify-center w-8 h-8 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] transition-colors"
+        >
+          <X className="w-4 h-4 text-[#b4b4b4]" />
+        </button>
+
+        {/* scrollable content */}
+        <div className="overflow-y-auto flex-1 overscroll-contain">
+          {/* ── Block 1: Header with context ── */}
+          <div className="px-8 pt-8 pb-0">
+            <span className={`text-[11px] font-semibold tracking-[0.1em] uppercase ${catColor}`}>
+              {template.category}
+            </span>
+            {template.author && (
+              <span className="text-[11px] text-[#737373] ml-2">
+                by {template.author}
+              </span>
+            )}
+            <h1 className="text-[#f0f0f0] text-2xl font-bold mt-2 leading-tight pr-10">
+              {template.title}
+            </h1>
+            <p className="text-[#9a9a9a] text-sm mt-3 leading-relaxed">
+              {template.description}
+            </p>
+          </div>
+
+          {/* ── Block 2: Result preview ── */}
+          <div className="px-8 mt-6">
+            <div className="relative overflow-hidden rounded-xl aspect-[16/9] bg-[#0f0f0f]">
+              <img
+                src={template.img}
+                alt={template.title}
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-4 right-4">
+                <p className="text-white/80 text-xs font-medium">{template.result}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Block 3: You provide (inputs) ── */}
+          <div className="px-8 mt-8">
+            <h3 className="text-[#e8e8e8] text-sm font-semibold flex items-center gap-2">
+              <Upload className="w-4 h-4 text-[#336aea]" strokeWidth={2} />
+              You provide
+            </h3>
+            <div className="mt-3 flex flex-col gap-2">
+              {template.inputs.map((input, i) => (
+                <div key={i} className="flex items-start gap-3 rounded-xl bg-white/[0.03] border border-white/[0.06] px-4 py-3">
+                  <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-[#336aea]/15 text-[#336aea] text-xs font-bold">
+                    {i + 1}
+                  </span>
+                  <span className="text-[#c0c0c0] text-sm leading-snug">{input}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Block 4: Workflow does for you (automations) ── */}
+          <div className="px-8 mt-8">
+            <h3 className="text-[#e8e8e8] text-sm font-semibold flex items-center gap-2">
+              <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2} />
+              The workflow does for you
+            </h3>
+            <div className="mt-3 flex flex-col gap-1.5">
+              {template.automations.map((auto, i) => (
+                <div key={i} className="flex items-start gap-3 py-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400/70 flex-shrink-0 mt-0.5" strokeWidth={2} />
+                  <span className="text-[#a0a0a0] text-sm leading-snug">{auto}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Block 5: Nodes used ── */}
+          <div className="px-8 mt-8">
+            <h3 className="text-[#e8e8e8] text-sm font-semibold mb-3">Nodes used</h3>
+            <div className="flex flex-wrap gap-2">
+              {template.nodes.map((node) => {
+                const colorClass = NODE_COLORS[node] || 'bg-white/[0.06] text-[#b4b4b4] border-white/[0.08]';
+                const IconComp = NODE_ICONS[node];
+                return (
+                  <span key={node} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium ${colorClass}`}>
+                    {IconComp && <IconComp className="w-3 h-3" strokeWidth={2} />}
+                    {node}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* spacer for sticky CTAs */}
+          <div className="h-32" />
+        </div>
+
+        {/* ── Block 6: Sticky CTAs ── */}
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#161616] via-[#161616] to-transparent pt-8 pb-6 px-8">
+          <div className="flex flex-col gap-3">
+            <button className="w-full h-12 rounded-xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-colors flex items-center justify-center gap-2">
+              <Sparkles className="w-5 h-5" strokeWidth={2} />
+              Use template
+            </button>
+            <button className="w-full h-10 rounded-xl border border-white/[0.12] bg-transparent hover:bg-white/[0.04] text-[#b4b4b4] text-sm font-medium transition-colors flex items-center justify-center gap-2">
+              <Eye className="w-4 h-4" strokeWidth={2} />
+              Preview workflow
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SMALL COMPONENTS
+   ═══════════════════════════════════════════════════════════════ */
 
 function SidebarItem({ icon: Icon, label, active = false }: { icon: any; label: string; active?: boolean }) {
   return (
@@ -142,50 +809,48 @@ function GettingStartedCard({ title, img }: { title: string; img: string }) {
   );
 }
 
-function TemplateCard({ title, img }: { title: string; img: string }) {
+function TemplateCard({ template, onClick }: { template: TemplateData; onClick: () => void }) {
+  const catColor = CATEGORY_COLORS[template.category] || 'text-[#737373]';
   return (
-    <div className="group relative cursor-pointer transition-all duration-200">
+    <div className="group relative cursor-pointer transition-all duration-200" onClick={onClick}>
       <div className="relative w-full overflow-hidden rounded-xl aspect-square">
         <img
-          src={img}
-          alt={title}
+          src={template.img}
+          alt={template.title}
           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
         <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200">
-          <p className="text-white text-xs font-medium line-clamp-2">{title}</p>
+          <p className="text-white text-xs font-medium line-clamp-2">{template.title}</p>
         </div>
       </div>
       <div className="mt-2 px-0.5">
-        <p className="text-[#b4b4b4] text-xs font-medium line-clamp-2 leading-snug">{title}</p>
+        <span className={`text-[10px] font-semibold tracking-[0.05em] uppercase ${catColor}`}>{template.category}</span>
+        <p className="text-[#b4b4b4] text-xs font-medium line-clamp-2 leading-snug mt-0.5">{template.title}</p>
       </div>
     </div>
   );
 }
 
-/* ───────── hero banner canvas (node graph illustration) ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   HERO BANNER
+   ═══════════════════════════════════════════════════════════════ */
 
 function HeroBanner() {
   return (
     <section className="relative h-[350px] w-full flex-shrink-0 overflow-hidden rounded-3xl bg-gradient-to-br from-[#0a0a1a] via-[#0d0d2b] to-[#0f0f1a]">
-      {/* Animated gradient background */}
       <div className="absolute inset-0 opacity-40">
         <div className="absolute top-[20%] left-[30%] w-[400px] h-[400px] rounded-full bg-[#336aea]/20 blur-[100px]" />
         <div className="absolute top-[40%] right-[20%] w-[300px] h-[300px] rounded-full bg-purple-500/15 blur-[80px]" />
         <div className="absolute bottom-0 left-[50%] w-[500px] h-[200px] rounded-full bg-emerald-500/10 blur-[80px]" />
       </div>
-
-      {/* Node graph visualization on the right */}
       <div className="absolute inset-0 overflow-hidden" style={{ maskImage: 'linear-gradient(to right, transparent 0%, transparent 30%, black 52%, black 100%)' }}>
         <svg className="absolute" style={{ left: '35%', top: '10%', width: '65%', height: '90%' }} viewBox="0 0 600 300" fill="none">
-          {/* Connection lines */}
           <path d="M 80 90 C 130 90 110 180 160 180" stroke="rgba(68, 182, 120, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 260 150 C 310 150 290 210 340 210" stroke="rgba(101, 105, 189, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 440 160 C 490 160 460 90 510 90" stroke="rgba(101, 105, 189, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
           <path d="M 380 40 C 430 40 450 70 510 70" stroke="rgba(68, 182, 120, 0.6)" strokeWidth="2" fill="none" strokeLinecap="round" />
-
-          {/* Prompt node 1 */}
           <g transform="translate(10, 50)">
             <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Prompt</text>
             <rect width="130" height="65" rx="12" fill="#1a1a2e" stroke="rgba(68, 182, 120, 0.3)" strokeWidth="1" />
@@ -197,8 +862,6 @@ function HeroBanner() {
             </text>
             <circle cx="142" cy="16" r="6" fill="#1a1a1a" stroke="rgb(68, 182, 120)" strokeWidth="1.5" />
           </g>
-
-          {/* Image Generator node */}
           <g transform="translate(175, 125)">
             <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Image Generator</text>
             <rect width="80" height="80" rx="12" fill="#1a1a2e" stroke="rgba(101, 105, 189, 0.3)" strokeWidth="1" />
@@ -206,8 +869,6 @@ function HeroBanner() {
             <circle cx="-12" cy="64" r="6" fill="#1a1a1a" stroke="rgb(68, 182, 120)" strokeWidth="1.5" />
             <circle cx="92" cy="16" r="6" fill="#1a1a1a" stroke="rgb(101, 105, 189)" strokeWidth="1.5" />
           </g>
-
-          {/* Upscaler node */}
           <g transform="translate(355, 130)">
             <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Upscaler</text>
             <rect width="80" height="80" rx="12" fill="#1a1a2e" stroke="rgba(101, 105, 189, 0.3)" strokeWidth="1" />
@@ -215,8 +876,6 @@ function HeroBanner() {
             <circle cx="-12" cy="64" r="6" fill="#1a1a1a" stroke="rgb(101, 105, 189)" strokeWidth="1.5" />
             <circle cx="92" cy="16" r="6" fill="#1a1a1a" stroke="rgb(101, 105, 189)" strokeWidth="1.5" />
           </g>
-
-          {/* Prompt node 2 */}
           <g transform="translate(280, -5)">
             <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Prompt</text>
             <rect width="130" height="55" rx="12" fill="#1a1a2e" stroke="rgba(68, 182, 120, 0.3)" strokeWidth="1" />
@@ -227,8 +886,6 @@ function HeroBanner() {
             </text>
             <circle cx="142" cy="16" r="6" fill="#1a1a1a" stroke="rgb(68, 182, 120)" strokeWidth="1.5" />
           </g>
-
-          {/* Video Generator node */}
           <g transform="translate(510, 28)">
             <text x="10" y="-6" fill="rgba(180,180,180,0.3)" fontSize="8" fontWeight="500">Video Generator</text>
             <rect width="80" height="80" rx="12" fill="#1a1a2e" stroke="rgba(176, 124, 198, 0.3)" strokeWidth="1" />
@@ -239,8 +896,6 @@ function HeroBanner() {
           </g>
         </svg>
       </div>
-
-      {/* Logo + subtitle on the left */}
       <div className="pointer-events-none absolute inset-0 flex flex-col justify-center gap-4 p-14">
         <SpacesLogo className="text-[#e8e8e8] mb-3 h-14 w-auto self-start" />
         <p className="text-[#8a8a8a] text-sm max-w-[300px]">
@@ -251,18 +906,20 @@ function HeroBanner() {
   );
 }
 
-/* ───────── main page ───────── */
+/* ═══════════════════════════════════════════════════════════════
+   MAIN PAGE
+   ═══════════════════════════════════════════════════════════════ */
 
 export default function Spaces() {
   const [activeTab, setActiveTab] = useState<'templates' | 'my-spaces'>('templates');
   const [boardFilter, setBoardFilter] = useState<'all' | 'mine'>('mine');
+  const [selectedTemplate, setSelectedTemplate] = useState<TemplateData | null>(null);
 
   return (
     <div className="flex h-screen bg-[#0f0f0f] gap-2 p-2 font-['Inter',sans-serif]">
       {/* ──── SIDEBAR ──── */}
       <div className="relative z-[100] h-full w-56 shrink-0 overflow-hidden transition-all duration-200">
         <nav className="rounded-xl bg-[#1a1a1a] flex flex-col gap-4 overflow-clip px-5 py-4 h-full">
-          {/* Logo + collapse */}
           <div className="flex w-full shrink-0 items-center justify-between">
             <div className="relative flex h-8 w-full items-center">
               <div className="flex size-8 shrink-0 items-center justify-center">
@@ -274,7 +931,6 @@ export default function Spaces() {
             </div>
           </div>
 
-          {/* Project selector */}
           <button className="flex items-center gap-2 justify-between w-full h-8 rounded px-2 border border-white/10 bg-[#252525] hover:bg-[#2a2a2a] transition-colors">
             <div className="flex items-center gap-2.5">
               <div className="flex items-center justify-center w-6 h-6 rounded bg-cover bg-center" style={{ backgroundImage: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
@@ -285,30 +941,22 @@ export default function Spaces() {
             <ChevronDown className="w-3.5 h-3.5 text-[#737373]" strokeWidth={1.5} />
           </button>
 
-          {/* Navigation */}
           <div className="flex flex-col gap-1 shrink-0">
-            <button className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
-              <Search className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              <span className="text-[#b4b4b4] text-xs">Search</span>
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
-              <Image className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              <span className="text-[#b4b4b4] text-xs">Stock</span>
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
-              <Globe className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              <span className="text-[#b4b4b4] text-xs">Community</span>
-            </button>
-            <button className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
-              <FolderOpen className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
-              <span className="text-[#b4b4b4] text-xs">View project</span>
-            </button>
+            {[
+              { icon: Search, label: 'Search' },
+              { icon: Image, label: 'Stock' },
+              { icon: Globe, label: 'Community' },
+              { icon: FolderOpen, label: 'View project' },
+            ].map((item) => (
+              <button key={item.label} className="flex w-full items-center gap-2 rounded-lg px-[9px] h-8 text-xs hover:bg-white/[0.06] transition-colors">
+                <item.icon className="w-3.5 h-3.5 text-[#b4b4b4]" strokeWidth={1.5} />
+                <span className="text-[#b4b4b4] text-xs">{item.label}</span>
+              </button>
+            ))}
           </div>
 
-          {/* Separator */}
           <div className="h-px bg-white/10 w-full" />
 
-          {/* Tools */}
           <div className="flex flex-col gap-1 min-h-0 overflow-y-auto flex-1 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
             {SIDEBAR_TOOLS.map((tool) => (
               <SidebarItem key={tool.label} icon={tool.icon} label={tool.label} active={tool.active} />
@@ -320,7 +968,6 @@ export default function Spaces() {
             </button>
           </div>
 
-          {/* Bottom icons */}
           <div className="mt-auto flex w-full shrink-0 items-center justify-between">
             <div className="flex items-center gap-1">
               <button className="flex items-center justify-center size-8 rounded-lg hover:bg-white/[0.06] transition-colors">
@@ -343,7 +990,6 @@ export default function Spaces() {
 
       {/* ──── MAIN CONTENT ──── */}
       <div className="flex-1 flex flex-col rounded-xl bg-[#1c1c1c] overflow-hidden">
-        {/* Header */}
         <header className="z-50 flex h-14 w-full min-w-0 shrink-0 items-center gap-2 px-4">
           <div className="flex min-w-0 flex-1 items-center gap-1">
             <a className="text-[#e8e8e8] hover:bg-white/[0.04] flex items-center gap-2.5 rounded px-2 py-1 text-xs cursor-pointer">
@@ -358,7 +1004,6 @@ export default function Spaces() {
             <button className="text-[#737373] hover:bg-white/[0.06] hover:text-[#e8e8e8] flex items-center justify-center rounded-lg p-2 transition-colors">
               <Sparkles className="w-5 h-5" strokeWidth={1.5} />
             </button>
-            {/* Avatar with progress ring */}
             <div className="relative w-8 h-8">
               <svg width="100%" height="100%" viewBox="0 0 32 32" overflow="visible">
                 <circle cx="16" cy="16" r="16" fill="transparent" stroke="rgba(51,106,234,0.3)" strokeWidth="3" strokeLinecap="round" />
@@ -371,15 +1016,12 @@ export default function Spaces() {
           </div>
         </header>
 
-        {/* Content area */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 flex flex-col overflow-y-auto rounded-xl bg-[#1a1a1a] mx-0">
             <div className="px-6 py-0">
               <div className="pb-2 pt-6">
-                {/* Hero Banner */}
                 <HeroBanner />
 
-                {/* Getting Started */}
                 <div className="mt-8">
                   <h2 className="text-[#e8e8e8] text-lg font-semibold mb-4">Getting started</h2>
                   <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-track-transparent scrollbar-thumb-neutral-800">
@@ -389,7 +1031,6 @@ export default function Spaces() {
                   </div>
                 </div>
 
-                {/* Tabs */}
                 <div className="mt-6 border-b border-white/10">
                   <div className="flex gap-0">
                     <button
@@ -415,7 +1056,6 @@ export default function Spaces() {
                   </div>
                 </div>
 
-                {/* Filter bar */}
                 {activeTab === 'templates' && (
                   <div className="flex items-center gap-2 mt-4 mb-4">
                     <button
@@ -441,16 +1081,18 @@ export default function Spaces() {
                   </div>
                 )}
 
-                {/* Template Grid */}
                 {activeTab === 'templates' && (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 pb-8">
                     {TEMPLATES.map((tmpl) => (
-                      <TemplateCard key={tmpl.title} {...tmpl} />
+                      <TemplateCard
+                        key={tmpl.title}
+                        template={tmpl}
+                        onClick={() => setSelectedTemplate(tmpl)}
+                      />
                     ))}
                   </div>
                 )}
 
-                {/* My Spaces (empty state) */}
                 {activeTab === 'my-spaces' && (
                   <div className="flex flex-col items-center justify-center py-20">
                     <div className="w-16 h-16 rounded-2xl bg-white/[0.04] flex items-center justify-center mb-4">
@@ -467,6 +1109,14 @@ export default function Spaces() {
           </div>
         </div>
       </div>
+
+      {/* ──── TEMPLATE DETAIL MODAL ──── */}
+      {selectedTemplate && (
+        <TemplateDetailModal
+          template={selectedTemplate}
+          onClose={() => setSelectedTemplate(null)}
+        />
+      )}
     </div>
   );
 }
