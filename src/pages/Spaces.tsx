@@ -733,7 +733,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         </button>
 
         {/* ── Header ── */}
-        <div className="px-10 pt-8 pb-5">
+        <div className="px-10 pt-7 pb-4 flex-shrink-0">
           {template.author && (
             <span className="text-[11px] text-[#666] mb-2 inline-block">by {template.author}</span>
           )}
@@ -744,7 +744,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         {/* ══════════════════════════════════════════════════
             CANVAS: YOU PROVIDE → WORKFLOW DOES → YOU GET
            ══════════════════════════════════════════════════ */}
-        <div ref={canvasRef} className="relative bg-[#161616] border-y border-white/[0.04]">
+        <div ref={canvasRef} className="relative bg-[#161616] border-y border-white/[0.04] flex-1 min-h-0">
           {/* Spaces-style dot grid */}
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
@@ -758,7 +758,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             ))}
           </svg>
 
-          <div className="relative z-[2] grid grid-cols-[300px_1fr_480px]" style={{ minHeight: 'min(580px, 60vh)' }}>
+          <div className="relative z-[2] grid grid-cols-[300px_1fr_480px] h-full">
 
             {/* ── LEFT: You provide ── */}
             <div className="p-10 pr-6 flex flex-col justify-center">
@@ -832,20 +832,20 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
               </div>
-              <div className="relative">
+              <div className="relative flex-1 min-h-0">
                 {/* port: left edge (outside overflow-hidden) */}
                 <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
-                <div className="overflow-hidden rounded-2xl border border-emerald-500/20">
-                  <img src={template.outputImg || template.img} alt={template.title} className="w-full aspect-[3/4] object-cover" />
+                <div className="overflow-hidden rounded-2xl border border-emerald-500/20 h-full">
+                  <img src={template.outputImg || template.img} alt={template.title} className="w-full h-full object-cover" />
                 </div>
               </div>
-              <p className="text-[#666] text-[11px] mt-2 leading-snug">{template.result}</p>
+              <p className="text-[#666] text-[11px] mt-2 leading-snug flex-shrink-0">{template.result}</p>
             </div>
           </div>
         </div>
 
         {/* ── Footer: Nodes + CTAs ── */}
-        <div className="px-10 py-6 flex items-center justify-between gap-6">
+        <div className="px-10 py-5 flex items-center justify-between gap-6 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
             <span className="text-[11px] font-bold text-[#444] uppercase tracking-[0.1em] mr-1">Nodes</span>
             {template.nodes.map((node) => {
