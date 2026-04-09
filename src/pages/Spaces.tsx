@@ -761,7 +761,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
           <div className="relative z-[2] grid grid-cols-[22%_1fr_36%] h-full">
 
             {/* ── LEFT: You provide ── */}
-            <div className="p-6 pr-3 flex flex-col justify-center overflow-hidden">
+            <div className="p-6 pr-3 flex flex-col justify-center overflow-visible">
               <div className="flex items-center gap-2 mb-5 flex-shrink-0">
                 <div className="w-2 h-2 rounded-full bg-[#c9a227]" />
                 <span className="text-[#c9a227] text-[11px] font-bold uppercase tracking-[0.1em]">You provide</span>
@@ -802,7 +802,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── CENTER: The template does ── */}
-            <div className="py-6 px-5 flex flex-col justify-center overflow-hidden">
+            <div className="py-6 px-5 flex flex-col justify-center overflow-visible">
               <div className="flex items-center gap-2 mb-5 justify-center flex-shrink-0">
                 <Zap className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
                 <span className="text-[#555] text-[11px] font-bold uppercase tracking-[0.1em]">The template does</span>
@@ -822,7 +822,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── RIGHT: You get ── */}
-            <div className="p-6 pl-3 flex flex-col justify-center overflow-hidden">
+            <div className="p-6 pl-3 flex flex-col justify-center overflow-visible">
               <div className="flex items-center gap-2 mb-5 flex-shrink-0">
                 <div className="w-2 h-2 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[11px] font-bold uppercase tracking-[0.1em]">You get</span>
