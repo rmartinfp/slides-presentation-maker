@@ -733,7 +733,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         </button>
 
         {/* ── Header ── */}
-        <div className="px-10 pt-7 pb-4 flex-shrink-0">
+        <div className="px-10 pt-6 pb-3 flex-shrink-0">
           {template.author && (
             <span className="text-[11px] text-[#666] mb-2 inline-block">by {template.author}</span>
           )}
@@ -744,7 +744,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         {/* ══════════════════════════════════════════════════
             CANVAS: YOU PROVIDE → WORKFLOW DOES → YOU GET
            ══════════════════════════════════════════════════ */}
-        <div ref={canvasRef} className="relative bg-[#161616] border-y border-white/[0.04] flex-1 min-h-0">
+        <div ref={canvasRef} className="relative bg-[#161616] border-y border-white/[0.04] flex-1 min-h-0 overflow-hidden">
           {/* Spaces-style dot grid */}
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
@@ -761,7 +761,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
           <div className="relative z-[2] grid grid-cols-[22%_1fr_36%] h-full">
 
             {/* ── LEFT: You provide ── */}
-            <div className="p-10 pr-6 flex flex-col justify-center">
+            <div className="p-8 pr-4 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#c9a227]" />
                 <span className="text-[#c9a227] text-[12px] font-bold uppercase tracking-[0.1em]">You provide</span>
@@ -805,7 +805,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── CENTER: The template does ── */}
-            <div className="py-10 px-10 flex flex-col justify-center">
+            <div className="py-8 px-8 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8 justify-center">
                 <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
                 <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The template does</span>
@@ -827,25 +827,25 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── RIGHT: You get (protagonist) ── */}
-            <div className="p-10 pl-6 flex flex-col justify-center">
+            <div className="p-8 pl-4 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
               </div>
-              <div className="relative flex-1 min-h-0">
+              <div className="relative flex-1 min-h-0" style={{ maxHeight: 'calc(100vh - 260px)' }}>
                 {/* port: left edge (outside overflow-hidden) */}
                 <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/20 h-full">
                   <img src={template.outputImg || template.img} alt={template.title} className="w-full h-full object-cover" />
                 </div>
               </div>
-              <p className="text-[#666] text-[11px] mt-2 leading-snug flex-shrink-0">{template.result}</p>
+              <p className="text-[#666] text-[10px] mt-1.5 leading-snug flex-shrink-0">{template.result}</p>
             </div>
           </div>
         </div>
 
         {/* ── Footer: Nodes + CTAs ── */}
-        <div className="px-10 py-5 flex items-center justify-between gap-6 flex-shrink-0">
+        <div className="px-10 py-4 flex items-center justify-between gap-6 flex-shrink-0">
           <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
             <span className="text-[11px] font-bold text-[#444] uppercase tracking-[0.1em] mr-1">Nodes</span>
             {template.nodes.map((node) => {
