@@ -16,6 +16,7 @@ interface TemplateData {
   nodes: string[];
   author?: string;
   outputImg?: string;
+  inputExamples?: { label: string; img?: string; text?: string }[];
 }
 
 const GETTING_STARTED = [
@@ -49,6 +50,10 @@ const TEMPLATES: TemplateData[] = [
     automations: ['Generates product color variations', 'Removes background for clean cutout', 'Applies designs in multiple formats', 'Delivers final campaign assets'],
     nodes: ['Image Generator', 'Designer Node', 'Assistant', 'Upscaler'],
     outputImg: '/spaces-assets/output-multiformat-ad.png',
+    inputExamples: [
+      { label: 'Photo of your product', img: '/spaces-assets/input-multiformat-sneaker.png' },
+      { label: 'Ad copy text', text: 'Air Flux 3.0\nAvailable Now — Limited Edition', img: '/spaces-assets/input-multiformat-logo.png' },
+    ],
   },
   {
     title: 'Create poster series with Designer Node',
@@ -761,17 +766,36 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                 <div className="w-2.5 h-2.5 rounded-full bg-[#c9a227]" />
                 <span className="text-[#c9a227] text-[12px] font-bold uppercase tracking-[0.1em]">You provide</span>
               </div>
-              <div className="flex flex-col gap-6">
-                {template.inputs.map((input, i) => (
-                  <div key={i} className="relative flex items-center gap-5 rounded-2xl bg-[#1e1e1e] border border-[#c9a227]/20 px-5 py-5">
-                    {/* port: right edge */}
-                    <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#161616]" />
-                    <div className="w-14 h-14 rounded-2xl bg-[#252525] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
-                      {inputIcon(input)}
+              <div className="flex flex-col gap-5">
+                {(template.inputExamples || template.inputs.map(label => ({ label }))).map((ex, i) => {
+                  const example = typeof ex === 'string' ? { label: ex } : ex;
+                  return (
+                    <div key={i} className="relative rounded-2xl bg-[#1e1e1e] border border-[#c9a227]/20 overflow-hidden">
+                      {/* port: right edge */}
+                      <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#161616] z-10" />
+                      {/* label */}
+                      <div className="px-4 pt-3 pb-2">
+                        <span className="text-[#c9a227]/60 text-[10px] font-bold uppercase tracking-wider">{example.label}</span>
+                      </div>
+                      {/* content: image or text */}
+                      {'img' in example && example.img ? (
+                        <div className="px-3 pb-3">
+                          <img src={example.img} alt={example.label} className="w-full h-24 object-cover rounded-xl" />
+                        </div>
+                      ) : 'text' in example && example.text ? (
+                        <div className="px-4 pb-3">
+                          <p className="text-[#aaa] text-[12px] leading-relaxed whitespace-pre-line">{example.text}</p>
+                        </div>
+                      ) : (
+                        <div className="px-4 pb-4 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-[#252525] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
+                            {inputIcon(example.label)}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <p className="text-[#ccc] text-[14px] leading-snug min-w-0">{input}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
 
