@@ -723,10 +723,10 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
   }, [measureAndDraw]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto p-6">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[1540px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl max-h-[94vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[1540px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl flex flex-col" style={{ maxHeight: 'calc(100vh - 32px)' }}>
         {/* close */}
         <button onClick={onClose} className="absolute top-5 right-5 z-20 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
           <X className="w-4 h-4 text-[#888]" />
@@ -758,7 +758,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             ))}
           </svg>
 
-          <div className="relative z-[2] grid grid-cols-[300px_1fr_480px]" style={{ minHeight: 580 }}>
+          <div className="relative z-[2] grid grid-cols-[300px_1fr_480px]" style={{ minHeight: 'min(580px, 60vh)' }}>
 
             {/* ── LEFT: You provide ── */}
             <div className="p-10 pr-6 flex flex-col justify-center">
@@ -804,11 +804,11 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               </div>
             </div>
 
-            {/* ── CENTER: The workflow does ── */}
+            {/* ── CENTER: The template does ── */}
             <div className="py-10 px-10 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8 justify-center">
                 <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
-                <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The workflow does</span>
+                <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The template does</span>
               </div>
               <div className="flex flex-col gap-5 max-w-[420px] mx-auto w-full">
                 {template.automations.map((auto, i) => (
@@ -862,10 +862,10 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
           <div className="flex items-center gap-3 flex-shrink-0">
             <button className="h-12 px-7 rounded-xl border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#aaa] text-sm font-medium transition-colors flex items-center gap-2.5">
               <Eye className="w-4 h-4" strokeWidth={2} />
-              Preview workflow
+              Preview template
             </button>
             <button className="h-14 px-12 rounded-2xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-all shadow-lg shadow-[#336aea]/25 hover:shadow-[#336aea]/40">
-              Use template
+              Edit template
             </button>
           </div>
         </div>
