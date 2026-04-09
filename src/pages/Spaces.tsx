@@ -716,26 +716,22 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
   }, [measureAndDraw]);
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-start justify-center overflow-y-auto">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto p-6">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[1340px] mx-6 my-8 rounded-[28px] bg-[#111] border border-white/[0.07] overflow-hidden shadow-2xl">
+      <div className="relative z-10 w-full max-w-[1440px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl max-h-[94vh] overflow-y-auto">
         {/* close */}
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 flex items-center justify-center w-10 h-10 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
-          <X className="w-4.5 h-4.5 text-[#888]" />
+        <button onClick={onClose} className="absolute top-5 right-5 z-20 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
+          <X className="w-4 h-4 text-[#888]" />
         </button>
 
         {/* ── Header ── */}
-        <div className="px-14 pt-10 pb-8">
+        <div className="px-10 pt-8 pb-5">
           {template.author && (
-            <div className="mb-3">
-              <span className="text-[11px] text-[#555] bg-white/[0.04] px-3 py-1 rounded-full">
-                by <span className="text-[#999]">{template.author}</span>
-              </span>
-            </div>
+            <span className="text-[11px] text-[#666] mb-2 inline-block">by {template.author}</span>
           )}
-          <h1 className="text-[#f0f0f0] text-[30px] font-bold leading-[1.2] pr-16 max-w-[800px]">{template.title}</h1>
-          <p className="text-[#555] text-[15px] mt-2.5 max-w-[640px] leading-relaxed">{template.description}</p>
+          <h1 className="text-[#f0f0f0] text-[22px] font-semibold leading-snug pr-12">{template.title}</h1>
+          <p className="text-[#666] text-[13px] mt-1.5 max-w-[600px] leading-relaxed">{template.description}</p>
         </div>
 
         {/* ══════════════════════════════════════════════════
@@ -821,7 +817,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
         </div>
 
         {/* ── Footer: Nodes + CTAs ── */}
-        <div className="px-14 py-7 flex items-center justify-between gap-8">
+        <div className="px-10 py-6 flex items-center justify-between gap-6">
           <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
             <span className="text-[11px] font-bold text-[#444] uppercase tracking-[0.1em] mr-1">Nodes</span>
             {template.nodes.map((node) => {
