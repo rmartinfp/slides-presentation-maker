@@ -726,32 +726,32 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-[calc(100%-32px)] max-w-[1540px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl flex flex-col" style={{ maxHeight: 'calc(100vh - 48px)' }}>
+      <div className="relative z-10 w-[calc(100vw-48px)] max-w-[1540px] h-[calc(100vh-48px)] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl flex flex-col">
         {/* close */}
-        <button onClick={onClose} className="absolute top-5 right-5 z-20 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
+        <button onClick={onClose} className="absolute top-4 right-4 z-20 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
           <X className="w-4 h-4 text-[#888]" />
         </button>
 
         {/* ── Header ── */}
-        <div className="px-10 pt-6 pb-3 flex-shrink-0">
+        <div className="px-8 pt-5 pb-3 flex-shrink-0">
           {template.author && (
-            <span className="text-[11px] text-[#666] mb-2 inline-block">by {template.author}</span>
+            <span className="text-[11px] text-[#666] mb-1 inline-block">by {template.author}</span>
           )}
-          <h1 className="text-[#f0f0f0] text-[22px] font-semibold leading-snug pr-12">{template.title}</h1>
-          <p className="text-[#666] text-[13px] mt-1.5 leading-relaxed">{template.description}</p>
+          <h1 className="text-[#f0f0f0] text-xl font-semibold leading-snug pr-12">{template.title}</h1>
+          <p className="text-[#666] text-[13px] mt-1 leading-relaxed">{template.description}</p>
         </div>
 
         {/* ══════════════════════════════════════════════════
-            CANVAS: YOU PROVIDE → WORKFLOW DOES → YOU GET
+            CANVAS: YOU PROVIDE → TEMPLATE DOES → YOU GET
            ══════════════════════════════════════════════════ */}
         <div ref={canvasRef} className="relative bg-[#161616] border-y border-white/[0.04] flex-1 min-h-0 overflow-hidden">
-          {/* Spaces-style dot grid */}
+          {/* dot grid */}
           <div className="absolute inset-0" style={{
             backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.07) 1px, transparent 1px)',
             backgroundSize: '24px 24px',
           }} />
 
-          {/* SVG connector curves (measured from real DOM) */}
+          {/* SVG connector curves */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]">
             {curves.map((c, i) => (
               <path key={i} d={c.d} stroke={c.color} strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -761,39 +761,36 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
           <div className="relative z-[2] grid grid-cols-[22%_1fr_36%] h-full">
 
             {/* ── LEFT: You provide ── */}
-            <div className="p-8 pr-4 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-8">
-                <div className="w-2.5 h-2.5 rounded-full bg-[#c9a227]" />
-                <span className="text-[#c9a227] text-[12px] font-bold uppercase tracking-[0.1em]">You provide</span>
+            <div className="p-6 pr-3 flex flex-col justify-center overflow-hidden">
+              <div className="flex items-center gap-2 mb-5 flex-shrink-0">
+                <div className="w-2 h-2 rounded-full bg-[#c9a227]" />
+                <span className="text-[#c9a227] text-[11px] font-bold uppercase tracking-[0.1em]">You provide</span>
               </div>
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-3 overflow-hidden">
                 {(template.inputExamples || template.inputs.map(label => ({ label }))).map((ex, i) => {
                   const example = typeof ex === 'string' ? { label: ex } : ex;
                   const images = example.imgs || (example.img ? [example.img] : []);
                   return (
-                    <div key={i} className="relative rounded-2xl bg-[#1e1e1e] border border-[#c9a227]/20">
-                      {/* port: right edge */}
-                      <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#161616] z-10" />
-                      {/* label */}
-                      <div className="px-4 pt-3 pb-2">
-                        <span className="text-[#c9a227]/60 text-[10px] font-bold uppercase tracking-wider">{example.label}</span>
+                    <div key={i} className="relative rounded-xl bg-[#1e1e1e] border border-[#c9a227]/20 flex-shrink-0">
+                      <div data-port="ir" className="absolute -right-[6px] top-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full border-2 border-[#c9a227]/50 bg-[#161616] z-10" />
+                      <div className="px-3 pt-2.5 pb-1.5">
+                        <span className="text-[#c9a227]/60 text-[9px] font-bold uppercase tracking-wider">{example.label}</span>
                       </div>
-                      {/* images side by side */}
                       {images.length > 0 ? (
-                        <div className="px-3 pb-3 flex gap-2">
+                        <div className="px-2.5 pb-2.5 flex gap-1.5">
                           {images.map((src, j) => (
-                            <div key={j} className="flex-1 rounded-xl overflow-hidden border border-[#c9a227]/15">
-                              <img src={src} alt="" className="w-full h-20 object-cover" />
+                            <div key={j} className="flex-1 rounded-lg overflow-hidden border border-[#c9a227]/15">
+                              <img src={src} alt="" className="w-full h-16 object-cover" />
                             </div>
                           ))}
                         </div>
                       ) : example.text ? (
-                        <div className="px-4 pb-4">
-                          <p className="text-[#bbb] text-[13px] leading-relaxed whitespace-pre-line">{example.text}</p>
+                        <div className="px-3 pb-3">
+                          <p className="text-[#bbb] text-[12px] leading-relaxed whitespace-pre-line">{example.text}</p>
                         </div>
                       ) : (
-                        <div className="px-4 pb-4 flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-[#252525] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40 flex-shrink-0">
+                        <div className="px-3 pb-3">
+                          <div className="w-9 h-9 rounded-lg bg-[#252525] border border-[#c9a227]/10 flex items-center justify-center text-[#c9a227]/40">
                             {inputIcon(example.label)}
                           </div>
                         </div>
@@ -805,66 +802,63 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── CENTER: The template does ── */}
-            <div className="py-8 px-8 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-8 justify-center">
-                <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
-                <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The template does</span>
+            <div className="py-6 px-5 flex flex-col justify-center overflow-hidden">
+              <div className="flex items-center gap-2 mb-5 justify-center flex-shrink-0">
+                <Zap className="w-3.5 h-3.5 text-emerald-400" strokeWidth={2.5} />
+                <span className="text-[#555] text-[11px] font-bold uppercase tracking-[0.1em]">The template does</span>
               </div>
-              <div className="flex flex-col gap-5 max-w-[420px] mx-auto w-full">
+              <div className="flex flex-col gap-3 max-w-[380px] mx-auto w-full overflow-hidden">
                 {template.automations.map((auto, i) => (
-                  <div key={i} className="relative flex items-center gap-4 rounded-2xl bg-[#1e1e1e] border border-white/[0.06] px-6 py-5">
-                    {/* port: left edge */}
-                    <div data-port="cl" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#161616]" />
-                    {/* port: right edge */}
-                    <div data-port="cr" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#444] bg-[#161616]" />
-                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-[18px] h-[18px] text-emerald-400/60" strokeWidth={2} />
+                  <div key={i} className="relative flex items-center gap-3 rounded-xl bg-[#1e1e1e] border border-white/[0.06] px-4 py-3 flex-shrink-0">
+                    <div data-port="cl" className="absolute -left-[6px] top-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full border-2 border-[#444] bg-[#161616]" />
+                    <div data-port="cr" className="absolute -right-[6px] top-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full border-2 border-[#444] bg-[#161616]" />
+                    <div className="w-7 h-7 rounded-md bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400/60" strokeWidth={2} />
                     </div>
-                    <p className="text-[#999] text-[14px] leading-snug min-w-0">{auto}</p>
+                    <p className="text-[#999] text-[13px] leading-snug min-w-0">{auto}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* ── RIGHT: You get (protagonist) ── */}
-            <div className="p-8 pl-4 flex flex-col justify-center">
-              <div className="flex items-center gap-2 mb-8">
-                <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
-                <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
+            {/* ── RIGHT: You get ── */}
+            <div className="p-6 pl-3 flex flex-col justify-center overflow-hidden">
+              <div className="flex items-center gap-2 mb-5 flex-shrink-0">
+                <div className="w-2 h-2 rounded-full bg-emerald-400" />
+                <span className="text-emerald-400 text-[11px] font-bold uppercase tracking-[0.1em]">You get</span>
               </div>
-              <div className="relative flex-1 min-h-0" style={{ maxHeight: 'calc(100vh - 260px)' }}>
-                {/* port: left edge (outside overflow-hidden) */}
-                <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
-                <div className="overflow-hidden rounded-2xl border border-emerald-500/20 h-full">
+              <div className="relative flex-1 min-h-0">
+                <div data-port="ol" className="absolute -left-[6px] top-1/2 -translate-y-1/2 w-[12px] h-[12px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
+                <div className="overflow-hidden rounded-xl border border-emerald-500/20 h-full">
                   <img src={template.outputImg || template.img} alt={template.title} className="w-full h-full object-cover" />
                 </div>
               </div>
-              <p className="text-[#666] text-[10px] mt-1.5 leading-snug flex-shrink-0">{template.result}</p>
+              <p className="text-[#555] text-[10px] mt-1.5 leading-snug flex-shrink-0">{template.result}</p>
             </div>
           </div>
         </div>
 
         {/* ── Footer: Nodes + CTAs ── */}
-        <div className="px-10 py-4 flex items-center justify-between gap-6 flex-shrink-0">
-          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
-            <span className="text-[11px] font-bold text-[#444] uppercase tracking-[0.1em] mr-1">Nodes</span>
+        <div className="px-8 py-3.5 flex items-center justify-between gap-4 flex-shrink-0">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span className="text-[10px] font-bold text-[#444] uppercase tracking-[0.1em]">Nodes</span>
             {template.nodes.map((node) => {
               const colorClass = NODE_COLORS[node] || 'bg-white/[0.06] text-[#b4b4b4] border-white/[0.08]';
               const IconComp = NODE_ICONS[node];
               return (
-                <span key={node} className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs font-medium ${colorClass}`}>
-                  {IconComp && <IconComp className="w-3.5 h-3.5" strokeWidth={2} />}
+                <span key={node} className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium ${colorClass}`}>
+                  {IconComp && <IconComp className="w-3 h-3" strokeWidth={2} />}
                   {node}
                 </span>
               );
             })}
           </div>
-          <div className="flex items-center gap-3 flex-shrink-0">
-            <button className="h-12 px-7 rounded-xl border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#aaa] text-sm font-medium transition-colors flex items-center gap-2.5">
-              <Eye className="w-4 h-4" strokeWidth={2} />
+          <div className="flex items-center gap-2.5 flex-shrink-0">
+            <button className="h-10 px-5 rounded-lg border border-white/[0.1] bg-transparent hover:bg-white/[0.04] text-[#aaa] text-[13px] font-medium transition-colors flex items-center gap-2">
+              <Eye className="w-3.5 h-3.5" strokeWidth={2} />
               Preview template
             </button>
-            <button className="h-14 px-12 rounded-2xl bg-[#336aea] hover:bg-[#2955bb] text-white text-base font-semibold transition-all shadow-lg shadow-[#336aea]/25 hover:shadow-[#336aea]/40">
+            <button className="h-10 px-8 rounded-lg bg-[#336aea] hover:bg-[#2955bb] text-white text-[13px] font-semibold transition-all shadow-lg shadow-[#336aea]/25">
               Edit template
             </button>
           </div>
