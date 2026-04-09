@@ -16,7 +16,7 @@ interface TemplateData {
   nodes: string[];
   author?: string;
   outputImg?: string;
-  inputExamples?: { label: string; img?: string; text?: string }[];
+  inputExamples?: { label: string; img?: string; imgs?: string[]; text?: string }[];
 }
 
 const GETTING_STARTED = [
@@ -51,8 +51,8 @@ const TEMPLATES: TemplateData[] = [
     nodes: ['Image Generator', 'Designer Node', 'Assistant', 'Upscaler'],
     outputImg: '/spaces-assets/output-multiformat-ad.png',
     inputExamples: [
-      { label: 'Photo of your product', img: '/spaces-assets/input-multiformat-sneaker.png' },
-      { label: 'Ad copy text', text: 'Air Flux 3.0\nAvailable Now — Limited Edition', img: '/spaces-assets/input-multiformat-logo.png' },
+      { label: 'Photo of your product', imgs: ['/spaces-assets/input-multiformat-sneaker.png', '/spaces-assets/input-multiformat-logo.png'] },
+      { label: 'Ad copy text', text: 'Air Flux 3.0\nAvailable Now — Limited Edition' },
     ],
   },
   {
@@ -769,22 +769,27 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
               <div className="flex flex-col gap-5">
                 {(template.inputExamples || template.inputs.map(label => ({ label }))).map((ex, i) => {
                   const example = typeof ex === 'string' ? { label: ex } : ex;
+                  const images = example.imgs || (example.img ? [example.img] : []);
                   return (
-                    <div key={i} className="relative rounded-2xl bg-[#1e1e1e] border border-[#c9a227]/20 overflow-hidden">
+                    <div key={i} className="relative rounded-2xl bg-[#1e1e1e] border border-[#c9a227]/20">
                       {/* port: right edge */}
                       <div data-port="ir" className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-[#c9a227]/50 bg-[#161616] z-10" />
                       {/* label */}
                       <div className="px-4 pt-3 pb-2">
                         <span className="text-[#c9a227]/60 text-[10px] font-bold uppercase tracking-wider">{example.label}</span>
                       </div>
-                      {/* content: image or text */}
-                      {'img' in example && example.img ? (
-                        <div className="px-3 pb-3">
-                          <img src={example.img} alt={example.label} className="w-full h-24 object-cover rounded-xl" />
+                      {/* images side by side */}
+                      {images.length > 0 ? (
+                        <div className="px-3 pb-3 flex gap-2">
+                          {images.map((src, j) => (
+                            <div key={j} className="flex-1 rounded-xl overflow-hidden border border-[#c9a227]/15">
+                              <img src={src} alt="" className="w-full h-20 object-cover" />
+                            </div>
+                          ))}
                         </div>
-                      ) : 'text' in example && example.text ? (
-                        <div className="px-4 pb-3">
-                          <p className="text-[#aaa] text-[12px] leading-relaxed whitespace-pre-line">{example.text}</p>
+                      ) : example.text ? (
+                        <div className="px-4 pb-4">
+                          <p className="text-[#bbb] text-[13px] leading-relaxed whitespace-pre-line">{example.text}</p>
                         </div>
                       ) : (
                         <div className="px-4 pb-4 flex items-center gap-3">
@@ -832,12 +837,9 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                 <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/20">
                   <img src={template.outputImg || template.img} alt={template.title} className="w-full aspect-[3/4] object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-7">
-                    <p className="text-white text-[15px] font-medium leading-relaxed">{template.result}</p>
-                  </div>
                 </div>
               </div>
+              <p className="text-[#666] text-[11px] mt-2 leading-snug">{template.result}</p>
             </div>
           </div>
         </div>
