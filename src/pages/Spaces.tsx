@@ -637,6 +637,7 @@ function FreepikLogo() {
    ═══════════════════════════════════════════════════════════════ */
 
 function TemplateDetailModal({ template, onClose }: { template: TemplateData; onClose: () => void }) {
+  const [zoomedImg, setZoomedImg] = useState<string | null>(null);
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -779,8 +780,8 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                       {images.length > 0 ? (
                         <div className="px-2.5 pb-2.5 flex gap-1.5">
                           {images.map((src, j) => (
-                            <div key={j} className="flex-1 rounded-lg overflow-hidden border border-[#c9a227]/15">
-                              <img src={src} alt="" className="w-full h-16 object-cover" />
+                            <div key={j} className="flex-1 rounded-lg overflow-hidden border border-[#c9a227]/15 bg-black/30 cursor-pointer hover:border-[#c9a227]/40 transition-colors" onClick={(e) => { e.stopPropagation(); setZoomedImg(src); }}>
+                              <img src={src} alt="" className="w-full aspect-square object-contain p-1" />
                             </div>
                           ))}
                         </div>
@@ -864,6 +865,13 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
           </div>
         </div>
       </div>
+
+      {/* Image zoom lightbox */}
+      {zoomedImg && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-8 bg-black/90" onClick={() => setZoomedImg(null)}>
+          <img src={zoomedImg} alt="" className="max-w-full max-h-full object-contain rounded-2xl" />
+        </div>
+      )}
     </div>
   );
 }
