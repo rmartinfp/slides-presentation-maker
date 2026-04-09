@@ -1008,6 +1008,12 @@ const CATEGORIES = ['All', 'New', 'Featured', 'Branding', 'Social media', 'Adver
    MAIN PAGE
    ═══════════════════════════════════════════════════════════════ */
 
+/* hide scrollbar globally for this page */
+const hideScrollbarCSS = `
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+`;
+
 export default function Spaces() {
   const [activeTab, setActiveTab] = useState<'my-spaces' | 'shared' | 'templates'>('templates');
   const [activeCategory, setActiveCategory] = useState('All');
@@ -1024,6 +1030,7 @@ export default function Spaces() {
 
   return (
     <div className="flex h-screen bg-[#1a1a1a] font-['Inter',sans-serif]">
+      <style>{hideScrollbarCSS}</style>
       {/* ──── SIDEBAR (collapsed, two-tone panel) ──── */}
       <div className="relative z-[100] h-full shrink-0 p-2 pr-0">
         <nav className="w-[52px] rounded-2xl bg-[#252525] flex flex-col items-center py-4 h-full">
@@ -1129,7 +1136,7 @@ export default function Spaces() {
               <>
                 <h2 className="text-[#e8e8e8] text-[15px] font-bold mb-3">Getting started</h2>
                 <div className="relative group/scroll">
-                  <div className="flex gap-3 overflow-x-auto scrollbar-none">
+                  <div className="flex gap-3 overflow-x-auto no-scrollbar">
                     {GETTING_STARTED.map((card) => (
                       <GettingStartedCard key={card.title} {...card} />
                     ))}
@@ -1150,7 +1157,7 @@ export default function Spaces() {
                 <h2 className="text-white text-[17px] font-bold mt-7 mb-4">Spaces templates</h2>
 
                 {/* Category pills */}
-                <div className="flex items-center gap-1.5 mb-6 overflow-x-auto scrollbar-none">
+                <div className="flex items-center gap-1.5 mb-6 overflow-x-auto no-scrollbar">
                   {CATEGORIES.map((cat) => (
                     <button
                       key={cat}
