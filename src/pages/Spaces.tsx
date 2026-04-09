@@ -15,6 +15,7 @@ interface TemplateData {
   automations: string[];
   nodes: string[];
   author?: string;
+  outputImg?: string;
 }
 
 const GETTING_STARTED = [
@@ -47,6 +48,7 @@ const TEMPLATES: TemplateData[] = [
     inputs: ['Photo of your product', 'Ad copy text'],
     automations: ['Generates product color variations', 'Removes background for clean cutout', 'Applies designs in multiple formats', 'Delivers final campaign assets'],
     nodes: ['Image Generator', 'Designer Node', 'Assistant', 'Upscaler'],
+    outputImg: '/spaces-assets/output-multiformat-ad.png',
   },
   {
     title: 'Create poster series with Designer Node',
@@ -805,7 +807,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
                 {/* port: left edge (outside overflow-hidden) */}
                 <div data-port="ol" className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-[14px] h-[14px] rounded-full border-2 border-emerald-500/50 bg-[#161616] z-10" />
                 <div className="overflow-hidden rounded-2xl border border-emerald-500/20">
-                  <img src={template.img} alt={template.title} className="w-full aspect-[3/4] object-cover" />
+                  <img src={template.outputImg || template.img} alt={template.title} className="w-full aspect-[3/4] object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/5 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-7">
                     <p className="text-white text-[15px] font-medium leading-relaxed">{template.result}</p>
