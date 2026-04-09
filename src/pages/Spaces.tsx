@@ -726,7 +726,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
     <div className="fixed inset-0 z-[200] flex items-center justify-center overflow-y-auto p-6">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[1440px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl max-h-[94vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-[1540px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl max-h-[94vh] overflow-y-auto">
         {/* close */}
         <button onClick={onClose} className="absolute top-5 right-5 z-20 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
           <X className="w-4 h-4 text-[#888]" />
@@ -738,7 +738,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             <span className="text-[11px] text-[#666] mb-2 inline-block">by {template.author}</span>
           )}
           <h1 className="text-[#f0f0f0] text-[22px] font-semibold leading-snug pr-12">{template.title}</h1>
-          <p className="text-[#666] text-[13px] mt-1.5 max-w-[600px] leading-relaxed">{template.description}</p>
+          <p className="text-[#666] text-[13px] mt-1.5 leading-relaxed">{template.description}</p>
         </div>
 
         {/* ══════════════════════════════════════════════════
@@ -758,10 +758,10 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             ))}
           </svg>
 
-          <div className="relative z-[2] grid grid-cols-[270px_1fr_440px]" style={{ minHeight: 540 }}>
+          <div className="relative z-[2] grid grid-cols-[300px_1fr_480px]" style={{ minHeight: 580 }}>
 
             {/* ── LEFT: You provide ── */}
-            <div className="p-12 pr-6 flex flex-col justify-center">
+            <div className="p-10 pr-6 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8">
                 <div className="w-2.5 h-2.5 rounded-full bg-[#c9a227]" />
                 <span className="text-[#c9a227] text-[12px] font-bold uppercase tracking-[0.1em]">You provide</span>
@@ -805,7 +805,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── CENTER: The workflow does ── */}
-            <div className="py-12 px-8 flex flex-col justify-center">
+            <div className="py-10 px-10 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8 justify-center">
                 <Zap className="w-4 h-4 text-emerald-400" strokeWidth={2.5} />
                 <span className="text-[#555] text-[12px] font-bold uppercase tracking-[0.1em]">The workflow does</span>
@@ -827,7 +827,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             </div>
 
             {/* ── RIGHT: You get (protagonist) ── */}
-            <div className="p-12 pl-6 flex flex-col justify-center">
+            <div className="p-10 pl-6 flex flex-col justify-center">
               <div className="flex items-center gap-2 mb-8">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
                 <span className="text-emerald-400 text-[12px] font-bold uppercase tracking-[0.1em]">You get</span>
