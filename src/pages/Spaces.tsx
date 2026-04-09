@@ -726,7 +726,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
       <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-[1540px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl flex flex-col" style={{ maxHeight: 'calc(100vh - 32px)' }}>
+      <div className="relative z-10 w-[calc(100%-32px)] max-w-[1540px] rounded-[24px] bg-[#141414] border border-white/[0.07] overflow-hidden shadow-2xl flex flex-col" style={{ maxHeight: 'calc(100vh - 48px)' }}>
         {/* close */}
         <button onClick={onClose} className="absolute top-5 right-5 z-20 flex items-center justify-center w-9 h-9 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] transition-colors">
           <X className="w-4 h-4 text-[#888]" />
@@ -758,7 +758,7 @@ function TemplateDetailModal({ template, onClose }: { template: TemplateData; on
             ))}
           </svg>
 
-          <div className="relative z-[2] grid grid-cols-[300px_1fr_480px] h-full">
+          <div className="relative z-[2] grid grid-cols-[22%_1fr_36%] h-full">
 
             {/* ── LEFT: You provide ── */}
             <div className="p-10 pr-6 flex flex-col justify-center">
